@@ -5,9 +5,10 @@ set -euo pipefail
 #
 # Usage:
 #   Basic:       sudo bash bootstrap-droplet.sh
-#   With config: sudo DOMAIN=example.com bash bootstrap-droplet.sh
+#   With domain: sudo bash bootstrap-droplet.sh society.example.com
+#   With env:    sudo DOMAIN=society.example.com bash bootstrap-droplet.sh
 #
-# Environment variables:
+# Environment variables (all overridable; positional arg takes precedence for DOMAIN):
 #   DOMAIN           - Your domain (e.g., society.example.com)
 #   FEDERATION_URL   - Federation server URL (optional)
 #   DOCKER_USERNAME  - Docker Hub username [default: cirodam]
@@ -22,7 +23,7 @@ GITHUB_RAW="https://raw.githubusercontent.com/cirodam/resolute-society/master"
 APP_DIR="/opt/resolute-society"
 DOCKER_USERNAME="${DOCKER_USERNAME:-cirodam}"
 VERSION="${VERSION:-latest}"
-DOMAIN="${DOMAIN:-}"
+DOMAIN="${1:-${DOMAIN:-}}"
 FEDERATION_URL="${FEDERATION_URL:-}"
 
 echo "=========================================="

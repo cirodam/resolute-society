@@ -1,7 +1,61 @@
 # Resolute Society
 
-Resolute Society is a SvelteKit + TypeScript application backed by SQLite. It models societies,
-federation services, compacts, governance, education, and dual-currency economic activity.
+Resolute Society is self-hosted software for communities that take their independence seriously. It is built around two convictions: that a free people must be able to meet their own needs, and that the right of self-government is worth protecting in practice, not just in principle.
+
+## Purpose
+
+**Meeting member needs.** A society exists to serve its members. Resolute Society provides tools for communities to plan and coordinate around the essentials — food, shelter, healthcare, and security — so that dependence on distant institutions is a choice rather than a necessity. Nutrition planning, local economic activity, a community market, and a shared treasury are all oriented toward this end.
+
+**Civic participation.** Strong communities require genuine participation, not just passive membership. Resolute Society gives groups the structures to govern themselves at the local level — assemblies, officers, charters, and the means to form compacts with neighboring groups — so that civic life is something members actively shape.
+
+## What It Does
+
+- **Economy and ledger** — dual-currency treasury, peer transfers, demurrage, and disbursements managed through a double-entry ledger
+- **Governance** — assembly records, officer positions, permissions, and a society charter
+- **Member directory** — people, associations, and dependants tracked within the society
+- **Nutrition planning** — science-grounded food and requirement planning for the community
+- **Local map and road graph** — offline tile caching and road-distance routing for when fuel and infrastructure cannot be taken for granted
+- **Market** — a local marketplace for goods and services among members
+- **Courses and education** — structured learning for community skill-building
+- **Federation** — secure messaging and economic coordination between allied societies and compacts
+- **Calendar and events** — shared scheduling for society activities
+
+## Deploying to a DigitalOcean Droplet
+
+The bootstrap script installs Docker, configures the firewall, downloads the compose file and Caddyfile, and creates helper scripts for managing the application.
+
+**1. Create a droplet** running Ubuntu 22.04 or later. A 1 GB / 1 CPU droplet is sufficient to start.
+
+**2. Point your domain's A record** at the droplet's IP address before running the script, so Caddy can provision a TLS certificate on first start.
+
+**3. SSH into the droplet and run the bootstrap script:**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/cirodam/resolute-society/master/scripts/bootstrap-droplet.sh -o bootstrap.sh
+sudo bash bootstrap.sh society.example.com
+```
+
+Replace `society.example.com` with your actual domain. You can also omit it and set `DOMAIN` manually afterward in `/opt/resolute-society/.env`.
+
+**4. Start the application:**
+
+```sh
+cd /opt/resolute-society
+./start.sh
+```
+
+After about two minutes for SSL provisioning, visit `https://society.example.com/setup` to create the first account.
+
+**Ongoing management** (run from `/opt/resolute-society`):
+
+```sh
+./stop.sh          # stop services
+./logs.sh          # tail all logs
+./logs.sh app      # tail app logs only
+./logs.sh caddy    # tail Caddy logs only
+./update.sh        # pull latest image and restart
+./backup.sh        # back up the database volume to ./backups/
+```
 
 ## Development
 

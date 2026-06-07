@@ -450,10 +450,4 @@ CREATE INDEX IF NOT EXISTS idx_road_edge_society ON road_edge(society_id);
 
 export async function migrate(): Promise<void> {
 	await db().unsafe(SCHEMA);
-	// Additive column migrations for existing databases
-	await db()`ALTER TABLE person ADD COLUMN IF NOT EXISTS location_id TEXT REFERENCES location(id)`;
-	await db()`ALTER TABLE association ADD COLUMN IF NOT EXISTS location_id TEXT REFERENCES location(id)`;
-	await db()`ALTER TABLE person ADD COLUMN IF NOT EXISTS welcome_seen_at TIMESTAMPTZ`;
-	await db()`ALTER TABLE person ADD COLUMN IF NOT EXISTS sex TEXT CHECK (sex IN ('male', 'female', 'other'))`;
-	await db()`ALTER TABLE dependant ADD COLUMN IF NOT EXISTS sex TEXT CHECK (sex IN ('male', 'female', 'other'))`;
 }

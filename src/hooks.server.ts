@@ -6,7 +6,7 @@ import { startScheduler } from '$lib/server/services/scheduler.service';
 import { resolveSocietyIdAsync } from '$lib/server/utils/society-id.util';
 import type { Handle } from '@sveltejs/kit';
 
-(async () => {
+const ready = (async () => {
 	await migrate();
 
 	const repos = getRepositories();
@@ -19,7 +19,6 @@ import type { Handle } from '@sveltejs/kit';
 	}
 
 	const societies = await repos.societies.listAll();
-	// Warm the society ID cache so resolveSocietyId() works synchronously in routes.
 	if (societies.length > 0) await resolveSocietyIdAsync(undefined);
 	if (societies.length > 0) {
 		const personsWithoutKeypair = await repos.people.listWithoutKeypair(societies[0].id);
@@ -52,6 +51,7 @@ import type { Handle } from '@sveltejs/kit';
 let lastEventSweep = 0;
 
 export const handle: Handle = async ({ event, resolve }) => {
+	await ready;
 	// If the app is not yet configured, redirect everything except /setup to the setup page.
 	const isSetupRoute = event.url.pathname.startsWith('/setup');
 	const isWelcomeRoute = event.url.pathname.startsWith('/welcome');

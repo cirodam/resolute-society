@@ -2,17 +2,42 @@ import { db } from './db';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS society_config (
-	id                TEXT PRIMARY KEY,
-	handle            TEXT NOT NULL UNIQUE,
-	name              TEXT NOT NULL,
-	address           TEXT,
-	lat               REAL,
-	lng               REAL,
-	federation_url    TEXT,
+	id                    TEXT PRIMARY KEY,
+	handle                TEXT NOT NULL UNIQUE,
+	name                  TEXT NOT NULL,
+	address               TEXT,
+	lat                   REAL,
+	lng                   REAL,
+	federation_url        TEXT,
 	federation_ip_address TEXT,
-	founder_person_id TEXT REFERENCES person(id),
-	created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	founder_person_id     TEXT,
+	created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS location_category (
+	id         TEXT PRIMARY KEY,
+	society_id TEXT NOT NULL REFERENCES society_config(id),
+	name       TEXT NOT NULL,
+	color      TEXT NOT NULL DEFAULT '#7a5c1a',
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	UNIQUE (society_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_location_category_society ON location_category(society_id);
+
+CREATE TABLE IF NOT EXISTS location (
+	id          TEXT PRIMARY KEY,
+	society_id  TEXT NOT NULL REFERENCES society_config(id),
+	name        TEXT NOT NULL,
+	category_id TEXT REFERENCES location_category(id),
+	address     TEXT,
+	lat         REAL NOT NULL,
+	lng         REAL NOT NULL,
+	notes       TEXT,
+	created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_location_society ON location(society_id);
 
 CREATE TABLE IF NOT EXISTS person (
 	id                TEXT PRIMARY KEY,
@@ -94,19 +119,19 @@ CREATE INDEX IF NOT EXISTS idx_position_parent  ON position(parent_position_id);
 CREATE INDEX IF NOT EXISTS idx_position_type    ON position(society_id, type);
 
 CREATE TABLE IF NOT EXISTS txn (
-	id             TEXT PRIMARY KEY,
-	from_type      TEXT NOT NULL,
-	from_id        TEXT NOT NULL,
-	to_type        TEXT NOT NULL,
-	to_id          TEXT NOT NULL,
-	amount         REAL NOT NULL,
-	note           TEXT,
-	created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	id         TEXT PRIMARY KEY,
+	from_type  TEXT NOT NULL,
+	from_id    TEXT NOT NULL,
+	to_type    TEXT NOT NULL,
+	to_id      TEXT NOT NULL,
+	amount     REAL NOT NULL,
+	note       TEXT,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_txn_from_entity_created_at ON txn(from_type, from_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_txn_to_entity_created_at   ON txn(to_type, to_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_txn_created_at           ON txn(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_txn_created_at             ON txn(created_at DESC);
 
 CREATE TABLE IF NOT EXISTS event (
 	id             TEXT PRIMARY KEY,
@@ -304,31 +329,6 @@ CREATE TABLE IF NOT EXISTS federation_keypair (
 	private_key TEXT NOT NULL,
 	created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-CREATE TABLE IF NOT EXISTS location_category (
-	id         TEXT PRIMARY KEY,
-	society_id TEXT NOT NULL REFERENCES society_config(id),
-	name       TEXT NOT NULL,
-	color      TEXT NOT NULL DEFAULT '#7a5c1a',
-	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	UNIQUE (society_id, name)
-);
-
-CREATE INDEX IF NOT EXISTS idx_location_category_society ON location_category(society_id);
-
-CREATE TABLE IF NOT EXISTS location (
-	id          TEXT PRIMARY KEY,
-	society_id  TEXT NOT NULL REFERENCES society_config(id),
-	name        TEXT NOT NULL,
-	category_id TEXT REFERENCES location_category(id),
-	address     TEXT,
-	lat         REAL NOT NULL,
-	lng         REAL NOT NULL,
-	notes       TEXT,
-	created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_location_society ON location(society_id);
 
 CREATE TABLE IF NOT EXISTS nutrient (
 	id         TEXT PRIMARY KEY,

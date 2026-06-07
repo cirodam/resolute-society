@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 
 export interface SocietyRow {
 	id: string;
@@ -68,136 +68,101 @@ export interface CourseCreateParams {
 }
 
 export class CourseRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	findSociety(societyId: string): SocietyRow | null {
-		const society = this.database
-			.prepare('SELECT id, name FROM society_config WHERE id = ?')
-			.get(societyId) as SocietyRow | undefined;
-
-		return society ?? null;
+	async findSociety(societyId: string): Promise<SocietyRow | null> {
+		const [row] = await this.sql<SocietyRow[]>`SELECT id, name FROM society_config WHERE id = ${societyId}`;
+		return row ?? null;
 	}
 
-	listCourses(societyId: string, includeUnapproved: boolean): CourseListRow[] {
-		const approvalFilter = includeUnapproved ? '' : "AND c.approval_status = 'approved'";
-
-		return this.database
-			.prepare(
-				`SELECT c.id, c.title, c.description, c.learning_outcomes, c.time_commitment, c.prerequisites,
-				        c.schedule, c.type, c.max_students,
-				        c.location_type, c.address, c.starts_at, c.ends_at, c.status,
-				        c.approval_status, c.approved_by, c.approved_at,
-				        p.id as instructor_id, p.given_name, p.surname, p.handle,
-				        approver.given_name as approver_given_name, approver.surname as approver_surname,
-				        (SELECT COUNT(*) FROM course_enrollment WHERE course_id = c.id AND status = 'enrolled') as enrolled_count
-				 FROM course c
-				 JOIN person p ON p.id = c.instructor_id
-				 LEFT JOIN person approver ON approver.id = c.approved_by
-				 WHERE c.society_id = ? ${approvalFilter}
-				 ORDER BY c.approval_status, c.starts_at DESC`
-			)
-			.all(societyId) as CourseListRow[];
+	async listCourses(societyId: string, includeUnapproved: boolean): Promise<CourseListRow[]> {
+		if (includeUnapproved) {
+			return await this.sql<CourseListRow[]>`
+				SELECT c.id, c.title, c.description, c.learning_outcomes, c.time_commitment, c.prerequisites,
+				       c.schedule, c.type, c.max_students,
+				       c.location_type, c.address, c.starts_at, c.ends_at, c.status,
+				       c.approval_status, c.approved_by, c.approved_at,
+				       p.id as instructor_id, p.given_name, p.surname, p.handle,
+				       approver.given_name as approver_given_name, approver.surname as approver_surname,
+				       (SELECT COUNT(*) FROM course_enrollment WHERE course_id = c.id AND status = 'enrolled')::int as enrolled_count
+				FROM course c
+				JOIN person p ON p.id = c.instructor_id
+				LEFT JOIN person approver ON approver.id = c.approved_by
+				WHERE c.society_id = ${societyId}
+				ORDER BY c.approval_status, c.starts_at DESC`;
+		} else {
+			return await this.sql<CourseListRow[]>`
+				SELECT c.id, c.title, c.description, c.learning_outcomes, c.time_commitment, c.prerequisites,
+				       c.schedule, c.type, c.max_students,
+				       c.location_type, c.address, c.starts_at, c.ends_at, c.status,
+				       c.approval_status, c.approved_by, c.approved_at,
+				       p.id as instructor_id, p.given_name, p.surname, p.handle,
+				       approver.given_name as approver_given_name, approver.surname as approver_surname,
+				       (SELECT COUNT(*) FROM course_enrollment WHERE course_id = c.id AND status = 'enrolled')::int as enrolled_count
+				FROM course c
+				JOIN person p ON p.id = c.instructor_id
+				LEFT JOIN person approver ON approver.id = c.approved_by
+				WHERE c.society_id = ${societyId} AND c.approval_status = 'approved'
+				ORDER BY c.approval_status, c.starts_at DESC`;
+		}
 	}
 
-	findCourse(societyId: string, courseId: string): CourseDetailRow | null {
-		const course = this.database
-			.prepare(
-				`SELECT c.id, c.society_id, c.title, c.description, c.learning_outcomes, c.time_commitment,
-				        c.prerequisites, c.schedule, c.type, c.max_students, c.location_type, c.address,
-				        c.starts_at, c.ends_at, c.status, c.approval_status, c.approved_by, c.approved_at,
-				        p.id as instructor_id, p.given_name, p.surname, p.handle,
-				        approver.given_name as approver_given_name, approver.surname as approver_surname,
-				        (SELECT COUNT(*) FROM course_enrollment WHERE course_id = c.id AND status = 'enrolled') as enrolled_count
-				 FROM course c
-				 JOIN person p ON p.id = c.instructor_id
-				 LEFT JOIN person approver ON approver.id = c.approved_by
-				 WHERE c.society_id = ? AND c.id = ?`
-			)
-			.get(societyId, courseId) as CourseDetailRow | undefined;
-
-		return course ?? null;
+	async findCourse(societyId: string, courseId: string): Promise<CourseDetailRow | null> {
+		const [row] = await this.sql<CourseDetailRow[]>`
+			SELECT c.id, c.society_id, c.title, c.description, c.learning_outcomes, c.time_commitment,
+			       c.prerequisites, c.schedule, c.type, c.max_students, c.location_type, c.address,
+			       c.starts_at, c.ends_at, c.status, c.approval_status, c.approved_by, c.approved_at,
+			       p.id as instructor_id, p.given_name, p.surname, p.handle,
+			       approver.given_name as approver_given_name, approver.surname as approver_surname,
+			       (SELECT COUNT(*) FROM course_enrollment WHERE course_id = c.id AND status = 'enrolled')::int as enrolled_count
+			FROM course c
+			JOIN person p ON p.id = c.instructor_id
+			LEFT JOIN person approver ON approver.id = c.approved_by
+			WHERE c.society_id = ${societyId} AND c.id = ${courseId}`;
+		return row ?? null;
 	}
 
-	findCourseSummary(courseId: string, societyId: string): CourseSummaryRow | null {
-		const course = this.database
-			.prepare(
-				`SELECT c.max_students,
-				        (SELECT COUNT(*) FROM course_enrollment WHERE course_id = c.id AND status = 'enrolled') as enrolled_count
-				 FROM course c
-				 WHERE c.id = ? AND c.society_id = ?`
-			)
-			.get(courseId, societyId) as CourseSummaryRow | undefined;
-
-		return course ?? null;
+	async findCourseSummary(courseId: string, societyId: string): Promise<CourseSummaryRow | null> {
+		const [row] = await this.sql<CourseSummaryRow[]>`
+			SELECT c.max_students,
+			       (SELECT COUNT(*) FROM course_enrollment WHERE course_id = c.id AND status = 'enrolled')::int as enrolled_count
+			FROM course c
+			WHERE c.id = ${courseId} AND c.society_id = ${societyId}`;
+		return row ?? null;
 	}
 
-	findCourseSociety(courseId: string): CourseSocietyRow | null {
-		const course = this.database
-			.prepare('SELECT society_id FROM course WHERE id = ?')
-			.get(courseId) as CourseSocietyRow | undefined;
-
-		return course ?? null;
+	async findCourseSociety(courseId: string): Promise<CourseSocietyRow | null> {
+		const [row] = await this.sql<CourseSocietyRow[]>`SELECT society_id FROM course WHERE id = ${courseId}`;
+		return row ?? null;
 	}
 
-	isStudentEnrolled(courseId: string, studentId: string): boolean {
-		const existing = this.database
-			.prepare('SELECT 1 FROM course_enrollment WHERE course_id = ? AND student_id = ?')
-			.get(courseId, studentId);
-
+	async isStudentEnrolled(courseId: string, studentId: string): Promise<boolean> {
+		const [existing] = await this.sql`
+			SELECT 1 FROM course_enrollment WHERE course_id = ${courseId} AND student_id = ${studentId}`;
 		return !!existing;
 	}
 
-	createEnrollment(courseId: string, studentId: string): void {
-		this.database
-			.prepare(
-				`INSERT INTO course_enrollment (course_id, student_id)
-				 VALUES (?, ?)`
-			)
-			.run(courseId, studentId);
+	async createEnrollment(courseId: string, studentId: string): Promise<void> {
+		await this.sql`INSERT INTO course_enrollment (course_id, student_id) VALUES (${courseId}, ${studentId})`;
 	}
 
-	createCourse(params: CourseCreateParams): void {
-		this.database
-			.prepare(
-				`INSERT INTO course (id, society_id, instructor_id, title, description, learning_outcomes, time_commitment, prerequisites, schedule, type, max_students, location_type, address, starts_at, ends_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-			)
-			.run(
-				params.courseId,
-				params.societyId,
-				params.instructorId,
-				params.title,
-				params.description,
-				params.learningOutcomes,
-				params.timeCommitment,
-				params.prerequisites,
-				params.schedule,
-				params.type,
-				params.maxStudents,
-				params.locationType,
-				params.address,
-				params.startsAt,
-				params.endsAt
-			);
+	async createCourse(params: CourseCreateParams): Promise<void> {
+		await this.sql`
+			INSERT INTO course (id, society_id, instructor_id, title, description, learning_outcomes, time_commitment, prerequisites, schedule, type, max_students, location_type, address, starts_at, ends_at)
+			VALUES (${params.courseId}, ${params.societyId}, ${params.instructorId}, ${params.title}, ${params.description}, ${params.learningOutcomes}, ${params.timeCommitment}, ${params.prerequisites}, ${params.schedule}, ${params.type}, ${params.maxStudents}, ${params.locationType}, ${params.address}, ${params.startsAt}, ${params.endsAt})`;
 	}
 
-	approveCourse(courseId: string, societyId: string, approvedBy: string, approvedAt: string): void {
-		this.database
-			.prepare(
-				`UPDATE course
-				 SET approval_status = 'approved', approved_by = ?, approved_at = ?
-				 WHERE id = ? AND society_id = ?`
-			)
-			.run(approvedBy, approvedAt, courseId, societyId);
+	async approveCourse(courseId: string, societyId: string, approvedBy: string, approvedAt: string): Promise<void> {
+		await this.sql`
+			UPDATE course
+			SET approval_status = 'approved', approved_by = ${approvedBy}, approved_at = ${approvedAt}
+			WHERE id = ${courseId} AND society_id = ${societyId}`;
 	}
 
-	rejectCourse(courseId: string, societyId: string, approvedBy: string, approvedAt: string): void {
-		this.database
-			.prepare(
-				`UPDATE course
-				 SET approval_status = 'rejected', approved_by = ?, approved_at = ?
-				 WHERE id = ? AND society_id = ?`
-			)
-			.run(approvedBy, approvedAt, courseId, societyId);
+	async rejectCourse(courseId: string, societyId: string, approvedBy: string, approvedAt: string): Promise<void> {
+		await this.sql`
+			UPDATE course
+			SET approval_status = 'rejected', approved_by = ${approvedBy}, approved_at = ${approvedAt}
+			WHERE id = ${courseId} AND society_id = ${societyId}`;
 	}
 }

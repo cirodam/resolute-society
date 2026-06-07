@@ -6,7 +6,7 @@ import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repositories = getRepositories();
-	const society = repositories.societies.findById(resolveSocietyId(undefined));
+	const society = await repositories.societies.findById(resolveSocietyId(undefined));
 
 	if (!society) {
 		throw error(404, 'Society not found');
@@ -14,8 +14,8 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	return {
 		society,
-		events: repositories.events.listBySociety(resolveSocietyId(undefined)),
-		associations: repositories.events.listAssociations(resolveSocietyId(undefined))
+		events: await repositories.events.listBySociety(resolveSocietyId(undefined)),
+		associations: await repositories.events.listAssociations(resolveSocietyId(undefined))
 	};
 };
 
@@ -37,7 +37,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Title and start time are required' });
 		}
 
-		getRepositories().events.createEvent({
+		await getRepositories().events.createEvent({
 			eventId: randomUUID(),
 			societyId: resolveSocietyId(undefined),
 			associationId,

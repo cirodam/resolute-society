@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { db } from '$lib/server/infra/db';
-import { getRepositories } from '$lib/server/infra/repositories';
+import { getRepositories, createRepositories } from '$lib/server/infra/repositories';
 import { generateFederationKeypair } from '$lib/server/federation/crypto';
 import { calculateAgeYears, calculateEndowmentTarget } from '$lib/server/economy/endowment';
 import { parseSex, BCRYPT_ROUNDS } from '$lib/server/utils/form.util';
@@ -46,10 +46,10 @@ export const actions: Actions = {
 
 		const repos = getRepositories();
 
-		if (repos.societies.handleExists(societyHandle))
+		if (await repos.societies.handleExists(societyHandle))
 			return fail(400, { error: 'That society handle is already taken' });
 
-		// Pre-compute async values before entering the synchronous DB transaction.
+		// Pre-compute async values before entering the DB transaction.
 		const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 		const keypair = generateFederationKeypair();
 
@@ -58,13 +58,14 @@ export const actions: Actions = {
 		const age        = calculateAgeYears(dob);
 		const endowment  = calculateEndowmentTarget(dob);
 
-		db().transaction(() => {
-			repos.societies.createSociety({ societyId, handle: societyHandle, name: societyName, address: societyAddress });
-			repos.assembly.initializeGeneralAssembly(societyId);
-			repos.assembly.initializeOfficerCorps(societyId);
-			repos.permissions.seedDefaultPositionPermissions(societyId);
+		await db().begin(async (sql) => {
+			const txRepos = createRepositories(sql);
+			await txRepos.societies.createSociety({ societyId, handle: societyHandle, name: societyName, address: societyAddress });
+			await txRepos.assembly.initializeGeneralAssembly(societyId);
+			await txRepos.assembly.initializeOfficerCorps(societyId);
+			await txRepos.permissions.seedDefaultPositionPermissions(societyId);
 
-			repos.people.createPerson({
+			await txRepos.people.createPerson({
 				personId,
 				societyId,
 				handle,
@@ -78,11 +79,11 @@ export const actions: Actions = {
 				privateKey: keypair.privateKey
 			});
 
-			repos.societies.setFounder(societyId, personId);
-			repos.nutrition.seedDefaults(societyId);
+			await txRepos.societies.setFounder(societyId, personId);
+			await txRepos.nutrition.seedDefaults(societyId);
 
 			if (endowment > 0) {
-				repos.ledger.createTransaction({
+				await txRepos.ledger.createTransaction({
 					fromType: 'system',
 					fromId: 'mint',
 					toType: 'society',
@@ -91,7 +92,7 @@ export const actions: Actions = {
 					note: `Bootstrap: ${givenName} ${surname} (${age} person-years)`
 				});
 			}
-		})();
+		});
 
 		throw redirect(303, '/login');
 	}

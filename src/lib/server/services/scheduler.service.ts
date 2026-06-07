@@ -37,20 +37,17 @@ function requiredRunAnchor(now: Date): Date {
 	return yesterdayAnchor;
 }
 
-function ensureJobState(jobName: string): void {
-	db()
-		.prepare(
-			`INSERT OR IGNORE INTO scheduled_job_state (job_name)
-			 VALUES (?)`
-		)
-		.run(jobName);
+async function ensureJobState(jobName: string): Promise<void> {
+	await db()`
+		INSERT INTO scheduled_job_state (job_name)
+		VALUES (${jobName})
+		ON CONFLICT DO NOTHING`;
 }
 
-function isJobDue(jobName: string, now: Date): boolean {
-	ensureJobState(jobName);
-	const row = db()
-		.prepare('SELECT job_name, last_success_at FROM scheduled_job_state WHERE job_name = ?')
-		.get(jobName) as JobStateRow | undefined;
+async function isJobDue(jobName: string, now: Date): Promise<boolean> {
+	await ensureJobState(jobName);
+	const [row] = await db()<JobStateRow[]>`
+		SELECT job_name, last_success_at FROM scheduled_job_state WHERE job_name = ${jobName}`;
 
 	if (!row?.last_success_at) return true;
 
@@ -58,73 +55,64 @@ function isJobDue(jobName: string, now: Date): boolean {
 	return row.last_success_at < toSqlDateTime(anchor);
 }
 
-function acquireLease(jobName: string, now: Date): boolean {
-	ensureJobState(jobName);
+async function acquireLease(jobName: string, now: Date): Promise<boolean> {
+	await ensureJobState(jobName);
 	const nowSql = toSqlDateTime(now);
 	const lockUntil = new Date(now.getTime() + LOCK_LEASE_SECONDS * 1000);
 	const lockUntilSql = toSqlDateTime(lockUntil);
 
-	const result = db()
-		.prepare(
-			`UPDATE scheduled_job_state
-			 SET last_started_at = ?, lock_until = ?, updated_at = datetime('now')
-			 WHERE job_name = ?
-			   AND (lock_until IS NULL OR lock_until <= ?)`
-		)
-		.run(nowSql, lockUntilSql, jobName, nowSql);
+	const result = await db()`
+		UPDATE scheduled_job_state
+		SET last_started_at = ${nowSql}, lock_until = ${lockUntilSql}, updated_at = NOW()
+		WHERE job_name = ${jobName}
+		  AND (lock_until IS NULL OR lock_until <= ${nowSql})`;
 
-	return result.changes === 1;
+	return result.count === 1;
 }
 
-function markSuccess(jobName: string): void {
-	db()
-		.prepare(
-			`UPDATE scheduled_job_state
-			 SET last_success_at = datetime('now'),
-			     last_error_at = NULL,
-			     last_error_message = NULL,
-			     lock_until = NULL,
-			     updated_at = datetime('now')
-			 WHERE job_name = ?`
-		)
-		.run(jobName);
+async function markSuccess(jobName: string): Promise<void> {
+	await db()`
+		UPDATE scheduled_job_state
+		SET last_success_at = NOW(),
+		    last_error_at = NULL,
+		    last_error_message = NULL,
+		    lock_until = NULL,
+		    updated_at = NOW()
+		WHERE job_name = ${jobName}`;
 }
 
-function markFailure(jobName: string, errorMessage: string): void {
-	db()
-		.prepare(
-			`UPDATE scheduled_job_state
-			 SET last_error_at = datetime('now'),
-			     last_error_message = ?,
-			     lock_until = NULL,
-			     updated_at = datetime('now')
-			 WHERE job_name = ?`
-		)
-		.run(errorMessage.slice(0, 500), jobName);
+async function markFailure(jobName: string, errorMessage: string): Promise<void> {
+	await db()`
+		UPDATE scheduled_job_state
+		SET last_error_at = NOW(),
+		    last_error_message = ${errorMessage.slice(0, 500)},
+		    lock_until = NULL,
+		    updated_at = NOW()
+		WHERE job_name = ${jobName}`;
 }
 
-function runEndowmentReconcileJob(): void {
+async function runEndowmentReconcileJob(): Promise<void> {
 	const repositories = getRepositories();
-	const societies = repositories.societies.listAll();
+	const societies = await repositories.societies.listAll();
 
 	for (const society of societies) {
-		reconcileEndowmentMint(society.id);
+		await reconcileEndowmentMint(society.id);
 	}
 }
 
-function runDueJobs(): void {
+async function runDueJobs(): Promise<void> {
 	const now = new Date();
 	const jobName = ENDOWMENT_RECONCILE_JOB;
 
-	if (!isJobDue(jobName, now)) return;
-	if (!acquireLease(jobName, now)) return;
+	if (!(await isJobDue(jobName, now))) return;
+	if (!(await acquireLease(jobName, now))) return;
 
 	try {
-		runEndowmentReconcileJob();
-		markSuccess(jobName);
+		await runEndowmentReconcileJob();
+		await markSuccess(jobName);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Unknown scheduler error';
-		markFailure(jobName, message);
+		await markFailure(jobName, message);
 		console.warn(`[scheduler] ${jobName} failed: ${message}`);
 	}
 }
@@ -133,6 +121,8 @@ export function startScheduler(): void {
 	if (schedulerStarted) return;
 	schedulerStarted = true;
 
-	runDueJobs();
-	setInterval(runDueJobs, TICK_MS);
+	runDueJobs().catch((err) => console.warn('[scheduler] initial run failed:', (err as Error).message));
+	setInterval(() => {
+		runDueJobs().catch((err) => console.warn('[scheduler] tick failed:', (err as Error).message));
+	}, TICK_MS);
 }

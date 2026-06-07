@@ -3,26 +3,29 @@ import { getRepositories } from '$lib/server/infra/repositories';
 import { enqueueFederationMessage, sweepFederationMessages } from '$lib/server/federation/client';
 import { generateFederationKeypair } from '$lib/server/federation/crypto';
 import { startScheduler } from '$lib/server/services/scheduler.service';
+import { resolveSocietyIdAsync } from '$lib/server/utils/society-id.util';
 import type { Handle } from '@sveltejs/kit';
 
-migrate();
-
 (async () => {
+	await migrate();
+
 	const repos = getRepositories();
 	startScheduler();
 
-	if (!repos.keypair.get()) {
+	if (!(await repos.keypair.get())) {
 		const kp = generateFederationKeypair();
-		repos.keypair.create(kp.publicKey, kp.privateKey);
+		await repos.keypair.create(kp.publicKey, kp.privateKey);
 		console.log('[federation] generated society keypair');
 	}
 
-	const societies = repos.societies.listAll();
+	const societies = await repos.societies.listAll();
+	// Warm the society ID cache so resolveSocietyId() works synchronously in routes.
+	if (societies.length > 0) await resolveSocietyIdAsync(undefined);
 	if (societies.length > 0) {
-		const personsWithoutKeypair = repos.people.listWithoutKeypair(societies[0].id);
+		const personsWithoutKeypair = await repos.people.listWithoutKeypair(societies[0].id);
 		for (const person of personsWithoutKeypair) {
 			const kp = generateFederationKeypair();
-			repos.people.setKeypair(person.id, kp.publicKey, kp.privateKey);
+			await repos.people.setKeypair(person.id, kp.publicKey, kp.privateKey);
 		}
 		if (personsWithoutKeypair.length > 0) {
 			console.log(`[federation] generated keypairs for ${personsWithoutKeypair.length} existing members`);
@@ -32,9 +35,9 @@ migrate();
 	if (societies.length === 0) return;
 
 	const society = societies[0];
-	if (!repos.federationMessageQueue.isAdmitted(society.handle)) return;
+	if (!(await repos.federationMessageQueue.isAdmitted(society.handle))) return;
 
-	const memberCount = repos.people.countBySociety(society.id);
+	const memberCount = await repos.people.countBySociety(society.id);
 	enqueueFederationMessage('society_heartbeat', society.handle, {
 		societyId: society.id,
 		name: society.name,
@@ -53,7 +56,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const isSetupRoute = event.url.pathname.startsWith('/setup');
 	const isWelcomeRoute = event.url.pathname.startsWith('/welcome');
 	const isLogoutRoute = event.url.pathname.startsWith('/logout');
-	const isConfigured = getRepositories().societies.listAll().length > 0;
+	const societies = await getRepositories().societies.listAll();
+	const isConfigured = societies.length > 0;
+	// Ensure the society ID cache is warm so resolveSocietyId() works synchronously in routes.
+	if (isConfigured) await resolveSocietyIdAsync(undefined);
 
 	if (!isConfigured && !isSetupRoute) {
 		return new Response(null, { status: 302, headers: { location: '/setup' } });
@@ -66,7 +72,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const sessionId = event.cookies.get('session');
 
 	if (sessionId) {
-		const person = getRepositories().people.findSessionPersonById(sessionId);
+		const person = await getRepositories().people.findSessionPersonById(sessionId);
 
 		if (person) {
 			event.locals.person = {
@@ -94,4 +100,3 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	return resolve(event);
 };
-

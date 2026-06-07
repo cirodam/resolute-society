@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 
 export interface DependantRow {
 	id: string;
@@ -13,51 +13,42 @@ export interface DependantGuardianRow {
 }
 
 export class DependantRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	create(params: { id: string; societyId: string; dob: string; sex: 'male' | 'female' | 'other' | null }): void {
-		this.database
-			.prepare(`INSERT INTO dependant (id, society_id, dob, sex) VALUES (?, ?, ?, ?)`)
-			.run(params.id, params.societyId, params.dob, params.sex);
+	async create(params: { id: string; societyId: string; dob: string; sex: 'male' | 'female' | 'other' | null }): Promise<void> {
+		await this.sql`INSERT INTO dependant (id, society_id, dob, sex) VALUES (${params.id}, ${params.societyId}, ${params.dob}, ${params.sex})`;
 	}
 
-	addGuardian(dependantId: string, guardianId: string, share: number): void {
-		this.database
-			.prepare(`INSERT INTO dependant_guardian (dependant_id, guardian_id, share) VALUES (?, ?, ?)`)
-			.run(dependantId, guardianId, share);
+	async addGuardian(dependantId: string, guardianId: string, share: number): Promise<void> {
+		await this.sql`INSERT INTO dependant_guardian (dependant_id, guardian_id, share) VALUES (${dependantId}, ${guardianId}, ${share})`;
 	}
 
-	listByGuardian(guardianId: string): DependantRow[] {
-		return this.database
-			.prepare(
-				`SELECT d.id, d.dob, d.sex, d.created_at
-				 FROM dependant d
-				 JOIN dependant_guardian dg ON d.id = dg.dependant_id
-				 WHERE dg.guardian_id = ?
-				 ORDER BY d.dob`
-			)
-			.all(guardianId) as DependantRow[];
+	async listByGuardian(guardianId: string): Promise<DependantRow[]> {
+		return await this.sql<DependantRow[]>`
+			SELECT d.id, d.dob, d.sex, d.created_at
+			FROM dependant d
+			JOIN dependant_guardian dg ON d.id = dg.dependant_id
+			WHERE dg.guardian_id = ${guardianId}
+			ORDER BY d.dob`;
 	}
 
-	listGuardians(dependantId: string): DependantGuardianRow[] {
-		return this.database
-			.prepare(`SELECT guardian_id, share FROM dependant_guardian WHERE dependant_id = ?`)
-			.all(dependantId) as DependantGuardianRow[];
+	async listGuardians(dependantId: string): Promise<DependantGuardianRow[]> {
+		return await this.sql<DependantGuardianRow[]>`
+			SELECT guardian_id, share FROM dependant_guardian WHERE dependant_id = ${dependantId}`;
 	}
 
-	isGuardian(dependantId: string, personId: string): boolean {
-		return !!this.database
-			.prepare(`SELECT 1 FROM dependant_guardian WHERE dependant_id = ? AND guardian_id = ?`)
-			.get(dependantId, personId);
+	async isGuardian(dependantId: string, personId: string): Promise<boolean> {
+		const [existing] = await this.sql`
+			SELECT 1 FROM dependant_guardian WHERE dependant_id = ${dependantId} AND guardian_id = ${personId}`;
+		return !!existing;
 	}
 
-	listBySociety(societyId: string): Array<{ dob: string; sex: 'male' | 'female' | 'other' | null }> {
-		return this.database
-			.prepare('SELECT dob, sex FROM dependant WHERE society_id = ?')
-			.all(societyId) as Array<{ dob: string; sex: 'male' | 'female' | 'other' | null }>;
+	async listBySociety(societyId: string): Promise<Array<{ dob: string; sex: 'male' | 'female' | 'other' | null }>> {
+		return await this.sql<Array<{ dob: string; sex: 'male' | 'female' | 'other' | null }>>`
+			SELECT dob, sex FROM dependant WHERE society_id = ${societyId}`;
 	}
 
-	delete(dependantId: string): void {
-		this.database.prepare(`DELETE FROM dependant WHERE id = ?`).run(dependantId);
+	async delete(dependantId: string): Promise<void> {
+		await this.sql`DELETE FROM dependant WHERE id = ${dependantId}`;
 	}
 }

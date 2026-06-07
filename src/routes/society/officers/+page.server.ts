@@ -7,13 +7,13 @@ import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repositories = getRepositories();
-	const society = repositories.positions.findSociety(resolveSocietyId(undefined));
+	const society = await repositories.positions.findSociety(resolveSocietyId(undefined));
 
 	if (!society) {
 		throw error(404, 'Society not found');
 	}
 
-	const positions = repositories.positions.listOfficerPositions(resolveSocietyId(undefined));
+	const positions = await repositories.positions.listOfficerPositions(resolveSocietyId(undefined));
 
 	return {
 		society,
@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ params }) => {
 export const actions: Actions = {
 	createPosition: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
+		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const name = formData.get('name')?.toString();
@@ -37,11 +37,11 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		if (repositories.positions.positionExistsInSociety(resolveSocietyId(undefined), name)) {
+		if (await repositories.positions.positionExistsInSociety(resolveSocietyId(undefined), name)) {
 			return fail(400, { error: 'Position with this name already exists' });
 		}
 
-		repositories.positions.createOfficerPosition({
+		await repositories.positions.createOfficerPosition({
 			societyId: resolveSocietyId(undefined),
 			positionId: randomUUID(),
 			name,

@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 
 export interface SocietyRow {
 	id: string;
@@ -36,53 +36,41 @@ export interface ServiceListingRow {
 }
 
 export class MarketRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	findSociety(societyId: string): SocietyRow | null {
-		const society = this.database
-			.prepare('SELECT id, name FROM society_config WHERE id = ?')
-			.get(societyId) as SocietyRow | undefined;
-
-		return society ?? null;
+	async findSociety(societyId: string): Promise<SocietyRow | null> {
+		const [row] = await this.sql<SocietyRow[]>`SELECT id, name FROM society_config WHERE id = ${societyId}`;
+		return row ?? null;
 	}
 
-	listItemListings(societyId: string): ItemListingRow[] {
-		return this.database
-			.prepare(
-				`SELECT il.id, il.type, il.category, il.title, il.description,
-				        il.society_credits_price, il.federation_credits_price, il.created_at,
-				        p.id as person_id, p.given_name, p.surname, p.handle
-				 FROM item_listing il
-				 JOIN person p ON p.id = il.person_id
-				 WHERE il.society_id = ? AND il.status = 'active'
-				 ORDER BY il.created_at DESC`
-			)
-			.all(societyId) as ItemListingRow[];
+	async listItemListings(societyId: string): Promise<ItemListingRow[]> {
+		return await this.sql<ItemListingRow[]>`
+			SELECT il.id, il.type, il.category, il.title, il.description,
+			       il.society_credits_price, il.federation_credits_price, il.created_at,
+			       p.id as person_id, p.given_name, p.surname, p.handle
+			FROM item_listing il
+			JOIN person p ON p.id = il.person_id
+			WHERE il.society_id = ${societyId} AND il.status = 'active'
+			ORDER BY il.created_at DESC`;
 	}
 
-	listServiceListings(societyId: string): ServiceListingRow[] {
-		return this.database
-			.prepare(
-				`SELECT sl.id, sl.category, sl.title, sl.description,
-				        sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit, sl.created_at,
-				        p.id as person_id, p.given_name, p.surname, p.handle
-				 FROM service_listing sl
-				 JOIN person p ON p.id = sl.person_id
-				 WHERE sl.society_id = ? AND sl.status = 'active'
-				 ORDER BY sl.created_at DESC`
-			)
-			.all(societyId) as ServiceListingRow[];
+	async listServiceListings(societyId: string): Promise<ServiceListingRow[]> {
+		return await this.sql<ServiceListingRow[]>`
+			SELECT sl.id, sl.category, sl.title, sl.description,
+			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit, sl.created_at,
+			       p.id as person_id, p.given_name, p.surname, p.handle
+			FROM service_listing sl
+			JOIN person p ON p.id = sl.person_id
+			WHERE sl.society_id = ${societyId} AND sl.status = 'active'
+			ORDER BY sl.created_at DESC`;
 	}
 
-	findLocalPerson(societyId: string): { id: string } | null {
-		const person = this.database
-			.prepare('SELECT id FROM person WHERE society_id = ? LIMIT 1')
-			.get(societyId) as { id: string } | undefined;
-
-		return person ?? null;
+	async findLocalPerson(societyId: string): Promise<{ id: string } | null> {
+		const [row] = await this.sql<Array<{ id: string }>>`SELECT id FROM person WHERE society_id = ${societyId} LIMIT 1`;
+		return row ?? null;
 	}
 
-	createItemListing(params: {
+	async createItemListing(params: {
 		listingId: string;
 		societyId: string;
 		personId: string;
@@ -92,26 +80,13 @@ export class MarketRepository {
 		description: string;
 		societyCreditsPrice: number | null;
 		federationCreditsPrice: number | null;
-	}): void {
-		this.database
-			.prepare(
-				`INSERT INTO item_listing (id, society_id, person_id, type, category, title, description, society_credits_price, federation_credits_price)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-			)
-			.run(
-				params.listingId,
-				params.societyId,
-				params.personId,
-				params.type,
-				params.category,
-				params.title,
-				params.description,
-				params.societyCreditsPrice,
-				params.federationCreditsPrice
-			);
+	}): Promise<void> {
+		await this.sql`
+			INSERT INTO item_listing (id, society_id, person_id, type, category, title, description, society_credits_price, federation_credits_price)
+			VALUES (${params.listingId}, ${params.societyId}, ${params.personId}, ${params.type}, ${params.category}, ${params.title}, ${params.description}, ${params.societyCreditsPrice}, ${params.federationCreditsPrice})`;
 	}
 
-	createServiceListing(params: {
+	async createServiceListing(params: {
 		listingId: string;
 		societyId: string;
 		personId: string;
@@ -121,22 +96,9 @@ export class MarketRepository {
 		societyCreditsRate: number | null;
 		federationCreditsRate: number | null;
 		rateUnit: string | null;
-	}): void {
-		this.database
-			.prepare(
-				`INSERT INTO service_listing (id, society_id, person_id, category, title, description, society_credits_rate, federation_credits_rate, rate_unit)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-			)
-			.run(
-				params.listingId,
-				params.societyId,
-				params.personId,
-				params.category,
-				params.title,
-				params.description,
-				params.societyCreditsRate,
-				params.federationCreditsRate,
-				params.rateUnit
-			);
+	}): Promise<void> {
+		await this.sql`
+			INSERT INTO service_listing (id, society_id, person_id, category, title, description, society_credits_rate, federation_credits_rate, rate_unit)
+			VALUES (${params.listingId}, ${params.societyId}, ${params.personId}, ${params.category}, ${params.title}, ${params.description}, ${params.societyCreditsRate}, ${params.federationCreditsRate}, ${params.rateUnit})`;
 	}
 }

@@ -13,7 +13,7 @@ export const actions = {
 			return fail(400, { error: 'Handle and password are required' });
 		}
 
-		const person = getRepositories().people.findLoginByHandle(handle);
+		const person = await getRepositories().people.findLoginByHandle(handle);
 
 		if (!person) {
 			return fail(401, { error: 'Invalid handle or password' });

@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 
 export interface EventRow {
 	id: string;
@@ -19,38 +19,34 @@ export interface EventAssociationRow {
 }
 
 export class EventRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	listBySociety(societyId: string): EventRow[] {
-		return this.database
-			.prepare(
-				`SELECT
-					e.id,
-					e.title,
-					e.description,
-					e.location,
-					e.starts_at,
-					e.ends_at,
-					e.created_at,
-					p.given_name as creator_given_name,
-					p.surname as creator_surname,
-					a.name as association_name
-				 FROM event e
-				 LEFT JOIN person p ON e.created_by = p.id
-				 LEFT JOIN association a ON e.association_id = a.id
-				 WHERE e.society_id = ?
-				 ORDER BY e.starts_at DESC`
-			)
-			.all(societyId) as EventRow[];
+	async listBySociety(societyId: string): Promise<EventRow[]> {
+		return await this.sql<EventRow[]>`
+			SELECT
+				e.id,
+				e.title,
+				e.description,
+				e.location,
+				e.starts_at,
+				e.ends_at,
+				e.created_at,
+				p.given_name as creator_given_name,
+				p.surname as creator_surname,
+				a.name as association_name
+			FROM event e
+			LEFT JOIN person p ON e.created_by = p.id
+			LEFT JOIN association a ON e.association_id = a.id
+			WHERE e.society_id = ${societyId}
+			ORDER BY e.starts_at DESC`;
 	}
 
-	listAssociations(societyId: string): EventAssociationRow[] {
-		return this.database
-			.prepare('SELECT id, name FROM association WHERE society_id = ? ORDER BY name')
-			.all(societyId) as EventAssociationRow[];
+	async listAssociations(societyId: string): Promise<EventAssociationRow[]> {
+		return await this.sql<EventAssociationRow[]>`
+			SELECT id, name FROM association WHERE society_id = ${societyId} ORDER BY name`;
 	}
 
-	createEvent(params: {
+	async createEvent(params: {
 		eventId: string;
 		societyId: string;
 		associationId: string | null;
@@ -60,22 +56,9 @@ export class EventRepository {
 		startsAt: string;
 		endsAt: string | null;
 		createdBy: string;
-	}): void {
-		this.database
-			.prepare(
-				`INSERT INTO event (id, society_id, association_id, title, description, location, starts_at, ends_at, created_by)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-			)
-			.run(
-				params.eventId,
-				params.societyId,
-				params.associationId,
-				params.title,
-				params.description,
-				params.location,
-				params.startsAt,
-				params.endsAt,
-				params.createdBy
-			);
+	}): Promise<void> {
+		await this.sql`
+			INSERT INTO event (id, society_id, association_id, title, description, location, starts_at, ends_at, created_by)
+			VALUES (${params.eventId}, ${params.societyId}, ${params.associationId}, ${params.title}, ${params.description}, ${params.location}, ${params.startsAt}, ${params.endsAt}, ${params.createdBy})`;
 	}
 }

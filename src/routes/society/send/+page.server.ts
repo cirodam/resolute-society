@@ -10,7 +10,7 @@ import type { PageServerLoad, Actions } from './$types';
 export const load: PageServerLoad = async ({ locals }) => {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
-	const society = repos.societies.findDetailById(societyId);
+	const society = await repos.societies.findDetailById(societyId);
 
 	if (!society) throw error(404, 'Society not found');
 
@@ -19,8 +19,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		society,
 		fromPrincipal,
-		hasKeypair: !!repos.keypair.get(),
-		isAdmitted: repos.federationMessageQueue.isAdmitted(society.handle)
+		hasKeypair: !!(await repos.keypair.get()),
+		isAdmitted: await repos.federationMessageQueue.isAdmitted(society.handle)
 	};
 };
 
@@ -41,7 +41,7 @@ export const actions: Actions = {
 
 		const repos = getRepositories();
 		const societyId = resolveSocietyId(undefined);
-		const society = repos.societies.findDetailById(societyId);
+		const society = await repos.societies.findDetailById(societyId);
 		if (!society) return fail(404, { sendError: 'Society not found' });
 
 		const fromAt = fromPrincipal.indexOf('@');
@@ -63,13 +63,13 @@ export const actions: Actions = {
 				return fail(400, { sendError: 'Society credits cannot be sent cross-society' });
 			}
 
-			const fromEntity = resolveLocalEntityById(fromId, societyId, repos);
-			const toEntity = resolveLocalEntityById(toId, societyId, repos);
+			const fromEntity = await resolveLocalEntityById(fromId, societyId, repos);
+			const toEntity = await resolveLocalEntityById(toId, societyId, repos);
 
 			if (!fromEntity) return fail(400, { sendError: 'Sender not found in this society' });
 			if (!toEntity) return fail(400, { sendError: 'Recipient not found in this society' });
 
-			repos.ledger.createTransaction({
+			await repos.ledger.createTransaction({
 				fromType: fromEntity.type,
 				fromId: fromEntity.id,
 				toType: toEntity.type,
@@ -82,17 +82,17 @@ export const actions: Actions = {
 		}
 
 		// Federation credits: sign and send to the federation regardless of society
-		if (!repos.federationMessageQueue.isAdmitted(society.handle)) {
+		if (!(await repos.federationMessageQueue.isAdmitted(society.handle))) {
 			return fail(400, { sendError: 'Society is not yet admitted to the federation' });
 		}
 
 		let signingKey: string;
 		if (fromId === 'treasury') {
-			const keypair = repos.keypair.get();
+			const keypair = await repos.keypair.get();
 			if (!keypair) return fail(500, { sendError: 'Society keypair not initialised' });
 			signingKey = keypair.private_key;
 		} else {
-			const personPrivateKey = repos.people.findPrivateKeyById(fromId);
+			const personPrivateKey = await repos.people.findPrivateKeyById(fromId);
 			if (!personPrivateKey) {
 				return fail(400, { sendError: 'Sender not found or has no keypair' });
 			}

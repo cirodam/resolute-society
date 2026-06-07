@@ -1,3 +1,4 @@
+import postgres from 'postgres';
 import { db } from '../db';
 import { FederationMessageQueueRepository } from './federation-message-queue.repository';
 import { FederationKeypairRepository } from './federation-keypair.repository';
@@ -69,29 +70,30 @@ export interface Repositories {
 
 let repositories: Repositories | null = null;
 
-export function createRepositories(database = db()): Repositories {
-	const ledger = new LedgerRepository(database);
-	const permissions = new PermissionRepository(database);
-	const societies = new SocietyRepository(database);
-	const people = new PersonRepository(database);
-	const associations = new AssociationRepository(database);
-	const assembly = new AssemblyRepository(database);
-	const courses = new CourseRepository(database);
-	const messages = new MessageRepository(database);
-	const market = new MarketRepository(database);
-	const events = new EventRepository(database);
-	const posts = new PostRepository(database);
-	const positions = new PositionRepository(database);
-	const treasury = new TreasuryRepository(database);
-	const allowanceGroups = new AllowanceGroupRepository(database);
-	const federationMessageQueue = new FederationMessageQueueRepository(database);
-	const keypair = new FederationKeypairRepository(database);
-	const locations = new LocationRepository(database);
-	const locationCategories = new LocationCategoryRepository(database);
-	const dependants = new DependantRepository(database);
-	const ledgerDays = new LedgerDayRepository(database);
-	const nutrition = new NutritionRepository(database);
-	const roadGraph = new RoadGraphRepository(database);
+export function createRepositories(sql: postgres.Sql | postgres.TransactionSql = db()): Repositories {
+	const s = sql as postgres.Sql;
+	const ledger = new LedgerRepository(s);
+	const permissions = new PermissionRepository(s);
+	const societies = new SocietyRepository(s);
+	const people = new PersonRepository(s);
+	const associations = new AssociationRepository(s);
+	const assembly = new AssemblyRepository(s);
+	const courses = new CourseRepository(s);
+	const messages = new MessageRepository(s);
+	const market = new MarketRepository(s);
+	const events = new EventRepository(s);
+	const posts = new PostRepository(s);
+	const positions = new PositionRepository(s);
+	const treasury = new TreasuryRepository(s);
+	const allowanceGroups = new AllowanceGroupRepository(s);
+	const federationMessageQueue = new FederationMessageQueueRepository(s);
+	const keypair = new FederationKeypairRepository(s);
+	const locations = new LocationRepository(s);
+	const locationCategories = new LocationCategoryRepository(s);
+	const dependants = new DependantRepository(s);
+	const ledgerDays = new LedgerDayRepository(s);
+	const nutrition = new NutritionRepository(s);
+	const roadGraph = new RoadGraphRepository(s);
 
 	const society: SocietyRepositories = {
 		people,

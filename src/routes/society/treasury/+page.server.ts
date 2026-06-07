@@ -23,21 +23,21 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repositories = getRepositories();
-	const society = repositories.treasury.findSocietyById(resolveSocietyId(undefined));
+	const society = await repositories.treasury.findSocietyById(resolveSocietyId(undefined));
 
 	if (!society) {
 		throw error(404, 'Society not found');
 	}
 
 	const societyId = resolveSocietyId(undefined);
-	const summary = repositories.treasury.calculateSummary(societyId);
-	const supplySnapshot = getSupplySnapshot(societyId);
+	const summary = await repositories.treasury.calculateSummary(societyId);
+	const supplySnapshot = await getSupplySnapshot(societyId);
 	const federationCredits = await getFederationBalance(`treasury@${society.id}`);
-	const allowanceGroups = repositories.allowanceGroups.listBySociety(societyId);
-	const members = repositories.treasury.listSocietyMembers(societyId);
-	const groupMembers = repositories.allowanceGroups.listMembers(societyId);
-	const positions = repositories.positions.listForPayroll(societyId);
-	const memberCount = repositories.treasury.getMemberCount(societyId);
+	const allowanceGroups = await repositories.allowanceGroups.listBySociety(societyId);
+	const members = await repositories.treasury.listSocietyMembers(societyId);
+	const groupMembers = await repositories.allowanceGroups.listMembers(societyId);
+	const positions = await repositories.positions.listForPayroll(societyId);
+	const memberCount = await repositories.treasury.getMemberCount(societyId);
 
 	const membersByGroup = groupMembers.reduce(
 		(acc, groupMember) => {
@@ -92,10 +92,10 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		const people = repositories.treasury.listSocietyPrincipals(resolveSocietyId(undefined));
-		const associations = repositories.treasury.listSocietyAssociations(resolveSocietyId(undefined));
+		const people = await repositories.treasury.listSocietyPrincipals(resolveSocietyId(undefined));
+		const associations = await repositories.treasury.listSocietyAssociations(resolveSocietyId(undefined));
 
-		const { totalCollected } = collectDemurrage({
+		const { totalCollected } = await collectDemurrage({
 			principals: [
 				...people.map((person) => ({ type: 'person' as const, id: person.id })),
 				...associations.map((association) => ({ type: 'association' as const, id: association.id }))
@@ -119,7 +119,7 @@ export const actions = {
 			societyId: resolveSocietyId(undefined),
 			permissionCode: 'treasury.run_demurrage'
 		});
-		const result = reconcileEndowmentMint(resolveSocietyId(undefined));
+		const result = await reconcileEndowmentMint(resolveSocietyId(undefined));
 
 		return {
 			endowmentMintSuccess: true,
@@ -136,7 +136,7 @@ export const actions = {
 			permissionCode: 'treasury.run_demurrage'
 		});
 
-		const result = runSupplyReconciliationDemurrage(resolveSocietyId(undefined));
+		const result = await runSupplyReconciliationDemurrage(resolveSocietyId(undefined));
 
 		return {
 			supplyReconcileSuccess: true,
@@ -163,14 +163,14 @@ export const actions = {
 			return fail(400, { transferError: 'Please enter a valid handle and amount' });
 		}
 
-		if (!hasSufficientBalance('society', resolveSocietyId(undefined), amount)) {
+		if (!(await hasSufficientBalance('society', resolveSocietyId(undefined), amount))) {
 			return fail(400, { transferError: 'Insufficient treasury balance' });
 		}
 
-		const recipient = resolveSocietyMemberByHandle(handle, resolveSocietyId(undefined));
+		const recipient = await resolveSocietyMemberByHandle(handle, resolveSocietyId(undefined));
 
 		if (recipient) {
-			disburseToResolvedPrincipal({
+			await disburseToResolvedPrincipal({
 				fromType: 'society',
 				fromId: resolveSocietyId(undefined),
 						amount,
@@ -205,13 +205,13 @@ export const actions = {
 
 		const repos = getRepositories();
 		const societyId = resolveSocietyId(undefined);
-		const society = repos.societies.findDetailById(societyId);
+		const society = await repos.societies.findDetailById(societyId);
 		if (!society) return fail(404, { federationTransferError: 'Society not found' });
 
-		const keypair = repos.keypair.get();
+		const keypair = await repos.keypair.get();
 		if (!keypair) return fail(500, { federationTransferError: 'Society keypair not initialised' });
 
-		if (!repos.federationMessageQueue.isAdmitted(society.handle)) {
+		if (!(await repos.federationMessageQueue.isAdmitted(society.handle))) {
 			return fail(400, { federationTransferError: 'Society is not yet admitted to the federation' });
 		}
 
@@ -244,20 +244,20 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		const group = repositories.allowanceGroups.find(resolveSocietyId(undefined), groupId);
+		const group = await repositories.allowanceGroups.find(resolveSocietyId(undefined), groupId);
 
 		if (!group) {
 			return fail(400, { allowanceError: 'Allowance group not found' });
 		}
 
-		const members = repositories.allowanceGroups.listMembersByGroup(groupId);
+		const members = await repositories.allowanceGroups.listMembersByGroup(groupId);
 
 		if (members.length === 0) {
 			return fail(400, { allowanceError: 'No members in this group' });
 		}
 
 		const totalRequired = members.reduce((sum, member) => sum + member.amount, 0);
-		const societyBalance = calculateBalance('society', resolveSocietyId(undefined));
+		const societyBalance = await calculateBalance('society', resolveSocietyId(undefined));
 		if (societyBalance < totalRequired) {
 			return fail(400, {
 				allowanceError: `Insufficient treasury balance. Need ${totalRequired.toFixed(2)}, have ${societyBalance.toFixed(2)}`
@@ -265,7 +265,7 @@ export const actions = {
 		}
 
 		for (const member of members) {
-			repositories.ledger.createTransaction({
+			await repositories.ledger.createTransaction({
 				fromType: 'society',
 				fromId: resolveSocietyId(undefined),
 				toType: 'person',
@@ -285,7 +285,7 @@ export const actions = {
 
 	createAllowanceGroup: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'treasury.create_allowance_group', resolveSocietyId(undefined));
+		await requirePermission(event, 'treasury.create_allowance_group', resolveSocietyId(undefined));
 		const data = await request.formData();
 		const name = data.get('name')?.toString();
 
@@ -294,18 +294,18 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		if (repositories.allowanceGroups.exists(resolveSocietyId(undefined), name)) {
+		if (await repositories.allowanceGroups.exists(resolveSocietyId(undefined), name)) {
 			return fail(400, { createGroupError: 'Group with this name already exists' });
 		}
 
-		repositories.allowanceGroups.create(resolveSocietyId(undefined), name, randomUUID());
+		await repositories.allowanceGroups.create(resolveSocietyId(undefined), name, randomUUID());
 
 		return { createGroupSuccess: true };
 	},
 
 	deleteAllowanceGroup: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'treasury.delete_allowance_group', resolveSocietyId(undefined));
+		await requirePermission(event, 'treasury.delete_allowance_group', resolveSocietyId(undefined));
 		const data = await request.formData();
 		const groupId = data.get('group_id')?.toString();
 
@@ -314,20 +314,20 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		const group = repositories.allowanceGroups.find(resolveSocietyId(undefined), groupId);
+		const group = await repositories.allowanceGroups.find(resolveSocietyId(undefined), groupId);
 
 		if (!group) {
 			return fail(400, { deleteGroupError: 'Group not found' });
 		}
 
-		repositories.allowanceGroups.delete(groupId);
+		await repositories.allowanceGroups.delete(groupId);
 
 		return { deleteGroupSuccess: true };
 	},
 
 	addGroupMember: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
+		await requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
 		const data = await request.formData();
 		const groupId = data.get('group_id')?.toString();
 		const personId = data.get('person_id')?.toString();
@@ -338,18 +338,18 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		if (repositories.allowanceGroups.memberExists(groupId, personId)) {
+		if (await repositories.allowanceGroups.memberExists(groupId, personId)) {
 			return fail(400, { addMemberError: 'Person already in this group' });
 		}
 
-		repositories.allowanceGroups.addMember(groupId, personId, amount);
+		await repositories.allowanceGroups.addMember(groupId, personId, amount);
 
 		return { addMemberSuccess: true };
 	},
 
 	removeGroupMember: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
+		await requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
 		const data = await request.formData();
 		const groupId = data.get('group_id')?.toString();
 		const personId = data.get('person_id')?.toString();
@@ -358,14 +358,14 @@ export const actions = {
 			return fail(400, { removeMemberError: 'Group and person required' });
 		}
 
-		getRepositories().allowanceGroups.removeMember(groupId, personId);
+		await getRepositories().allowanceGroups.removeMember(groupId, personId);
 
 		return { removeMemberSuccess: true };
 	},
 
 	updateMemberAmount: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
+		await requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
 		const data = await request.formData();
 		const groupId = data.get('group_id')?.toString();
 		const personId = data.get('person_id')?.toString();
@@ -375,7 +375,7 @@ export const actions = {
 			return fail(400, { updateAmountError: 'Group, person, and amount required' });
 		}
 
-		getRepositories().allowanceGroups.updateMemberAmount(groupId, personId, amount);
+		await getRepositories().allowanceGroups.updateMemberAmount(groupId, personId, amount);
 
 		return { updateAmountSuccess: true };
 	},
@@ -388,14 +388,14 @@ export const actions = {
 			permissionCode: 'treasury.run_position_payroll'
 		});
 		const repositories = getRepositories();
-		const positions = repositories.positions.listPayrollCandidates(resolveSocietyId(undefined));
+		const positions = await repositories.positions.listPayrollCandidates(resolveSocietyId(undefined));
 
 		if (positions.length === 0) {
 			return fail(400, { payrollError: 'No positions to pay' });
 		}
 
 		const totalPayroll = positions.reduce((sum, position) => sum + position.current_allowance, 0);
-		const societyBalance = calculateBalance('society', resolveSocietyId(undefined));
+		const societyBalance = await calculateBalance('society', resolveSocietyId(undefined));
 		if (societyBalance < totalPayroll) {
 			return fail(400, {
 				payrollError: `Insufficient funds. Need ${totalPayroll} credits, have ${societyBalance}`
@@ -403,7 +403,7 @@ export const actions = {
 		}
 
 		for (const position of positions) {
-			repositories.ledger.createTransaction({
+			await repositories.ledger.createTransaction({
 				fromType: 'society',
 				fromId: resolveSocietyId(undefined),
 				toType: 'person',
@@ -422,7 +422,7 @@ export const actions = {
 
 	adjustPositionAllowance: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'treasury.adjust_position_allowance', resolveSocietyId(undefined));
+		await requirePermission(event, 'treasury.adjust_position_allowance', resolveSocietyId(undefined));
 		const data = await request.formData();
 		const positionId = data.get('position_id')?.toString();
 		const newAllowance = parseFloat(data.get('current_allowance')?.toString() || '0');
@@ -432,7 +432,7 @@ export const actions = {
 			return fail(400, { adjustAllowanceError: 'Invalid input' });
 		}
 
-		getRepositories().positions.updateAllowance({
+		await getRepositories().positions.updateAllowance({
 			positionId,
 			newAllowance,
 			reason,
@@ -457,14 +457,14 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		const members = repositories.treasury.listSocietyPrincipals(resolveSocietyId(undefined));
+		const members = await repositories.treasury.listSocietyPrincipals(resolveSocietyId(undefined));
 
 		if (members.length === 0) {
 			return fail(400, { universalAllowanceError: 'No members in society' });
 		}
 
 		const totalAmount = members.length * amountPerMember;
-		const societyBalance = calculateBalance('society', resolveSocietyId(undefined));
+		const societyBalance = await calculateBalance('society', resolveSocietyId(undefined));
 		if (societyBalance < totalAmount) {
 			return fail(400, {
 				universalAllowanceError: `Insufficient funds. Need ${totalAmount.toFixed(2)} credits, have ${societyBalance.toFixed(2)}`
@@ -472,7 +472,7 @@ export const actions = {
 		}
 
 		for (const member of members) {
-			repositories.ledger.createTransaction({
+			await repositories.ledger.createTransaction({
 				fromType: 'society',
 				fromId: resolveSocietyId(undefined),
 				toType: 'person',

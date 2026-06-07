@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 import { randomUUID } from 'crypto';
 
 export type PermissionDefinition = {
@@ -61,70 +61,58 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
 ];
 
 export class PermissionRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	hasPermission(check: {
+	async hasPermission(check: {
 		personId: string;
 		societyId: string;
 		permissionCode: string;
-	}): boolean {
-		const society = this.database
-			.prepare('SELECT founder_person_id FROM society_config WHERE id = ?')
-			.get(check.societyId) as { founder_person_id: string | null } | undefined;
+	}): Promise<boolean> {
+		const [society] = await this.sql<Array<{ founder_person_id: string | null }>>`
+			SELECT founder_person_id FROM society_config WHERE id = ${check.societyId}`;
 
 		if (society?.founder_person_id === check.personId) {
 			return true;
 		}
 
-		const result = this.database
-			.prepare(
-				`
-				SELECT 1
-				FROM position pos
-				JOIN position_permission pp ON pp.position_id = pos.id
-				JOIN permission perm ON perm.id = pp.permission_id
-				WHERE pos.society_id = ?
-				  AND pos.current_person_id = ?
-				  AND perm.code = ?
-				LIMIT 1
-			`
-			)
-			.get(check.societyId, check.personId, check.permissionCode);
+		const [result] = await this.sql`
+			SELECT 1
+			FROM position pos
+			JOIN position_permission pp ON pp.position_id = pos.id
+			JOIN permission perm ON perm.id = pp.permission_id
+			WHERE pos.society_id = ${check.societyId}
+			  AND pos.current_person_id = ${check.personId}
+			  AND perm.code = ${check.permissionCode}
+			LIMIT 1`;
 
 		return !!result;
 	}
 
-	seedPermissions(): void {
+	async seedPermissions(): Promise<void> {
 		for (const permission of PERMISSION_DEFINITIONS) {
-			const existing = this.database
-				.prepare('SELECT id FROM permission WHERE code = ?')
-				.get(permission.code);
+			const [existing] = await this.sql`SELECT id FROM permission WHERE code = ${permission.code}`;
 
 			if (!existing) {
-				this.database
-					.prepare(
-						`INSERT INTO permission (id, code, name, description, category)
-						 VALUES (?, ?, ?, NULL, ?)`
-					)
-					.run(randomUUID(), permission.code, permission.name, permission.category);
+				await this.sql`
+					INSERT INTO permission (id, code, name, description, category)
+					VALUES (${randomUUID()}, ${permission.code}, ${permission.name}, ${null}, ${permission.category})`;
 			}
 		}
 	}
 
-	seedDefaultPositionPermissions(societyId: string): void {
-		this.grantCategoryPermissionsToPosition(societyId, 'Treasurer', 'treasury');
-		this.grantCategoryPermissionsToPosition(societyId, 'Registrar', 'membership');
-		this.grantCategoryPermissionsToPosition(societyId, 'Education Director', 'education');
+	async seedDefaultPositionPermissions(societyId: string): Promise<void> {
+		await this.grantCategoryPermissionsToPosition(societyId, 'Treasurer', 'treasury');
+		await this.grantCategoryPermissionsToPosition(societyId, 'Registrar', 'membership');
+		await this.grantCategoryPermissionsToPosition(societyId, 'Education Director', 'education');
 	}
 
-	private grantCategoryPermissionsToPosition(
+	private async grantCategoryPermissionsToPosition(
 		societyId: string,
 		positionName: string,
 		category: string
-	): void {
-		const position = this.database
-			.prepare('SELECT id FROM position WHERE society_id = ? AND name = ?')
-			.get(societyId, positionName) as { id: string } | undefined;
+	): Promise<void> {
+		const [position] = await this.sql<Array<{ id: string }>>`
+			SELECT id FROM position WHERE society_id = ${societyId} AND name = ${positionName}`;
 
 		if (!position) {
 			return;
@@ -132,18 +120,13 @@ export class PermissionRepository {
 
 		const permissions = PERMISSION_DEFINITIONS.filter((permission) => permission.category === category);
 		for (const permission of permissions) {
-			const permissionId = (
-				this.database.prepare('SELECT id FROM permission WHERE code = ?').get(permission.code) as
-					| { id: string }
-					| undefined
-			)?.id;
+			const [permRow] = await this.sql<Array<{ id: string }>>`SELECT id FROM permission WHERE code = ${permission.code}`;
 
-			if (permissionId) {
-				this.database
-					.prepare(
-						'INSERT OR IGNORE INTO position_permission (position_id, permission_id) VALUES (?, ?)'
-					)
-					.run(position.id, permissionId);
+			if (permRow) {
+				await this.sql`
+					INSERT INTO position_permission (position_id, permission_id)
+					VALUES (${position.id}, ${permRow.id})
+					ON CONFLICT DO NOTHING`;
 			}
 		}
 	}

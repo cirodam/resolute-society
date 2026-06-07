@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 import { LedgerRepository } from './ledger.repository';
 
 export interface TreasurySocietyRow {
@@ -36,21 +36,18 @@ export interface SocietyAssociationRow {
 export class TreasuryRepository {
 	private readonly ledger: LedgerRepository;
 
-	constructor(private readonly database: Database.Database) {
-		this.ledger = new LedgerRepository(database);
+	constructor(private readonly sql: postgres.Sql) {
+		this.ledger = new LedgerRepository(sql);
 	}
 
-	findSocietyById(societyId: string): TreasurySocietyRow | null {
-		return (
-			(this.database
-				.prepare('SELECT id, handle, name FROM society_config WHERE id = ?')
-				.get(societyId) as TreasurySocietyRow | undefined) ?? null
-		);
+	async findSocietyById(societyId: string): Promise<TreasurySocietyRow | null> {
+		const [row] = await this.sql<TreasurySocietyRow[]>`SELECT id, handle, name FROM society_config WHERE id = ${societyId}`;
+		return row ?? null;
 	}
 
-	calculateSummary(societyId: string): TreasurySummaryRow {
+	async calculateSummary(societyId: string): Promise<TreasurySummaryRow> {
 		const { societyBalance, personTotal, associationTotal, totalSupply } =
-			this.ledger.calculateMoneySupply(societyId);
+			await this.ledger.calculateMoneySupply(societyId);
 
 		return {
 			societyCredits: societyBalance,
@@ -61,34 +58,26 @@ export class TreasuryRepository {
 		};
 	}
 
-	listSocietyMembers(societyId: string): SocietyMemberRow[] {
-		return this.database
-			.prepare(
-				`SELECT id, given_name, surname, handle
-				 FROM person
-				 WHERE society_id = ? AND membership_status != 'deleted'
-				 ORDER BY surname, given_name`
-			)
-			.all(societyId) as SocietyMemberRow[];
+	async listSocietyMembers(societyId: string): Promise<SocietyMemberRow[]> {
+		return await this.sql<SocietyMemberRow[]>`
+			SELECT id, given_name, surname, handle
+			FROM person
+			WHERE society_id = ${societyId} AND membership_status != 'deleted'
+			ORDER BY surname, given_name`;
 	}
 
-	getMemberCount(societyId: string): number {
-		const result = this.database
-			.prepare("SELECT COUNT(*) as count FROM person WHERE society_id = ? AND membership_status != 'deleted'")
-			.get(societyId) as { count: number } | undefined;
-
+	async getMemberCount(societyId: string): Promise<number> {
+		const [result] = await this.sql<Array<{ count: number }>>`
+			SELECT COUNT(*)::int as count FROM person WHERE society_id = ${societyId} AND membership_status != 'deleted'`;
 		return result?.count ?? 0;
 	}
 
-	listSocietyPrincipals(societyId: string): SocietyPrincipalRow[] {
-		return this.database
-			.prepare("SELECT id, given_name, surname FROM person WHERE society_id = ? AND membership_status != 'deleted'")
-			.all(societyId) as SocietyPrincipalRow[];
+	async listSocietyPrincipals(societyId: string): Promise<SocietyPrincipalRow[]> {
+		return await this.sql<SocietyPrincipalRow[]>`
+			SELECT id, given_name, surname FROM person WHERE society_id = ${societyId} AND membership_status != 'deleted'`;
 	}
 
-	listSocietyAssociations(societyId: string): SocietyAssociationRow[] {
-		return this.database
-			.prepare('SELECT id, name FROM association WHERE society_id = ?')
-			.all(societyId) as SocietyAssociationRow[];
+	async listSocietyAssociations(societyId: string): Promise<SocietyAssociationRow[]> {
+		return await this.sql<SocietyAssociationRow[]>`SELECT id, name FROM association WHERE society_id = ${societyId}`;
 	}
 }

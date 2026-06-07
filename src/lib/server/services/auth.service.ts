@@ -1,19 +1,19 @@
 import { getRepositories } from '../infra/repositories';
 import { error, type RequestEvent } from '@sveltejs/kit';
 
-export function hasPermission(check: {
+export async function hasPermission(check: {
 	personId: string;
 	societyId: string;
 	permissionCode: string;
-}): boolean {
+}): Promise<boolean> {
 	return getRepositories().permissions.hasPermission(check);
 }
 
-export function requirePermission(
+export async function requirePermission(
 	event: RequestEvent,
 	permissionCode: string,
 	societyId?: string
-): void {
+): Promise<void> {
 	if (!event.locals.person) {
 		throw error(401, 'Not authenticated');
 	}
@@ -28,7 +28,7 @@ export function requirePermission(
 		throw error(403, 'Access denied - you are not a member of this society');
 	}
 
-	const authorized = hasPermission({
+	const authorized = await hasPermission({
 		personId: event.locals.person.id,
 		societyId: targetSocietyId,
 		permissionCode

@@ -7,7 +7,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
-	const society = repos.societies.findById(societyId);
+	const society = await repos.societies.findById(societyId);
 
 	if (!society) {
 		throw error(404, 'Society not found');
@@ -15,7 +15,7 @@ export const load: PageServerLoad = async () => {
 
 	return {
 		society,
-		requirements: calculatePopulationRequirements(societyId),
-		demographics: getPopulationDemographics(societyId)
+		requirements: await calculatePopulationRequirements(societyId),
+		demographics: await getPopulationDemographics(societyId)
 	};
 };

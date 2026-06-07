@@ -6,14 +6,14 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const repositories = getRepositories();
-	const course = repositories.courses.findCourse(resolveSocietyId(undefined), params.courseId);
+	const course = await repositories.courses.findCourse(resolveSocietyId(undefined), params.courseId);
 
 	if (!course) {
 		throw error(404, 'Course not found');
 	}
 
 	const canApprove = locals.person
-		? hasPermission({
+		? await hasPermission({
 			personId: locals.person.id,
 			societyId: resolveSocietyId(undefined),
 			permissionCode: 'education.approve_course'
@@ -38,13 +38,13 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		const course = repositories.courses.findCourseSummary(params.courseId, resolveSocietyId(undefined));
+		const course = await repositories.courses.findCourseSummary(params.courseId, resolveSocietyId(undefined));
 
 		if (!course) {
 			return fail(404, { message: 'Course not found' });
 		}
 
-		if (repositories.courses.isStudentEnrolled(params.courseId, locals.person.id)) {
+		if (await repositories.courses.isStudentEnrolled(params.courseId, locals.person.id)) {
 			return fail(400, { message: 'Already enrolled' });
 		}
 
@@ -52,45 +52,45 @@ export const actions: Actions = {
 			return fail(400, { message: 'Course is full' });
 		}
 
-		repositories.courses.createEnrollment(params.courseId, locals.person.id);
+		await repositories.courses.createEnrollment(params.courseId, locals.person.id);
 
 		return { success: true };
 	},
 	approveCourse: async (event) => {
 		const { params, locals } = event;
-		requirePermission(event, 'education.approve_course', resolveSocietyId(undefined));
+		await requirePermission(event, 'education.approve_course', resolveSocietyId(undefined));
 
 		if (!locals.person) {
 			return fail(400, { message: 'Invalid request' });
 		}
 
 		const repositories = getRepositories();
-		const course = repositories.courses.findCourseSociety(params.courseId);
+		const course = await repositories.courses.findCourseSociety(params.courseId);
 
 		if (!course || course.society_id !== resolveSocietyId(undefined)) {
 			return fail(404, { message: 'Course not found' });
 		}
 
-		repositories.courses.approveCourse(params.courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
+		await repositories.courses.approveCourse(params.courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
 
 		return { success: true };
 	},
 	rejectCourse: async (event) => {
 		const { params, locals } = event;
-		requirePermission(event, 'education.approve_course', resolveSocietyId(undefined));
+		await requirePermission(event, 'education.approve_course', resolveSocietyId(undefined));
 
 		if (!locals.person) {
 			return fail(400, { message: 'Invalid request' });
 		}
 
 		const repositories = getRepositories();
-		const course = repositories.courses.findCourseSociety(params.courseId);
+		const course = await repositories.courses.findCourseSociety(params.courseId);
 
 		if (!course || course.society_id !== resolveSocietyId(undefined)) {
 			return fail(404, { message: 'Course not found' });
 		}
 
-		repositories.courses.rejectCourse(params.courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
+		await repositories.courses.rejectCourse(params.courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
 
 		return { success: true };
 	}

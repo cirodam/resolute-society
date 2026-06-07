@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 
 export interface OfficerPositionRow {
 	position_id: string;
@@ -93,193 +93,137 @@ export interface PositionAllowanceUpdateParams {
 }
 
 export class PositionRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	findSociety(societyId: string): { id: string; name: string } | null {
-		const society = this.database
-			.prepare('SELECT id, name FROM society_config WHERE id = ?')
-			.get(societyId) as { id: string; name: string } | undefined;
-
-		return society ?? null;
+	async findSociety(societyId: string): Promise<{ id: string; name: string } | null> {
+		const [row] = await this.sql<Array<{ id: string; name: string }>>`SELECT id, name FROM society_config WHERE id = ${societyId}`;
+		return row ?? null;
 	}
 
-	listOfficerPositions(societyId: string): OfficerPositionRow[] {
-		return this.database
-			.prepare(
-				`SELECT op.id as position_id, op.name, op.description, op.term_limit_years,
-				        op.current_person_id,
-				        p.given_name, p.surname
-				 FROM position op
-				 LEFT JOIN person p ON p.id = op.current_person_id
-				 WHERE op.society_id = ? AND op.type = 'officer'
-				 ORDER BY op.name`
+	async listOfficerPositions(societyId: string): Promise<OfficerPositionRow[]> {
+		return await this.sql<OfficerPositionRow[]>`
+			SELECT op.id as position_id, op.name, op.description, op.term_limit_years,
+			       op.current_person_id,
+			       p.given_name, p.surname
+			FROM position op
+			LEFT JOIN person p ON p.id = op.current_person_id
+			WHERE op.society_id = ${societyId} AND op.type = 'officer'
+			ORDER BY op.name`;
+	}
+
+	async findPositionDetail(positionId: string, societyId: string): Promise<PositionDetailRow | null> {
+		const [row] = await this.sql<PositionDetailRow[]>`
+			SELECT op.id, op.name, op.description, op.term_limit_years, op.type, op.section,
+			       op.parent_position_id, op.current_person_id, op.appointed_at, op.term_expires_at,
+			       p.given_name, p.surname, p.handle
+			FROM position op
+			LEFT JOIN person p ON p.id = op.current_person_id
+			WHERE op.id = ${positionId} AND op.society_id = ${societyId}`;
+		return row ?? null;
+	}
+
+	async listSubordinates(positionId: string): Promise<SubordinateRow[]> {
+		return await this.sql<SubordinateRow[]>`
+			SELECT op.id, op.name, op.description, op.type, op.section,
+			       op.current_person_id, op.appointed_at, op.term_expires_at,
+			       p.given_name, p.surname, p.handle
+			FROM position op
+			LEFT JOIN person p ON p.id = op.current_person_id
+			WHERE op.parent_position_id = ${positionId}
+			ORDER BY op.name`;
+	}
+
+	async listEligibleMembers(societyId: string): Promise<EligibleMemberRow[]> {
+		return await this.sql<EligibleMemberRow[]>`
+			SELECT p.id, p.given_name, p.surname, p.handle
+			FROM person p
+			WHERE p.society_id = ${societyId}
+			AND p.id NOT IN (
+			  SELECT gam.person_id
+			  FROM general_assembly_member gam
+			  JOIN general_assembly ga ON ga.id = gam.assembly_id
+			  WHERE ga.society_id = ${societyId} AND ga.status = 'current'
 			)
-			.all(societyId) as OfficerPositionRow[];
+			ORDER BY p.surname, p.given_name`;
 	}
 
-	findPositionDetail(positionId: string, societyId: string): PositionDetailRow | null {
-		const position = this.database
-			.prepare(
-				`SELECT op.id, op.name, op.description, op.term_limit_years, op.type, op.section,
-				        op.parent_position_id, op.current_person_id, op.appointed_at, op.term_expires_at,
-				        p.given_name, p.surname, p.handle
-				 FROM position op
-				 LEFT JOIN person p ON p.id = op.current_person_id
-				 WHERE op.id = ? AND op.society_id = ?`
-			)
-			.get(positionId, societyId) as PositionDetailRow | undefined;
-
-		return position ?? null;
+	async listCurrentPermissions(positionId: string): Promise<PermissionRow[]> {
+		return await this.sql<PermissionRow[]>`
+			SELECT p.id, p.code, p.name, p.category
+			FROM permission p
+			JOIN position_permission pp ON pp.permission_id = p.id
+			WHERE pp.position_id = ${positionId}
+			ORDER BY p.category, p.name`;
 	}
 
-	listSubordinates(positionId: string): SubordinateRow[] {
-		return this.database
-			.prepare(
-				`SELECT op.id, op.name, op.description, op.type, op.section,
-				        op.current_person_id, op.appointed_at, op.term_expires_at,
-				        p.given_name, p.surname, p.handle
-				 FROM position op
-				 LEFT JOIN person p ON p.id = op.current_person_id
-				 WHERE op.parent_position_id = ?
-				 ORDER BY op.name`
-			)
-			.all(positionId) as SubordinateRow[];
+	async listAllPermissions(): Promise<PermissionRow[]> {
+		return await this.sql<PermissionRow[]>`SELECT id, code, name, category FROM permission ORDER BY category, name`;
 	}
 
-	listEligibleMembers(societyId: string): EligibleMemberRow[] {
-		return this.database
-			.prepare(
-				`SELECT p.id, p.given_name, p.surname, p.handle
-				 FROM person p
-				 WHERE p.society_id = ?
-				 AND p.id NOT IN (
-				   SELECT gam.person_id
-				   FROM general_assembly_member gam
-				   JOIN general_assembly ga ON ga.id = gam.assembly_id
-				   WHERE ga.society_id = ? AND ga.status = 'current'
-				 )
-				 ORDER BY p.surname, p.given_name`
-			)
-			.all(societyId, societyId) as EligibleMemberRow[];
-	}
-
-	listCurrentPermissions(positionId: string): PermissionRow[] {
-		return this.database
-			.prepare(
-				`SELECT p.id, p.code, p.name, p.category
-				 FROM permission p
-				 JOIN position_permission pp ON pp.permission_id = p.id
-				 WHERE pp.position_id = ?
-				 ORDER BY p.category, p.name`
-			)
-			.all(positionId) as PermissionRow[];
-	}
-
-	listAllPermissions(): PermissionRow[] {
-		return this.database
-			.prepare('SELECT id, code, name, category FROM permission ORDER BY category, name')
-			.all() as PermissionRow[];
-	}
-
-	isPersonInCurrentAssembly(personId: string, societyId: string): boolean {
-		const existing = this.database
-			.prepare(
-				`SELECT 1 FROM general_assembly_member gam
-				 JOIN general_assembly ga ON ga.id = gam.assembly_id
-				 WHERE gam.person_id = ? AND ga.society_id = ? AND ga.status = 'current'`
-			)
-			.get(personId, societyId);
-
+	async isPersonInCurrentAssembly(personId: string, societyId: string): Promise<boolean> {
+		const [existing] = await this.sql`
+			SELECT 1 FROM general_assembly_member gam
+			JOIN general_assembly ga ON ga.id = gam.assembly_id
+			WHERE gam.person_id = ${personId} AND ga.society_id = ${societyId} AND ga.status = 'current'`;
 		return !!existing;
 	}
 
-	isPersonOfficer(personId: string, societyId: string): boolean {
-		const existing = this.database
-			.prepare('SELECT 1 FROM position WHERE current_person_id = ? AND society_id = ?')
-			.get(personId, societyId);
-
+	async isPersonOfficer(personId: string, societyId: string): Promise<boolean> {
+		const [existing] = await this.sql`
+			SELECT 1 FROM position WHERE current_person_id = ${personId} AND society_id = ${societyId}`;
 		return !!existing;
 	}
 
-	findPositionTerm(positionId: string): PositionTermRow | null {
-		const position = this.database
-			.prepare('SELECT term_limit_years FROM position WHERE id = ?')
-			.get(positionId) as PositionTermRow | undefined;
-
-		return position ?? null;
+	async findPositionTerm(positionId: string): Promise<PositionTermRow | null> {
+		const [row] = await this.sql<PositionTermRow[]>`SELECT term_limit_years FROM position WHERE id = ${positionId}`;
+		return row ?? null;
 	}
 
-	findParentPosition(positionId: string): ParentPositionRow | null {
-		const parent = this.database
-			.prepare('SELECT type, society_id FROM position WHERE id = ?')
-			.get(positionId) as ParentPositionRow | undefined;
-
-		return parent ?? null;
+	async findParentPosition(positionId: string): Promise<ParentPositionRow | null> {
+		const [row] = await this.sql<ParentPositionRow[]>`SELECT type, society_id FROM position WHERE id = ${positionId}`;
+		return row ?? null;
 	}
 
-	positionExistsInSociety(societyId: string, name: string): boolean {
-		const existing = this.database
-			.prepare('SELECT id FROM position WHERE society_id = ? AND name = ?')
-			.get(societyId, name);
-
+	async positionExistsInSociety(societyId: string, name: string): Promise<boolean> {
+		const [existing] = await this.sql`SELECT id FROM position WHERE society_id = ${societyId} AND name = ${name}`;
 		return !!existing;
 	}
 
-	createOfficerPosition(params: {
+	async createOfficerPosition(params: {
 		societyId: string;
 		positionId: string;
 		name: string;
 		description: string | null;
 		termLimitYears: number;
 		defaultAllowance: number;
-	}): void {
-		this.database
-			.prepare(
-				`INSERT INTO position (id, society_id, parent_position_id, type, name, description, term_limit_years, default_allowance, current_allowance)
-				 VALUES (?, ?, NULL, 'officer', ?, ?, ?, ?, ?)`
-			)
-			.run(
-				params.positionId,
-				params.societyId,
-				params.name,
-				params.description,
-				params.termLimitYears,
-				params.defaultAllowance,
-				params.defaultAllowance
-			);
+	}): Promise<void> {
+		await this.sql`
+			INSERT INTO position (id, society_id, parent_position_id, type, name, description, term_limit_years, default_allowance, current_allowance)
+			VALUES (${params.positionId}, ${params.societyId}, ${null}, ${'officer'}, ${params.name}, ${params.description}, ${params.termLimitYears}, ${params.defaultAllowance}, ${params.defaultAllowance})`;
 	}
 
-	assignPerson(positionId: string, personId: string, appointedAt: string, expiresAt: string): void {
-		this.database
-			.prepare(
-				`UPDATE position
-				 SET current_person_id = ?, appointed_at = ?, term_expires_at = ?
-				 WHERE id = ?`
-			)
-			.run(personId, appointedAt, expiresAt, positionId);
+	async assignPerson(positionId: string, personId: string, appointedAt: string, expiresAt: string): Promise<void> {
+		await this.sql`
+			UPDATE position
+			SET current_person_id = ${personId}, appointed_at = ${appointedAt}, term_expires_at = ${expiresAt}
+			WHERE id = ${positionId}`;
 	}
 
-	clearAppointment(positionId: string): void {
-		this.database
-			.prepare(
-				`UPDATE position
-				 SET current_person_id = NULL, appointed_at = NULL, term_expires_at = NULL
-				 WHERE id = ?`
-			)
-			.run(positionId);
+	async clearAppointment(positionId: string): Promise<void> {
+		await this.sql`
+			UPDATE position
+			SET current_person_id = NULL, appointed_at = NULL, term_expires_at = NULL
+			WHERE id = ${positionId}`;
 	}
 
-	clearAppointmentsForPerson(personId: string): void {
-		this.database
-			.prepare(
-				`UPDATE position
-				 SET current_person_id = NULL, appointed_at = NULL, term_expires_at = NULL
-				 WHERE current_person_id = ?`
-			)
-			.run(personId);
+	async clearAppointmentsForPerson(personId: string): Promise<void> {
+		await this.sql`
+			UPDATE position
+			SET current_person_id = NULL, appointed_at = NULL, term_expires_at = NULL
+			WHERE current_person_id = ${personId}`;
 	}
 
-	createSubordinatePosition(params: {
+	async createSubordinatePosition(params: {
 		societyId: string;
 		parentPositionId: string;
 		childType: 'section_chief' | 'line_worker';
@@ -289,97 +233,63 @@ export class PositionRepository {
 		section: string | null;
 		termLimitYears: number;
 		defaultAllowance: number;
-	}): void {
-		this.database
-			.prepare(
-				`INSERT INTO position (id, society_id, parent_position_id, type, name, description, section, term_limit_years, default_allowance, current_allowance)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-			)
-			.run(
-				params.positionId,
-				params.societyId,
-				params.parentPositionId,
-				params.childType,
-				params.name,
-				params.description,
-				params.section,
-				params.termLimitYears,
-				params.defaultAllowance,
-				params.defaultAllowance
-			);
+	}): Promise<void> {
+		await this.sql`
+			INSERT INTO position (id, society_id, parent_position_id, type, name, description, section, term_limit_years, default_allowance, current_allowance)
+			VALUES (${params.positionId}, ${params.societyId}, ${params.parentPositionId}, ${params.childType}, ${params.name}, ${params.description}, ${params.section}, ${params.termLimitYears}, ${params.defaultAllowance}, ${params.defaultAllowance})`;
 	}
 
-	grantPermission(positionId: string, permissionId: string): void {
-		this.database
-			.prepare(
-				`INSERT OR IGNORE INTO position_permission (position_id, permission_id)
-				 VALUES (?, ?)`
-			)
-			.run(positionId, permissionId);
+	async grantPermission(positionId: string, permissionId: string): Promise<void> {
+		await this.sql`
+			INSERT INTO position_permission (position_id, permission_id)
+			VALUES (${positionId}, ${permissionId})
+			ON CONFLICT DO NOTHING`;
 	}
 
-	revokePermission(positionId: string, permissionId: string): void {
-		this.database
-			.prepare(
-				`DELETE FROM position_permission
-				 WHERE position_id = ? AND permission_id = ?`
-			)
-			.run(positionId, permissionId);
+	async revokePermission(positionId: string, permissionId: string): Promise<void> {
+		await this.sql`
+			DELETE FROM position_permission
+			WHERE position_id = ${positionId} AND permission_id = ${permissionId}`;
 	}
 
-	listForPerson(personId: string): Array<{ id: string; name: string; type: string; current_allowance: number }> {
-		return this.database
-			.prepare(
-				`SELECT id, name, type, current_allowance
-				 FROM position WHERE current_person_id = ?
-				 ORDER BY type, name`
-			)
-			.all(personId) as Array<{ id: string; name: string; type: string; current_allowance: number }>;
+	async listForPerson(personId: string): Promise<Array<{ id: string; name: string; type: string; current_allowance: number }>> {
+		return await this.sql<Array<{ id: string; name: string; type: string; current_allowance: number }>>`
+			SELECT id, name, type, current_allowance
+			FROM position WHERE current_person_id = ${personId}
+			ORDER BY type, name`;
 	}
 
-	findPositionSociety(positionId: string): { society_id: string } | null {
-		const position = this.database
-			.prepare('SELECT society_id FROM position WHERE id = ?')
-			.get(positionId) as { society_id: string } | undefined;
-
-		return position ?? null;
+	async findPositionSociety(positionId: string): Promise<{ society_id: string } | null> {
+		const [row] = await this.sql<Array<{ society_id: string }>>`SELECT society_id FROM position WHERE id = ${positionId}`;
+		return row ?? null;
 	}
 
-	listForPayroll(societyId: string): PositionPayrollRow[] {
-		return this.database
-			.prepare(
-				`SELECT p.id, p.name, p.type, p.default_allowance, p.current_allowance,
-				        p.allowance_modification_reason, p.current_person_id,
-				        person.given_name, person.surname, person.handle
-				 FROM position p
-				 LEFT JOIN person ON person.id = p.current_person_id
-				 WHERE p.society_id = ?
-				 ORDER BY p.type, p.name`
-			)
-			.all(societyId) as PositionPayrollRow[];
+	async listForPayroll(societyId: string): Promise<PositionPayrollRow[]> {
+		return await this.sql<PositionPayrollRow[]>`
+			SELECT p.id, p.name, p.type, p.default_allowance, p.current_allowance,
+			       p.allowance_modification_reason, p.current_person_id,
+			       person.given_name, person.surname, person.handle
+			FROM position p
+			LEFT JOIN person ON person.id = p.current_person_id
+			WHERE p.society_id = ${societyId}
+			ORDER BY p.type, p.name`;
 	}
 
-	listPayrollCandidates(societyId: string): PositionPayrollCandidateRow[] {
-		return this.database
-			.prepare(
-				`SELECT p.id, p.name, p.current_allowance, p.current_person_id,
-				        person.given_name, person.surname
-				 FROM position p
-				 JOIN person ON person.id = p.current_person_id
-				 WHERE p.society_id = ? AND p.current_person_id IS NOT NULL AND p.current_allowance > 0
-				   AND person.membership_status != 'deleted'
-				 ORDER BY p.type, p.name`
-			)
-			.all(societyId) as PositionPayrollCandidateRow[];
+	async listPayrollCandidates(societyId: string): Promise<PositionPayrollCandidateRow[]> {
+		return await this.sql<PositionPayrollCandidateRow[]>`
+			SELECT p.id, p.name, p.current_allowance, p.current_person_id,
+			       person.given_name, person.surname
+			FROM position p
+			JOIN person ON person.id = p.current_person_id
+			WHERE p.society_id = ${societyId} AND p.current_person_id IS NOT NULL AND p.current_allowance > 0
+			  AND person.membership_status != 'deleted'
+			ORDER BY p.type, p.name`;
 	}
 
-	updateAllowance(params: PositionAllowanceUpdateParams): void {
-		this.database
-			.prepare(
-				`UPDATE position
-				 SET current_allowance = ?, allowance_modification_reason = ?
-				 WHERE id = ? AND society_id = ?`
-			)
-			.run(params.newAllowance, params.reason, params.positionId, params.societyId);
+	async updateAllowance(params: PositionAllowanceUpdateParams): Promise<void> {
+		await this.sql`
+			UPDATE position
+			SET current_allowance = ${params.newAllowance}, allowance_modification_reason = ${params.reason}
+			WHERE id = ${params.positionId} AND society_id = ${params.societyId}`;
 	}
 }

@@ -7,13 +7,13 @@ export const load: PageServerLoad = async ({ params }) => {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
 
-	const food = repos.nutrition.findFood(params.id);
+	const food = await repos.nutrition.findFood(params.id);
 	if (!food) throw error(404, 'Food not found');
 
 	return {
 		food,
-		nutrients: repos.nutrition.listNutrients(societyId),
-		foodNutrients: repos.nutrition.listFoodNutrients(params.id)
+		nutrients: await repos.nutrition.listNutrients(societyId),
+		foodNutrients: await repos.nutrition.listFoodNutrients(params.id)
 	};
 };
 
@@ -22,13 +22,13 @@ export const actions = {
 		const data = await event.request.formData();
 		const repos = getRepositories();
 		const societyId = resolveSocietyId(undefined);
-		const nutrients = repos.nutrition.listNutrients(societyId);
+		const nutrients = await repos.nutrition.listNutrients(societyId);
 
 		for (const nutrient of nutrients) {
 			const raw = data.get(`n_${nutrient.id}`)?.toString();
 			const value = raw !== undefined ? parseFloat(raw) : NaN;
 			if (!isNaN(value) && value >= 0) {
-				repos.nutrition.setFoodNutrient(event.params.id, nutrient.id, value);
+				await repos.nutrition.setFoodNutrient(event.params.id, nutrient.id, value);
 			}
 		}
 

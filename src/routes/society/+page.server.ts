@@ -8,13 +8,13 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repositories = getRepositories();
-	const society = repositories.societies.findDetailById(resolveSocietyId(undefined));
+	const society = await repositories.societies.findDetailById(resolveSocietyId(undefined));
 
 	if (!society) {
 		throw error(404, 'Society not found');
 	}
 
-	const societyCredits = calculateBalance('society', resolveSocietyId(undefined));
+	const societyCredits = await calculateBalance('society', resolveSocietyId(undefined));
 	const federationCredits = await getFederationBalance(`treasury@${society.id}`);
 
 	return {
@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			society_credits: societyCredits,
 			federation_credits: federationCredits
 		},
-		posts: repositories.posts.listSocietyPosts(resolveSocietyId(undefined))
+		posts: await repositories.posts.listSocietyPosts(resolveSocietyId(undefined))
 	};
 };
 
@@ -41,7 +41,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Title and body are required' });
 		}
 
-		getRepositories().posts.createSocietyPost({
+		await getRepositories().posts.createSocietyPost({
 			postId: randomUUID(),
 			societyId: resolveSocietyId(undefined),
 			authorId: locals.person.id,

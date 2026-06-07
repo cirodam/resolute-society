@@ -6,13 +6,13 @@ import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repositories = getRepositories();
-	const society = repositories.societies.findDetailById(resolveSocietyId(undefined));
+	const society = await repositories.societies.findDetailById(resolveSocietyId(undefined));
 
 	if (!society) {
 		throw error(404, 'Society not found');
 	}
 
-	const rows = repositories.federationMessageQueue.listBySocietyHandle(society.handle);
+	const rows = await repositories.federationMessageQueue.listBySocietyHandle(society.handle);
 
 	const messages = rows.map((row) => ({
 		id: row.id,
@@ -34,7 +34,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	const pending = messages.filter((m) => m.status === 'pending').length;
 	const stalled = messages.filter((m) => m.status === 'stalled').length;
 
-	const keypair = repositories.keypair.get();
+	const keypair = await repositories.keypair.get();
 
 	return {
 		society,
@@ -54,7 +54,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			joinFederation(secret);
+			await joinFederation(secret);
 		} catch (err) {
 			return fail(500, { joinError: (err as Error).message });
 		}

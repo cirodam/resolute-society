@@ -7,7 +7,7 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
-	const society = repos.societies.findById(societyId);
+	const society = await repos.societies.findById(societyId);
 
 	if (!society) {
 		throw error(404, 'Society not found');
@@ -15,9 +15,9 @@ export const load: PageServerLoad = async () => {
 
 	return {
 		society,
-		foods: repos.nutrition.listFoods(societyId),
-		foodNutrients: repos.nutrition.listAllFoodNutrients(societyId),
-		requirements: calculatePopulationRequirements(societyId)
+		foods: await repos.nutrition.listFoods(societyId),
+		foodNutrients: await repos.nutrition.listAllFoodNutrients(societyId),
+		requirements: await calculatePopulationRequirements(societyId)
 	};
 };
 
@@ -31,7 +31,7 @@ export const actions = {
 		const repos = getRepositories();
 		const societyId = resolveSocietyId(undefined);
 
-		repos.nutrition.createFood(societyId, name);
+		await repos.nutrition.createFood(societyId, name);
 
 		return { addFoodSuccess: true };
 	},
@@ -42,7 +42,7 @@ export const actions = {
 
 		if (!foodId) return fail(400, { deleteFoodError: 'Food ID required' });
 
-		getRepositories().nutrition.deleteFood(foodId);
+		await getRepositories().nutrition.deleteFood(foodId);
 
 		return { deleteFoodSuccess: true };
 	}

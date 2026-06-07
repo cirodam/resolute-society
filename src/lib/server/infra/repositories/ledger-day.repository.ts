@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 import { randomUUID } from 'node:crypto';
 
 export interface LedgerDayRow {
@@ -41,88 +41,63 @@ const DAY_SELECT = `
 `;
 
 export class LedgerDayRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	findByDate(societyId: string, date: string): LedgerDayRow | null {
-		return (
-			(this.database
-				.prepare(`${DAY_SELECT} WHERE ld.society_id = ? AND ld.date = ?`)
-				.get(societyId, date) as LedgerDayRow | undefined) ?? null
-		);
+	async findByDate(societyId: string, date: string): Promise<LedgerDayRow | null> {
+		const [row] = await this.sql<LedgerDayRow[]>`
+			${this.sql.unsafe(DAY_SELECT)} WHERE ld.society_id = ${societyId} AND ld.date = ${date}`;
+		return row ?? null;
 	}
 
-	findLastClosed(societyId: string): LedgerDayRow | null {
-		return (
-			(this.database
-				.prepare(
-					`${DAY_SELECT}
-					 WHERE ld.society_id = ? AND ld.status IN ('closed', 'archived')
-					 ORDER BY ld.date DESC LIMIT 1`
-				)
-				.get(societyId) as LedgerDayRow | undefined) ?? null
-		);
+	async findLastClosed(societyId: string): Promise<LedgerDayRow | null> {
+		const [row] = await this.sql<LedgerDayRow[]>`
+			${this.sql.unsafe(DAY_SELECT)}
+			WHERE ld.society_id = ${societyId} AND ld.status IN ('closed', 'archived')
+			ORDER BY ld.date DESC LIMIT 1`;
+		return row ?? null;
 	}
 
-	listRecent(societyId: string, limit: number): LedgerDayRow[] {
-		return this.database
-			.prepare(
-				`${DAY_SELECT}
-				 WHERE ld.society_id = ?
-				 ORDER BY ld.date DESC
-				 LIMIT ?`
-			)
-			.all(societyId, limit) as LedgerDayRow[];
+	async listRecent(societyId: string, limit: number): Promise<LedgerDayRow[]> {
+		return await this.sql<LedgerDayRow[]>`
+			${this.sql.unsafe(DAY_SELECT)}
+			WHERE ld.society_id = ${societyId}
+			ORDER BY ld.date DESC
+			LIMIT ${limit}`;
 	}
 
-	findOrCreate(societyId: string, date: string, openingBalance: number): LedgerDayRow {
-		const existing = this.findByDate(societyId, date);
+	async findOrCreate(societyId: string, date: string, openingBalance: number): Promise<LedgerDayRow> {
+		const existing = await this.findByDate(societyId, date);
 		if (existing) return existing;
 
-		const pageNumber = this.nextPageNumber(societyId);
+		const pageNumber = await this.nextPageNumber(societyId);
 		const id = randomUUID();
-		this.database
-			.prepare(
-				`INSERT INTO ledger_day (id, society_id, date, page_number, opening_balance, status)
-				 VALUES (?, ?, ?, ?, ?, 'open')`
-			)
-			.run(id, societyId, date, pageNumber, openingBalance);
+		await this.sql`
+			INSERT INTO ledger_day (id, society_id, date, page_number, opening_balance, status)
+			VALUES (${id}, ${societyId}, ${date}, ${pageNumber}, ${openingBalance}, 'open')`;
 
-		return this.findByDate(societyId, date)!;
+		return (await this.findByDate(societyId, date))!;
 	}
 
-	close(params: CloseDayParams): void {
-		this.database
-			.prepare(
-				`UPDATE ledger_day
-				 SET status = 'closed',
-				     closing_balance   = ?,
-				     total_supply      = ?,
-				     transaction_count = ?,
-				     closed_at         = datetime('now'),
-				     closed_by_id      = ?,
-				     witnessed_by_id   = ?
-				 WHERE id = ? AND status = 'open'`
-			)
-			.run(
-				params.closingBalance,
-				params.totalSupply,
-				params.transactionCount,
-				params.closedById,
-				params.witnessedById,
-				params.dayId
-			);
+	async close(params: CloseDayParams): Promise<void> {
+		await this.sql`
+			UPDATE ledger_day
+			SET status = 'closed',
+			    closing_balance   = ${params.closingBalance},
+			    total_supply      = ${params.totalSupply},
+			    transaction_count = ${params.transactionCount},
+			    closed_at         = NOW(),
+			    closed_by_id      = ${params.closedById},
+			    witnessed_by_id   = ${params.witnessedById}
+			WHERE id = ${params.dayId} AND status = 'open'`;
 	}
 
-	markPrinted(dayId: string): void {
-		this.database
-			.prepare(`UPDATE ledger_day SET printed_at = datetime('now') WHERE id = ?`)
-			.run(dayId);
+	async markPrinted(dayId: string): Promise<void> {
+		await this.sql`UPDATE ledger_day SET printed_at = NOW() WHERE id = ${dayId}`;
 	}
 
-	private nextPageNumber(societyId: string): number {
-		const result = this.database
-			.prepare(`SELECT COALESCE(MAX(page_number), 0) + 1 AS next FROM ledger_day WHERE society_id = ?`)
-			.get(societyId) as { next: number };
+	private async nextPageNumber(societyId: string): Promise<number> {
+		const [result] = await this.sql<Array<{ next: number }>>`
+			SELECT (COALESCE(MAX(page_number), 0) + 1)::int AS next FROM ledger_day WHERE society_id = ${societyId}`;
 		return result.next;
 	}
 }

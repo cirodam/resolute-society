@@ -8,20 +8,20 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
-	const society = repos.societies.findById(societyId);
+	const society = await repos.societies.findById(societyId);
 
 	if (!society) throw error(404, 'Society not found');
 
 	return {
 		society,
-		locations: repos.locations.listBySociety(societyId)
+		locations: await repos.locations.listBySociety(societyId)
 	};
 };
 
 export const actions = {
 	default: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'membership.create_association', resolveSocietyId(undefined));
+		await requirePermission(event, 'membership.create_association', resolveSocietyId(undefined));
 
 		const data = await request.formData();
 		const handle = data.get('handle')?.toString();
@@ -35,11 +35,11 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		if (repositories.associations.handleExists(handle)) {
+		if (await repositories.associations.handleExists(handle)) {
 			return fail(400, { error: 'Handle already taken' });
 		}
 
-		repositories.associations.createAssociation({
+		await repositories.associations.createAssociation({
 			associationId: randomUUID(),
 			societyId: resolveSocietyId(undefined),
 			handle,

@@ -10,20 +10,20 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
-	const society = repos.societies.findById(societyId);
+	const society = await repos.societies.findById(societyId);
 
 	if (!society) throw error(404, 'Society not found');
 
 	return {
 		society,
-		locations: repos.locations.listBySociety(societyId)
+		locations: await repos.locations.listBySociety(societyId)
 	};
 };
 
 export const actions = {
 	default: async (event) => {
 		const societyId = resolveSocietyId(undefined);
-		requirePermission(event, 'membership.create_member', societyId);
+		await requirePermission(event, 'membership.create_member', societyId);
 
 		const data = await event.request.formData();
 		const handle   = data.get('handle')?.toString();
@@ -41,7 +41,7 @@ export const actions = {
 			return fail(400, { error: 'Invalid sex value' });
 
 		const repos = getRepositories();
-		if (repos.people.handleExists(handle))
+		if (await repos.people.handleExists(handle))
 			return fail(400, { error: 'Handle already taken' });
 
 		const { personId, publicKey, age } = await createMember({
@@ -56,9 +56,9 @@ export const actions = {
 			membershipStatus
 		});
 
-		const societyDetail = repos.societies.findDetailById(societyId);
+		const societyDetail = await repos.societies.findDetailById(societyId);
 		if (societyDetail) {
-			const memberCount = repos.people.countBySociety(societyId);
+			const memberCount = await repos.people.countBySociety(societyId);
 			enqueueFederationMessage('society_heartbeat', societyDetail.handle, {
 				societyId,
 				name: societyDetail.name,

@@ -8,20 +8,21 @@ import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const repositories = getRepositories();
-	const person = repositories.people.findDetailById(params.id);
-	const society = person ? repositories.societies.findDetailById(person.society_id) : null;
+	const person = await repositories.people.findDetailById(params.id);
+	const society = person ? await repositories.societies.findDetailById(person.society_id) : null;
 
 	if (!person || person.membership_status === 'deleted' || !society) {
 		throw error(404, 'Person not found');
 	}
 
-	const societyCredits = calculateBalance('person', params.id);
+	const societyCredits = await calculateBalance('person', params.id);
 	const federationCredits = await getFederationBalance(`${person.id}@${society.id}`);
 
-	const isFounder = repositories.societies.findFounderById(person.society_id)?.founder_person_id === locals.person?.id;
+	const founderRecord = await repositories.societies.findFounderById(person.society_id);
+	const isFounder = founderRecord?.founder_person_id === locals.person?.id;
 	const permissionCodes = isFounder
 		? []
-		: repositories.societies.listPermissionCodesForPerson(person.society_id, locals.person?.id ?? '');
+		: await repositories.societies.listPermissionCodesForPerson(person.society_id, locals.person?.id ?? '');
 	const canDelete =
 		locals.person?.id !== params.id &&
 		(isFounder || permissionCodes.includes('membership.create_member'));
@@ -32,7 +33,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			society_credits: societyCredits,
 			federation_credits: federationCredits
 		},
-		associations: repositories.people.listAssociations(params.id),
+		associations: await repositories.people.listAssociations(params.id),
 		isOwnProfile: locals.person?.id === params.id,
 		canDelete
 	};
@@ -47,7 +48,7 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const bio = formData.get('bio')?.toString() || null;
 
-		getRepositories().people.updateBio(params.id, bio);
+		await getRepositories().people.updateBio(params.id, bio);
 
 		return { success: true };
 	},
@@ -61,7 +62,7 @@ export const actions: Actions = {
 			return fail(400, { statusError: 'Invalid membership status' });
 		}
 
-		getRepositories().people.updateMembershipStatus(params.id, status);
+		await getRepositories().people.updateMembershipStatus(params.id, status);
 
 		return { statusSuccess: true };
 	},
@@ -69,30 +70,30 @@ export const actions: Actions = {
 	deleteMember: async (event) => {
 		const { params, locals } = event;
 		const repositories = getRepositories();
-		const person = repositories.people.findDetailById(params.id);
+		const person = await repositories.people.findDetailById(params.id);
 
 		if (!person || person.membership_status === 'deleted') {
 			return fail(404, { deleteError: 'Member not found' });
 		}
 
-		requirePermission(event, 'membership.create_member', person.society_id);
+		await requirePermission(event, 'membership.create_member', person.society_id);
 
 		if (locals.person?.id === params.id) {
 			return fail(400, { deleteError: 'You cannot delete your own account' });
 		}
 
-		const founder = repositories.societies.findFounderById(person.society_id);
+		const founder = await repositories.societies.findFounderById(person.society_id);
 		if (founder?.founder_person_id === params.id) {
 			return fail(400, { deleteError: 'Founder cannot be deleted' });
 		}
 
-		const balance = Math.max(0, calculateBalance('person', params.id));
+		const balance = Math.max(0, await calculateBalance('person', params.id));
 		const endowmentTarget = calculateEndowmentTarget(person.dob);
 		const burnAmount = Math.min(balance, endowmentTarget);
 		const treasuryRemainder = Math.max(0, balance - burnAmount);
 
 		if (burnAmount > 0) {
-			repositories.ledger.createTransaction({
+			await repositories.ledger.createTransaction({
 				fromType: 'person',
 				fromId: params.id,
 				toType: 'system',
@@ -103,7 +104,7 @@ export const actions: Actions = {
 		}
 
 		if (treasuryRemainder > 0) {
-			repositories.ledger.createTransaction({
+			await repositories.ledger.createTransaction({
 				fromType: 'person',
 				fromId: params.id,
 				toType: 'society',
@@ -113,11 +114,11 @@ export const actions: Actions = {
 			});
 		}
 
-		repositories.positions.clearAppointmentsForPerson(params.id);
-		repositories.assembly.removePersonFromAllSeats(params.id);
-		repositories.associations.removeMembershipsForPerson(params.id);
-		repositories.allowanceGroups.removePersonFromAll(params.id);
-		repositories.people.markDeleted(params.id);
+		await repositories.positions.clearAppointmentsForPerson(params.id);
+		await repositories.assembly.removePersonFromAllSeats(params.id);
+		await repositories.associations.removeMembershipsForPerson(params.id);
+		await repositories.allowanceGroups.removePersonFromAll(params.id);
+		await repositories.people.markDeleted(params.id);
 
 		redirect(303, '/society/directory/people');
 	}

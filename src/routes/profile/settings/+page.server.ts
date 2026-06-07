@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { db } from '$lib/server/infra/db';
-import { getRepositories } from '$lib/server/infra/repositories';
+import { getRepositories, createRepositories } from '$lib/server/infra/repositories';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { calculateAgeYears } from '$lib/server/economy/endowment';
 import { parseSex } from '$lib/server/utils/form.util';
@@ -11,13 +11,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.person) throw redirect(303, '/login');
 
 	const repos = getRepositories();
-	const person = repos.people.findProfileById(locals.person.id);
+	const person = await repos.people.findProfileById(locals.person.id);
 	if (!person) throw error(404, 'Person not found');
 
 	return {
 		person,
-		locations: repos.locations.listBySociety(resolveSocietyId(undefined)),
-		dependants: repos.dependants.listByGuardian(locals.person.id)
+		locations: await repos.locations.listBySociety(resolveSocietyId(undefined)),
+		dependants: await repos.dependants.listByGuardian(locals.person.id)
 	};
 };
 
@@ -31,7 +31,7 @@ export const actions: Actions = {
 		const sex        = parseSex(data.get('sex'));
 		if (sex === 'invalid') return fail(400, { error: 'Invalid sex value' });
 
-		getRepositories().people.updateProfile({
+		await getRepositories().people.updateProfile({
 			personId: locals.person.id,
 			bio,
 			locationId,
@@ -61,7 +61,7 @@ export const actions: Actions = {
 
 		let coGuardianId: string | null = null;
 		if (coGuardianHandle) {
-			const coGuardian = repos.people.findByHandleAndSociety(coGuardianHandle, societyId);
+			const coGuardian = await repos.people.findByHandleAndSociety(coGuardianHandle, societyId);
 			if (!coGuardian) return fail(400, { dependantError: `No member found with handle @${coGuardianHandle}` });
 			if (coGuardian.id === primaryGuardianId) return fail(400, { dependantError: 'Co-guardian must be a different person' });
 			coGuardianId = coGuardian.id;
@@ -71,13 +71,14 @@ export const actions: Actions = {
 		const share = coGuardianId ? 0.5 : 1.0;
 		const total = age * 2000;
 
-		db().transaction(() => {
-			repos.dependants.create({ id: dependantId, societyId, dob, sex });
-			repos.dependants.addGuardian(dependantId, primaryGuardianId, share);
-			if (coGuardianId) repos.dependants.addGuardian(dependantId, coGuardianId, share);
+		await db().begin(async (sql) => {
+			const txRepos = createRepositories(sql);
+			await txRepos.dependants.create({ id: dependantId, societyId, dob, sex });
+			await txRepos.dependants.addGuardian(dependantId, primaryGuardianId, share);
+			if (coGuardianId) await txRepos.dependants.addGuardian(dependantId, coGuardianId, share);
 
 			if (age > 0) {
-				repos.ledger.createTransaction({
+				await txRepos.ledger.createTransaction({
 					fromType: 'system',
 					fromId: 'mint',
 					toType: 'person',
@@ -86,7 +87,7 @@ export const actions: Actions = {
 					note: 'Dependant credit allocation'
 				});
 				if (coGuardianId) {
-					repos.ledger.createTransaction({
+					await txRepos.ledger.createTransaction({
 						fromType: 'system',
 						fromId: 'mint',
 						toType: 'person',
@@ -96,7 +97,7 @@ export const actions: Actions = {
 					});
 				}
 			}
-		})();
+		});
 
 		return { dependantAdded: true };
 	},
@@ -109,10 +110,10 @@ export const actions: Actions = {
 		if (!id) return fail(400, { error: 'ID required' });
 
 		const repos = getRepositories();
-		if (!repos.dependants.isGuardian(id, locals.person.id))
+		if (!(await repos.dependants.isGuardian(id, locals.person.id)))
 			return fail(403, { error: 'Not authorised' });
 
-		repos.dependants.delete(id);
+		await repos.dependants.delete(id);
 		return { dependantRemoved: true };
 	}
 };

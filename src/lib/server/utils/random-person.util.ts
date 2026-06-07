@@ -103,25 +103,25 @@ function randomDob(minAge = 18, maxAge = 80): string {
 	return birthDate.toISOString().slice(0, 10);
 }
 
-function createUniqueHandle(baseHandle: string, handleExists: (handle: string) => boolean): string {
+async function createUniqueHandle(baseHandle: string, handleExists: (handle: string) => Promise<boolean>): Promise<string> {
 	let handle = baseHandle;
 	let attempt = 1;
-	while (handleExists(handle)) {
+	while (await handleExists(handle)) {
 		handle = `${baseHandle}-${attempt}`;
 		attempt += 1;
 	}
 	return handle;
 }
 
-export function generateRandomPersonProfile(
-	handleExists: (handle: string) => boolean,
+export async function generateRandomPersonProfile(
+	handleExists: (handle: string) => Promise<boolean>,
 	minAge = 18,
 	maxAge = 80
-): RandomPersonProfile {
+): Promise<RandomPersonProfile> {
 	const givenName = pick(GIVEN_NAMES);
 	const surname = pick(SURNAMES);
 	const baseHandle = `${givenName.toLowerCase()}-${surname.toLowerCase()}`;
-	const handle = createUniqueHandle(baseHandle, handleExists);
+	const handle = await createUniqueHandle(baseHandle, handleExists);
 	const dob = randomDob(minAge, maxAge);
 
 	return {

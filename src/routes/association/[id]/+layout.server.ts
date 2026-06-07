@@ -12,7 +12,7 @@ export const load: LayoutServerLoad = async ({ params, locals }) => {
 		throw error(400, 'Association ID required');
 	}
 
-	const associationData = getRepositories().associations.findById(associationId);
+	const associationData = await getRepositories().associations.findById(associationId);
 
 	if (!associationData) {
 		throw error(404, 'Association not found');

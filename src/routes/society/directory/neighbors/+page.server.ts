@@ -16,18 +16,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.person) throw error(401, 'Not authenticated');
 
 	const repos = getRepositories();
-	const me = repos.people.findProfileById(locals.person.id);
+	const me = await repos.people.findProfileById(locals.person.id);
 	if (!me) throw error(404, 'Person not found');
 
 	const myLocation = me.location_id
-		? repos.locations.findById(me.location_id)
+		? await repos.locations.findById(me.location_id)
 		: null;
 
 	if (!myLocation) {
 		return { hasLocation: false as const, neighbors: [] };
 	}
 
-	const others = repos.people.listWithLocation(me.society_id);
+	const others = await repos.people.listWithLocation(me.society_id);
 
 	const RADIUS_MILES = 3;
 

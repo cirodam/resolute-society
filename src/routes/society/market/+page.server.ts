@@ -6,7 +6,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repositories = getRepositories();
-	const society = repositories.market.findSociety(resolveSocietyId(undefined));
+	const society = await repositories.market.findSociety(resolveSocietyId(undefined));
 
 	if (!society) {
 		throw error(404, 'Society not found');
@@ -14,8 +14,8 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	return {
 		society,
-		itemListings: repositories.market.listItemListings(resolveSocietyId(undefined)),
-		serviceListings: repositories.market.listServiceListings(resolveSocietyId(undefined))
+		itemListings: await repositories.market.listItemListings(resolveSocietyId(undefined)),
+		serviceListings: await repositories.market.listServiceListings(resolveSocietyId(undefined))
 	};
 };
 
@@ -44,7 +44,7 @@ export const actions: Actions = {
 			return fail(400, { message: 'Society credits price required when federation credits price is set' });
 		}
 
-		getRepositories().market.createItemListing({
+		await getRepositories().market.createItemListing({
 			listingId: randomUUID(),
 			societyId: resolveSocietyId(undefined),
 			personId: locals.person.id,
@@ -83,7 +83,7 @@ export const actions: Actions = {
 			return fail(400, { message: 'Society credits rate required when federation credits rate is set' });
 		}
 
-		getRepositories().market.createServiceListing({
+		await getRepositories().market.createServiceListing({
 			listingId: randomUUID(),
 			societyId: resolveSocietyId(undefined),
 			personId: locals.person.id,

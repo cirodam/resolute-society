@@ -14,8 +14,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const personId = locals.person.id;
 	const repositories = getRepositories();
-	const person = repositories.people.findProfileById(personId);
-	const society = person ? repositories.societies.findDetailById(person.society_id) : null;
+	const person = await repositories.people.findProfileById(personId);
+	const society = person ? await repositories.societies.findDetailById(person.society_id) : null;
 
 	if (!person || !society) {
 		throw error(404, 'Person not found');
@@ -23,13 +23,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const principal = `${person.id}@${society.id}`;
 
-	const societyCredits = repositories.ledger.calculateBalance('person', personId);
+	const societyCredits = await repositories.ledger.calculateBalance('person', personId);
 	const [federationCredits, federationHistory] = await Promise.all([
 		getFederationBalance(principal),
 		getFederationHistory(principal)
 	]);
 
-	const localTxns = repositories.ledger.listPersonTransactions(personId);
+	const localTxns = await repositories.ledger.listPersonTransactions(personId);
 
 	// Calculate running balance for passbook view
 	const societyTransactions = localTxns.map((t, index, arr) => {
@@ -67,8 +67,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		},
 		principal,
 		societyHandle: society.handle,
-		hasKeypair: !!repositories.keypair.get(),
-		isAdmitted: repositories.federationMessageQueue.isAdmitted(society.handle),
+		hasKeypair: !!(await repositories.keypair.get()),
+		isAdmitted: await repositories.federationMessageQueue.isAdmitted(society.handle),
 		societyTransactions,
 		federationTransactions
 	};
@@ -89,9 +89,9 @@ export const actions: Actions = {
 		if (amount <= 0) return fail(400, { sendError: 'Amount must be greater than zero' });
 
 		const repos = getRepositories();
-		const person = repos.people.findProfileById(locals.person.id);
+		const person = await repos.people.findProfileById(locals.person.id);
 		if (!person) return fail(404, { sendError: 'Person not found' });
-		const society = repos.societies.findDetailById(person.society_id);
+		const society = await repos.societies.findDetailById(person.society_id);
 		if (!society) return fail(404, { sendError: 'Society not found' });
 
 		const fromPrincipal = `${person.id}@${society.id}`;
@@ -103,13 +103,13 @@ export const actions: Actions = {
 			if (toSocietyId !== society.id)
 				return fail(400, { sendError: 'Society credits cannot be sent cross-society' });
 
-			const fromEntity = resolveLocalEntityById(person.id, person.society_id, repos);
-			const toEntity = resolveLocalEntityById(toId, person.society_id, repos);
+			const fromEntity = await resolveLocalEntityById(person.id, person.society_id, repos);
+			const toEntity = await resolveLocalEntityById(toId, person.society_id, repos);
 
 			if (!fromEntity) return fail(400, { sendError: 'Your account could not be resolved' });
 			if (!toEntity) return fail(400, { sendError: 'Recipient not found in this society' });
 
-			repos.ledger.createTransaction({
+			await repos.ledger.createTransaction({
 				fromType: fromEntity.type,
 				fromId: fromEntity.id,
 				toType: toEntity.type,
@@ -122,10 +122,10 @@ export const actions: Actions = {
 		}
 
 		// Federation credits
-		if (!repos.federationMessageQueue.isAdmitted(society.handle))
+		if (!(await repos.federationMessageQueue.isAdmitted(society.handle)))
 			return fail(400, { sendError: 'Society is not yet admitted to the federation' });
 
-		const personPrivateKey = repos.people.findPrivateKeyById(person.id);
+		const personPrivateKey = await repos.people.findPrivateKeyById(person.id);
 		if (!personPrivateKey)
 			return fail(400, { sendError: 'No keypair found for your account' });
 

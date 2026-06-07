@@ -6,31 +6,31 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repositories = getRepositories();
-	const society = repositories.societies.findById(resolveSocietyId(undefined));
+	const society = await repositories.societies.findById(resolveSocietyId(undefined));
 
 	if (!society) {
 		throw error(404, 'Society not found');
 	}
 
-	const assemblies = repositories.assembly.listAssemblies(resolveSocietyId(undefined));
+	const assemblies = await repositories.assembly.listAssemblies(resolveSocietyId(undefined));
 	const assemblyMembers = new Map<string, Array<{ person_id: string; given_name: string; surname: string; handle: string; seat_number: number }>>();
 
 	for (const assembly of assemblies) {
-		assemblyMembers.set(assembly.id, repositories.assembly.listAssemblyMembers(assembly.id));
+		assemblyMembers.set(assembly.id, await repositories.assembly.listAssemblyMembers(assembly.id));
 	}
 
 	return {
 		society,
 		assemblies,
 		assemblyMembers: Object.fromEntries(assemblyMembers),
-		eligibleMembers: repositories.positions.listEligibleMembers(resolveSocietyId(undefined))
+		eligibleMembers: await repositories.positions.listEligibleMembers(resolveSocietyId(undefined))
 	};
 };
 
 export const actions: Actions = {
 	assign: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'assembly.assign_seat', resolveSocietyId(undefined));
+		await requirePermission(event, 'assembly.assign_seat', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const assemblyId = formData.get('assembly_id') as string;
@@ -42,22 +42,22 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		if (repositories.positions.isPersonOfficer(personId, resolveSocietyId(undefined))) {
+		if (await repositories.positions.isPersonOfficer(personId, resolveSocietyId(undefined))) {
 			return fail(400, { message: 'Officers cannot be assembly members' });
 		}
 
-		if (repositories.assembly.isSeatOccupied(assemblyId, seatNumber)) {
+		if (await repositories.assembly.isSeatOccupied(assemblyId, seatNumber)) {
 			return fail(400, { message: 'Seat is already occupied' });
 		}
 
-		repositories.assembly.assignSeat(assemblyId, personId, seatNumber);
+		await repositories.assembly.assignSeat(assemblyId, personId, seatNumber);
 
 		return { success: true };
 	},
 
 	unassign: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'assembly.unassign_seat', resolveSocietyId(undefined));
+		await requirePermission(event, 'assembly.unassign_seat', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const assemblyId = formData.get('assembly_id') as string;
@@ -68,7 +68,7 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		repositories.assembly.unassignSeat(assemblyId, seatNumber);
+		await repositories.assembly.unassignSeat(assemblyId, seatNumber);
 
 		return { success: true };
 	}

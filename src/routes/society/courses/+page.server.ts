@@ -7,21 +7,21 @@ import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const repositories = getRepositories();
-	const society = repositories.courses.findSociety(resolveSocietyId(undefined));
+	const society = await repositories.courses.findSociety(resolveSocietyId(undefined));
 
 	if (!society) {
 		throw error(404, 'Society not found');
 	}
 
 	const canApprove = locals.person
-		? hasPermission({
+		? await hasPermission({
 			personId: locals.person.id,
 			societyId: resolveSocietyId(undefined),
 			permissionCode: 'education.approve_course'
 		})
 		: false;
 
-	const courses = repositories.courses.listCourses(resolveSocietyId(undefined), canApprove);
+	const courses = await repositories.courses.listCourses(resolveSocietyId(undefined), canApprove);
 
 	return {
 		society,
@@ -58,7 +58,7 @@ export const actions: Actions = {
 
 		const maxStudents = type === 'tutoring' ? 1 : maxStudentsStr ? parseInt(maxStudentsStr) : null;
 
-		repositories.courses.createCourse({
+		await repositories.courses.createCourse({
 			societyId: resolveSocietyId(undefined),
 			instructorId: locals.person.id,
 			title,
@@ -91,13 +91,13 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		const course = repositories.courses.findCourseSummary(courseId, resolveSocietyId(undefined));
+		const course = await repositories.courses.findCourseSummary(courseId, resolveSocietyId(undefined));
 
 		if (!course) {
 			return fail(404, { message: 'Course not found' });
 		}
 
-		if (repositories.courses.isStudentEnrolled(courseId, locals.person.id)) {
+		if (await repositories.courses.isStudentEnrolled(courseId, locals.person.id)) {
 			return fail(400, { message: 'Already enrolled' });
 		}
 
@@ -105,13 +105,13 @@ export const actions: Actions = {
 			return fail(400, { message: 'Course is full' });
 		}
 
-		repositories.courses.createEnrollment(courseId, locals.person.id);
+		await repositories.courses.createEnrollment(courseId, locals.person.id);
 
 		return { success: true };
 	},
 	approveCourse: async (event) => {
 		const { request, params, locals } = event;
-		requirePermission(event, 'education.approve_course', resolveSocietyId(undefined));
+		await requirePermission(event, 'education.approve_course', resolveSocietyId(undefined));
 
 		if (!locals.person) {
 			return fail(400, { message: 'Invalid request' });
@@ -125,19 +125,19 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		const course = repositories.courses.findCourseSociety(courseId);
+		const course = await repositories.courses.findCourseSociety(courseId);
 
 		if (!course || course.society_id !== resolveSocietyId(undefined)) {
 			return fail(404, { message: 'Course not found' });
 		}
 
-		repositories.courses.approveCourse(courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
+		await repositories.courses.approveCourse(courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
 
 		return { success: true };
 	},
 	rejectCourse: async (event) => {
 		const { request, params, locals } = event;
-		requirePermission(event, 'education.approve_course', resolveSocietyId(undefined));
+		await requirePermission(event, 'education.approve_course', resolveSocietyId(undefined));
 
 		if (!locals.person) {
 			return fail(400, { message: 'Invalid request' });
@@ -151,13 +151,13 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		const course = repositories.courses.findCourseSociety(courseId);
+		const course = await repositories.courses.findCourseSociety(courseId);
 
 		if (!course || course.society_id !== resolveSocietyId(undefined)) {
 			return fail(404, { message: 'Course not found' });
 		}
 
-		repositories.courses.rejectCourse(courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
+		await repositories.courses.rejectCourse(courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
 
 		return { success: true };
 	}

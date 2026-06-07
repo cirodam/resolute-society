@@ -7,13 +7,13 @@ export const load: PageServerLoad = async ({ params }) => {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
 
-	const society = repos.societies.findById(societyId);
+	const society = await repos.societies.findById(societyId);
 	if (!society) throw error(404, 'Society not found');
 
-	const day = repos.ledgerDays.findByDate(societyId, params.date);
+	const day = await repos.ledgerDays.findByDate(societyId, params.date);
 	if (!day) throw error(404, 'No ledger record for this date');
 
-	const transactions = repos.ledger.listForDate(params.date);
+	const transactions = await repos.ledger.listForDate(params.date);
 
 	const closingBalance = day.status === 'open'
 		? null

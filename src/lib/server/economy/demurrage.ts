@@ -39,24 +39,26 @@ export function planDemurrageDeductions(
 		.filter((entry) => entry.amount > 0);
 }
 
-export function collectDemurrage(params: {
+export async function collectDemurrage(params: {
 	principals: Array<{ type: EntityType; id: string }>;
 	target: { type: EntityType; id: string };
 	mode: DemurrageMode;
 	value: number;
 	note: string;
-}): { totalCollected: number; chargedPrincipalCount: number } {
-	const principalBalances: PrincipalBalance[] = params.principals.map((principal) => ({
-		...principal,
-		balance: calculateBalance(principal.type, principal.id)
-	}));
+}): Promise<{ totalCollected: number; chargedPrincipalCount: number }> {
+	const principalBalances: PrincipalBalance[] = await Promise.all(
+		params.principals.map(async (principal) => ({
+			...principal,
+			balance: await calculateBalance(principal.type, principal.id)
+		}))
+	);
 
 	const deductions = planDemurrageDeductions(principalBalances, params.mode, params.value);
 
 	let totalCollected = 0;
 	for (const deduction of deductions) {
 		totalCollected += deduction.amount;
-		createLedgerTransaction({
+		await createLedgerTransaction({
 			fromType: deduction.type,
 			fromId: deduction.id,
 			toType: params.target.type,

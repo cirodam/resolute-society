@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 
 export interface SessionPersonRow {
 	id: string;
@@ -106,272 +106,197 @@ export interface EndowmentMemberRow {
 }
 
 export class PersonRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	findSessionPersonById(personId: string): SessionPersonRow | null {
-		const person = this.database
-			.prepare(
-				"SELECT id, society_id, handle, given_name, surname, membership_status, welcome_seen_at FROM person WHERE id = ? AND membership_status != 'deleted'"
-			)
-			.get(personId) as SessionPersonRow | undefined;
-
-		return person ?? null;
+	async findSessionPersonById(personId: string): Promise<SessionPersonRow | null> {
+		const [row] = await this.sql<SessionPersonRow[]>`
+			SELECT id, society_id, handle, given_name, surname, membership_status, welcome_seen_at
+			FROM person WHERE id = ${personId} AND membership_status != 'deleted'`;
+		return row ?? null;
 	}
 
-	findLoginByHandle(handle: string): LoginPersonRow | null {
-		const person = this.database
-			.prepare("SELECT id, society_id, password_hash, welcome_seen_at FROM person WHERE handle = ? AND membership_status != 'deleted'")
-			.get(handle) as LoginPersonRow | undefined;
-
-		return person ?? null;
+	async findLoginByHandle(handle: string): Promise<LoginPersonRow | null> {
+		const [row] = await this.sql<LoginPersonRow[]>`
+			SELECT id, society_id, password_hash, welcome_seen_at FROM person WHERE handle = ${handle} AND membership_status != 'deleted'`;
+		return row ?? null;
 	}
 
-	findProfileById(personId: string): PersonProfileRow | null {
-		const person = this.database
-			.prepare(
-				`SELECT
-						p.id, p.handle, p.given_name, p.surname, p.dob, p.sex,
-					p.location_id, l.name AS location_name,
-					p.bio, p.sortition_number, p.membership_status,
-					s.name AS society_name, s.id AS society_id
-				 FROM person p
-				 JOIN society_config s ON p.society_id = s.id
-				 LEFT JOIN location l ON p.location_id = l.id
-				 WHERE p.id = ?`
-			)
-			.get(personId) as PersonProfileRow | undefined;
-
-		return person ?? null;
+	async findProfileById(personId: string): Promise<PersonProfileRow | null> {
+		const [row] = await this.sql<PersonProfileRow[]>`
+			SELECT
+				p.id, p.handle, p.given_name, p.surname, p.dob, p.sex,
+				p.location_id, l.name AS location_name,
+				p.bio, p.sortition_number, p.membership_status,
+				s.name AS society_name, s.id AS society_id
+			FROM person p
+			JOIN society_config s ON p.society_id = s.id
+			LEFT JOIN location l ON p.location_id = l.id
+			WHERE p.id = ${personId}`;
+		return row ?? null;
 	}
 
-	findSocietyByPersonId(personId: string): PersonSocietyRow | null {
-		const person = this.database
-			.prepare('SELECT society_id FROM person WHERE id = ?')
-			.get(personId) as PersonSocietyRow | undefined;
-
-		return person ?? null;
+	async findSocietyByPersonId(personId: string): Promise<PersonSocietyRow | null> {
+		const [row] = await this.sql<PersonSocietyRow[]>`SELECT society_id FROM person WHERE id = ${personId}`;
+		return row ?? null;
 	}
 
-	findByHandleAndSociety(handle: string, societyId: string): PersonIdentityRow | null {
-		const person = this.database
-			.prepare('SELECT id, given_name, surname FROM person WHERE handle = ? AND society_id = ?')
-			.get(handle, societyId) as PersonIdentityRow | undefined;
-
-		return person ?? null;
+	async findByHandleAndSociety(handle: string, societyId: string): Promise<PersonIdentityRow | null> {
+		const [row] = await this.sql<PersonIdentityRow[]>`
+			SELECT id, given_name, surname FROM person WHERE handle = ${handle} AND society_id = ${societyId}`;
+		return row ?? null;
 	}
 
-	findDetailById(personId: string): PersonDetailRow | null {
-		const person = this.database
-			.prepare(
-				`SELECT
-						p.id, p.handle, p.given_name, p.surname, p.dob, p.sex,
-					p.location_id, l.name AS location_name,
-					p.bio, p.sortition_number, p.membership_status,
-					s.name AS society_name, s.id AS society_id
-				 FROM person p
-				 JOIN society_config s ON p.society_id = s.id
-				 LEFT JOIN location l ON p.location_id = l.id
-				 WHERE p.id = ?`
-			)
-			.get(personId) as PersonDetailRow | undefined;
-
-		return person ?? null;
+	async findDetailById(personId: string): Promise<PersonDetailRow | null> {
+		const [row] = await this.sql<PersonDetailRow[]>`
+			SELECT
+				p.id, p.handle, p.given_name, p.surname, p.dob, p.sex,
+				p.location_id, l.name AS location_name,
+				p.bio, p.sortition_number, p.membership_status,
+				s.name AS society_name, s.id AS society_id
+			FROM person p
+			JOIN society_config s ON p.society_id = s.id
+			LEFT JOIN location l ON p.location_id = l.id
+			WHERE p.id = ${personId}`;
+		return row ?? null;
 	}
 
-	findNameById(personId: string): PersonNameRow | null {
-		const person = this.database
-			.prepare('SELECT id, given_name, surname FROM person WHERE id = ?')
-			.get(personId) as PersonNameRow | undefined;
-
-		return person ?? null;
+	async findNameById(personId: string): Promise<PersonNameRow | null> {
+		const [row] = await this.sql<PersonNameRow[]>`SELECT id, given_name, surname FROM person WHERE id = ${personId}`;
+		return row ?? null;
 	}
 
-	handleExists(handle: string): boolean {
-		const existing = this.database.prepare('SELECT id FROM person WHERE handle = ?').get(handle);
-
+	async handleExists(handle: string): Promise<boolean> {
+		const [existing] = await this.sql`SELECT id FROM person WHERE handle = ${handle}`;
 		return !!existing;
 	}
 
-	createPerson(params: CreatePersonParams): void {
-		this.database
-			.prepare(
-				`INSERT INTO person (id, society_id, handle, given_name, surname, password_hash, dob, sex, location_id, membership_status, public_key, private_key, welcome_seen_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-			)
-			.run(
-				params.personId,
-				params.societyId,
-				params.handle,
-				params.givenName,
-				params.surname,
-				params.passwordHash,
-				params.dob,
-				params.sex ?? null,
-				params.locationId ?? null,
-				params.membershipStatus,
-				params.publicKey ?? null,
-				params.privateKey ?? null,
-				params.welcomeSeenAt ?? null
-			);
+	async createPerson(params: CreatePersonParams): Promise<void> {
+		await this.sql`
+			INSERT INTO person (id, society_id, handle, given_name, surname, password_hash, dob, sex, location_id, membership_status, public_key, private_key, welcome_seen_at)
+			VALUES (${params.personId}, ${params.societyId}, ${params.handle}, ${params.givenName}, ${params.surname}, ${params.passwordHash}, ${params.dob}, ${params.sex ?? null}, ${params.locationId ?? null}, ${params.membershipStatus}, ${params.publicKey ?? null}, ${params.privateKey ?? null}, ${params.welcomeSeenAt ?? null})`;
 	}
 
-	updateProfile(params: {
+	async updateProfile(params: {
 		personId: string;
 		bio: string | null;
 		locationId: string | null;
 		sex: 'male' | 'female' | 'other' | null;
-	}): void {
-		this.database
-			.prepare(`UPDATE person SET bio = ?, location_id = ?, sex = ? WHERE id = ?`)
-			.run(params.bio, params.locationId, params.sex, params.personId);
+	}): Promise<void> {
+		await this.sql`UPDATE person SET bio = ${params.bio}, location_id = ${params.locationId}, sex = ${params.sex} WHERE id = ${params.personId}`;
 	}
 
-	markWelcomeSeen(personId: string): void {
-		this.database
-			.prepare('UPDATE person SET welcome_seen_at = datetime(\'now\') WHERE id = ?')
-			.run(personId);
+	async markWelcomeSeen(personId: string): Promise<void> {
+		await this.sql`UPDATE person SET welcome_seen_at = NOW() WHERE id = ${personId}`;
 	}
 
-	findPublicKeyByHandle(handle: string, societyId: string): string | null {
-		const row = this.database
-			.prepare('SELECT public_key FROM person WHERE handle = ? AND society_id = ?')
-			.get(handle, societyId) as { public_key: string | null } | undefined;
+	async findPublicKeyByHandle(handle: string, societyId: string): Promise<string | null> {
+		const [row] = await this.sql<Array<{ public_key: string | null }>>`
+			SELECT public_key FROM person WHERE handle = ${handle} AND society_id = ${societyId}`;
 		return row?.public_key ?? null;
 	}
 
-	findPrivateKeyByHandle(handle: string, societyId: string): string | null {
-		const row = this.database
-			.prepare('SELECT private_key FROM person WHERE handle = ? AND society_id = ?')
-			.get(handle, societyId) as { private_key: string | null } | undefined;
+	async findPrivateKeyByHandle(handle: string, societyId: string): Promise<string | null> {
+		const [row] = await this.sql<Array<{ private_key: string | null }>>`
+			SELECT private_key FROM person WHERE handle = ${handle} AND society_id = ${societyId}`;
 		return row?.private_key ?? null;
 	}
 
-	findPrivateKeyById(personId: string): string | null {
-		const row = this.database
-			.prepare('SELECT private_key FROM person WHERE id = ?')
-			.get(personId) as { private_key: string | null } | undefined;
+	async findPrivateKeyById(personId: string): Promise<string | null> {
+		const [row] = await this.sql<Array<{ private_key: string | null }>>`
+			SELECT private_key FROM person WHERE id = ${personId}`;
 		return row?.private_key ?? null;
 	}
 
-	findPublicKeyById(personId: string): string | null {
-		const row = this.database
-			.prepare('SELECT public_key FROM person WHERE id = ?')
-			.get(personId) as { public_key: string | null } | undefined;
+	async findPublicKeyById(personId: string): Promise<string | null> {
+		const [row] = await this.sql<Array<{ public_key: string | null }>>`
+			SELECT public_key FROM person WHERE id = ${personId}`;
 		return row?.public_key ?? null;
 	}
 
-	listWithoutKeypair(societyId: string): Array<{ id: string }> {
-		return this.database
-			.prepare('SELECT id FROM person WHERE society_id = ? AND public_key IS NULL')
-			.all(societyId) as Array<{ id: string }>;
+	async listWithoutKeypair(societyId: string): Promise<Array<{ id: string }>> {
+		return await this.sql<Array<{ id: string }>>`
+			SELECT id FROM person WHERE society_id = ${societyId} AND public_key IS NULL`;
 	}
 
-	setKeypair(personId: string, publicKey: string, privateKey: string): void {
-		this.database
-			.prepare('UPDATE person SET public_key = ?, private_key = ? WHERE id = ?')
-			.run(publicKey, privateKey, personId);
+	async setKeypair(personId: string, publicKey: string, privateKey: string): Promise<void> {
+		await this.sql`UPDATE person SET public_key = ${publicKey}, private_key = ${privateKey} WHERE id = ${personId}`;
 	}
 
-	listAssociations(personId: string): PersonAssociationRow[] {
-		const rows = this.database
-			.prepare(
-				`SELECT a.name, a.type, (a.special_type = 'college') AS is_college
-				 FROM association_member am
-				 JOIN association a ON am.association_id = a.id
-				 WHERE am.person_id = ?
-				 ORDER BY a.name`
-			)
-			.all(personId) as Array<
-				Omit<PersonAssociationRow, 'is_college'> & {
-					is_college: number;
-				}
-			>;
+	async listAssociations(personId: string): Promise<PersonAssociationRow[]> {
+		const rows = await this.sql<Array<{ name: string; type: string | null; is_college: boolean }>>`
+			SELECT a.name, a.type, (a.special_type = 'college') AS is_college
+			FROM association_member am
+			JOIN association a ON am.association_id = a.id
+			WHERE am.person_id = ${personId}
+			ORDER BY a.name`;
 
 		return rows.map((row) => ({
 			...row,
-			is_college: row.is_college === 1
+			is_college: row.is_college === true
 		}));
 	}
 
-	updateBio(personId: string, bio: string | null): void {
-		this.database.prepare('UPDATE person SET bio = ? WHERE id = ?').run(bio, personId);
+	async updateBio(personId: string, bio: string | null): Promise<void> {
+		await this.sql`UPDATE person SET bio = ${bio} WHERE id = ${personId}`;
 	}
 
-	updateMembershipStatus(personId: string, status: string): void {
-		this.database
-			.prepare('UPDATE person SET membership_status = ? WHERE id = ?')
-			.run(status, personId);
+	async updateMembershipStatus(personId: string, status: string): Promise<void> {
+		await this.sql`UPDATE person SET membership_status = ${status} WHERE id = ${personId}`;
 	}
 
-	listNamesBySociety(societyId: string): PersonNameRow[] {
-		return this.database
-			.prepare(
-				"SELECT id, given_name, surname FROM person WHERE society_id = ? AND membership_status != 'deleted' ORDER BY surname, given_name"
-			)
-			.all(societyId) as PersonNameRow[];
+	async listNamesBySociety(societyId: string): Promise<PersonNameRow[]> {
+		return await this.sql<PersonNameRow[]>`
+			SELECT id, given_name, surname FROM person WHERE society_id = ${societyId} AND membership_status != 'deleted' ORDER BY surname, given_name`;
 	}
 
-	listDirectoryMembers(societyId: string): DirectoryMemberRow[] {
-		return this.database
-			.prepare(
-				`SELECT id, handle, given_name, surname, membership_status, sortition_number
-				 FROM person
-				 WHERE society_id = ? AND membership_status != 'deleted'
-				 ORDER BY surname, given_name`
-			)
-			.all(societyId) as DirectoryMemberRow[];
+	async listDirectoryMembers(societyId: string): Promise<DirectoryMemberRow[]> {
+		return await this.sql<DirectoryMemberRow[]>`
+			SELECT id, handle, given_name, surname, membership_status, sortition_number
+			FROM person
+			WHERE society_id = ${societyId} AND membership_status != 'deleted'
+			ORDER BY surname, given_name`;
 	}
 
-	listFullMembers(societyId: string): FullMemberRow[] {
-		return this.database
-			.prepare("SELECT id FROM person WHERE society_id = ? AND membership_status = 'full'")
-			.all(societyId) as FullMemberRow[];
+	async listFullMembers(societyId: string): Promise<FullMemberRow[]> {
+		return await this.sql<FullMemberRow[]>`
+			SELECT id FROM person WHERE society_id = ${societyId} AND membership_status = 'full'`;
 	}
 
-	clearSortitionNumbersForNonFullMembers(societyId: string): void {
-		this.database
-			.prepare('UPDATE person SET sortition_number = NULL WHERE society_id = ? AND membership_status != ?')
-			.run(societyId, 'full');
+	async clearSortitionNumbersForNonFullMembers(societyId: string): Promise<void> {
+		await this.sql`
+			UPDATE person SET sortition_number = NULL WHERE society_id = ${societyId} AND membership_status != 'full'`;
 	}
 
-	setSortitionNumber(personId: string, sortitionNumber: number): void {
-		this.database
-			.prepare('UPDATE person SET sortition_number = ? WHERE id = ?')
-			.run(sortitionNumber, personId);
+	async setSortitionNumber(personId: string, sortitionNumber: number): Promise<void> {
+		await this.sql`UPDATE person SET sortition_number = ${sortitionNumber} WHERE id = ${personId}`;
 	}
 
-	countBySociety(societyId: string): number {
-		const row = this.database
-			.prepare("SELECT COUNT(*) as count FROM person WHERE society_id = ? AND membership_status != 'deleted'")
-			.get(societyId) as { count: number };
+	async countBySociety(societyId: string): Promise<number> {
+		const [row] = await this.sql<Array<{ count: number }>>`
+			SELECT COUNT(*)::int as count FROM person WHERE society_id = ${societyId} AND membership_status != 'deleted'`;
 		return row.count;
 	}
 
-	listForNutrition(societyId: string): Array<{ dob: string | null; sex: 'male' | 'female' | 'other' | null }> {
-		return this.database
-			.prepare("SELECT dob, sex FROM person WHERE society_id = ? AND membership_status != 'deleted'")
-			.all(societyId) as Array<{ dob: string | null; sex: 'male' | 'female' | 'other' | null }>;
+	async listForNutrition(societyId: string): Promise<Array<{ dob: string | null; sex: 'male' | 'female' | 'other' | null }>> {
+		return await this.sql<Array<{ dob: string | null; sex: 'male' | 'female' | 'other' | null }>>`
+			SELECT dob, sex FROM person WHERE society_id = ${societyId} AND membership_status != 'deleted'`;
 	}
 
-	listEndowmentMembers(societyId: string): EndowmentMemberRow[] {
-		return this.database
-			.prepare("SELECT id, dob FROM person WHERE society_id = ? AND membership_status != 'deleted'")
-			.all(societyId) as EndowmentMemberRow[];
+	async listEndowmentMembers(societyId: string): Promise<EndowmentMemberRow[]> {
+		return await this.sql<EndowmentMemberRow[]>`
+			SELECT id, dob FROM person WHERE society_id = ${societyId} AND membership_status != 'deleted'`;
 	}
 
-	markDeleted(personId: string): void {
-		this.database
-			.prepare("UPDATE person SET membership_status = 'deleted', sortition_number = NULL WHERE id = ?")
-			.run(personId);
+	async markDeleted(personId: string): Promise<void> {
+		await this.sql`UPDATE person SET membership_status = 'deleted', sortition_number = NULL WHERE id = ${personId}`;
 	}
 
-	listForFederationSync(societyId: string): Array<{ id: string; handle: string; dob: string | null; public_key: string | null }> {
-		return this.database
-			.prepare("SELECT id, handle, dob, public_key FROM person WHERE society_id = ? AND membership_status != 'deleted'")
-			.all(societyId) as Array<{ id: string; handle: string; dob: string | null; public_key: string | null }>;
+	async listForFederationSync(societyId: string): Promise<Array<{ id: string; handle: string; dob: string | null; public_key: string | null }>> {
+		return await this.sql<Array<{ id: string; handle: string; dob: string | null; public_key: string | null }>>`
+			SELECT id, handle, dob, public_key FROM person WHERE society_id = ${societyId} AND membership_status != 'deleted'`;
 	}
 
-	listWithLocation(societyId: string): Array<{
+	async listWithLocation(societyId: string): Promise<Array<{
 		id: string;
 		given_name: string;
 		surname: string;
@@ -379,23 +304,20 @@ export class PersonRepository {
 		lat: number;
 		lng: number;
 		location_name: string;
-	}> {
-		return this.database
-			.prepare(
-				`SELECT p.id, p.given_name, p.surname, p.handle, l.lat, l.lng, l.name AS location_name
-				 FROM person p
-				 JOIN location l ON p.location_id = l.id
-				 WHERE p.society_id = ? AND p.membership_status != 'deleted'
-				 ORDER BY p.surname, p.given_name`
-			)
-			.all(societyId) as Array<{
-				id: string;
-				given_name: string;
-				surname: string;
-				handle: string;
-				lat: number;
-				lng: number;
-				location_name: string;
-			}>;
+	}>> {
+		return await this.sql<Array<{
+			id: string;
+			given_name: string;
+			surname: string;
+			handle: string;
+			lat: number;
+			lng: number;
+			location_name: string;
+		}>>`
+			SELECT p.id, p.given_name, p.surname, p.handle, l.lat, l.lng, l.name AS location_name
+			FROM person p
+			JOIN location l ON p.location_id = l.id
+			WHERE p.society_id = ${societyId} AND p.membership_status != 'deleted'
+			ORDER BY p.surname, p.given_name`;
 	}
 }

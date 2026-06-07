@@ -7,24 +7,24 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
-	const society = repos.societies.findDetailById(societyId);
+	const society = await repos.societies.findDetailById(societyId);
 
 	if (!society) throw error(404, 'Society not found');
 
 	return {
 		society,
-		hubAssociations: repos.associations.listHubsBySociety(societyId),
-		locations: repos.locations.listBySociety(societyId),
-		categories: repos.locationCategories.listBySociety(societyId),
-		roadNodes: repos.roadGraph.listNodesBySociety(societyId),
-		roadEdges: repos.roadGraph.listEdgesBySociety(societyId)
+		hubAssociations: await repos.associations.listHubsBySociety(societyId),
+		locations: await repos.locations.listBySociety(societyId),
+		categories: await repos.locationCategories.listBySociety(societyId),
+		roadNodes: await repos.roadGraph.listNodesBySociety(societyId),
+		roadEdges: await repos.roadGraph.listEdgesBySociety(societyId)
 	};
 };
 
 export const actions: Actions = {
 	warmCache: async () => {
 		const repos = getRepositories();
-		const society = repos.societies.findDetailById(resolveSocietyId(undefined));
+		const society = await repos.societies.findDetailById(resolveSocietyId(undefined));
 
 		if (!society) return fail(404, { warmError: 'Society not found' });
 

@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	let messages: MessageListItem[] = [];
 
 	if (view === 'inbox') {
-		messages = repositories.messages.listInboxMessages(locals.person.id).map((message) => ({
+		messages = (await repositories.messages.listInboxMessages(locals.person.id)).map((message) => ({
 			id: message.id,
 			subject: message.subject,
 			body: message.body,
@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			address: `${message.handle}@${message.society_handle}`
 		}));
 	} else if (view === 'sent') {
-		messages = repositories.messages.listSentMessages(locals.person.id).map((message) => ({
+		messages = (await repositories.messages.listSentMessages(locals.person.id)).map((message) => ({
 			id: message.id,
 			subject: message.subject,
 			body: message.body,
@@ -41,7 +41,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			address: `${message.handle}@${message.society_handle}`
 		}));
 	} else if (view === 'archive') {
-		messages = repositories.messages.listArchivedMessages(locals.person.id).map((message) => ({
+		messages = (await repositories.messages.listArchivedMessages(locals.person.id)).map((message) => ({
 			id: message.id,
 			subject: message.subject,
 			body: message.body,
@@ -56,7 +56,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		view,
 		messages,
-		unreadCount: repositories.messages.getUnreadCount(locals.person.id)
+		unreadCount: await repositories.messages.getUnreadCount(locals.person.id)
 	};
 };
 
@@ -77,7 +77,7 @@ export const actions = {
 
 		let resolvedAddress = recipientAddress;
 		if (!recipientAddress.includes('@')) {
-			const society = getRepositories().societies.findDetailById(resolveSocietyId(undefined));
+			const society = await getRepositories().societies.findDetailById(resolveSocietyId(undefined));
 			if (!society) return fail(500, { sendError: 'Society not found' });
 			resolvedAddress = `${recipientAddress}@${society.handle}`;
 		}
@@ -88,13 +88,13 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		const recipient = repositories.messages.findRecipientByHandleAndSociety(handle, societyHandle);
+		const recipient = await repositories.messages.findRecipientByHandleAndSociety(handle, societyHandle);
 
 		if (!recipient) {
 			return fail(400, { sendError: 'Recipient not found' });
 		}
 
-		repositories.messages.sendMessage({
+		await repositories.messages.sendMessage({
 			senderId: locals.person.id,
 			recipientId: recipient.id,
 			subject,
@@ -117,11 +117,11 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		if (!repositories.messages.findOwnedMessage(messageId, locals.person.id)) {
+		if (!(await repositories.messages.findOwnedMessage(messageId, locals.person.id))) {
 			return fail(403, { error: 'Message not found' });
 		}
 
-		repositories.messages.markAsRead(messageId);
+		await repositories.messages.markAsRead(messageId);
 
 		return { readSuccess: true };
 	},
@@ -139,11 +139,11 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		if (!repositories.messages.findVisibleMessage(messageId, locals.person.id)) {
+		if (!(await repositories.messages.findVisibleMessage(messageId, locals.person.id))) {
 			return fail(403, { error: 'Message not found' });
 		}
 
-		repositories.messages.archive(messageId);
+		await repositories.messages.archive(messageId);
 
 		return { archiveSuccess: true };
 	}

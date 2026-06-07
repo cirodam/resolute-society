@@ -1,12 +1,10 @@
-import Database from 'better-sqlite3';
+import postgres from 'postgres';
 
-let _db: Database.Database | null = null;
+let _sql: postgres.Sql | null = null;
 
-export function db(): Database.Database {
-	if (!_db) {
-		_db = new Database(process.env.DATABASE_PATH ?? 'resolute-society.sqlite');
-		_db.pragma('journal_mode = WAL');
-		_db.pragma('foreign_keys = ON');
+export function db(): postgres.Sql {
+	if (!_sql) {
+		_sql = postgres(process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/resolute_society');
 	}
-	return _db;
+	return _sql;
 }

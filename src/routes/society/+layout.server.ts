@@ -15,12 +15,12 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	}
 
 	const repositories = getRepositories();
-	const society = repositories.societies.findFounderById(societyId);
+	const society = await repositories.societies.findFounderById(societyId);
 	const isFounder = society?.founder_person_id === locals.person.id;
 
 	let permissionCodes: string[] = [];
 	if (!isFounder) {
-		permissionCodes = repositories.societies.listPermissionCodesForPerson(societyId, locals.person.id);
+		permissionCodes = await repositories.societies.listPermissionCodesForPerson(societyId, locals.person.id);
 	}
 
 	return {

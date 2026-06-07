@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 import type { FederationMessageEnvelope, FederationMessageType } from '../../federation/messages';
 
 export interface FederationMessageRow {
@@ -13,71 +13,54 @@ export interface FederationMessageRow {
 }
 
 export class FederationMessageQueueRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	enqueue<T extends FederationMessageType>(message: FederationMessageEnvelope<T>): void {
-		this.database
-			.prepare(
-				`INSERT INTO federation_message (id, type, society_handle, payload)
-				 VALUES (?, ?, ?, ?)`
-			)
-			.run(message.id, message.type, message.societyHandle, JSON.stringify(message.payload));
+	async enqueue<T extends FederationMessageType>(message: FederationMessageEnvelope<T>): Promise<void> {
+		await this.sql`
+			INSERT INTO federation_message (id, type, society_handle, payload)
+			VALUES (${message.id}, ${message.type}, ${message.societyHandle}, ${JSON.stringify(message.payload)})`;
 	}
 
-	listBySocietyHandle(societyHandle: string): FederationMessageRow[] {
-		return this.database
-			.prepare(
-				`SELECT * FROM federation_message
-				 WHERE society_handle = ?
-				 ORDER BY created_at DESC`
-			)
-			.all(societyHandle) as FederationMessageRow[];
+	async listBySocietyHandle(societyHandle: string): Promise<FederationMessageRow[]> {
+		return await this.sql<FederationMessageRow[]>`
+			SELECT * FROM federation_message
+			WHERE society_handle = ${societyHandle}
+			ORDER BY created_at DESC`;
 	}
 
 	// Returns messages not yet delivered and past their backoff window.
 	// Backoff: min(3600, 5 * 2^attempt_count) seconds.
-	getPending(): FederationMessageRow[] {
-		return this.database
-			.prepare(
-				`SELECT * FROM federation_message
-				 WHERE delivered_at IS NULL
-				   AND (
-				     last_attempted_at IS NULL
-				     OR (unixepoch('now') - unixepoch(last_attempted_at))
-				        > min(3600, 5 * (1 << min(attempt_count, 10)))
-				   )
-				 ORDER BY created_at ASC`
-			)
-			.all() as FederationMessageRow[];
+	async getPending(): Promise<FederationMessageRow[]> {
+		return await this.sql<FederationMessageRow[]>`
+			SELECT * FROM federation_message
+			WHERE delivered_at IS NULL
+			  AND (
+			    last_attempted_at IS NULL
+			    OR EXTRACT(EPOCH FROM (NOW() - last_attempted_at))
+			       > LEAST(3600, 5 * (1 << LEAST(attempt_count, 10)))
+			  )
+			ORDER BY created_at ASC`;
 	}
 
-	isAdmitted(societyHandle: string): boolean {
-		const row = this.database
-			.prepare(
-				`SELECT 1 FROM federation_message
-				 WHERE type = 'society_join'
-				   AND society_handle = ?
-				   AND delivered_at IS NOT NULL
-				 LIMIT 1`
-			)
-			.get(societyHandle);
+	async isAdmitted(societyHandle: string): Promise<boolean> {
+		const [row] = await this.sql`
+			SELECT 1 FROM federation_message
+			WHERE type = 'society_join'
+			  AND society_handle = ${societyHandle}
+			  AND delivered_at IS NOT NULL
+			LIMIT 1`;
 		return !!row;
 	}
 
-	markDelivered(id: string): void {
-		this.database
-			.prepare(`UPDATE federation_message SET delivered_at = datetime('now') WHERE id = ?`)
-			.run(id);
+	async markDelivered(id: string): Promise<void> {
+		await this.sql`UPDATE federation_message SET delivered_at = NOW() WHERE id = ${id}`;
 	}
 
-	recordAttempt(id: string): void {
-		this.database
-			.prepare(
-				`UPDATE federation_message
-				 SET attempt_count     = attempt_count + 1,
-				     last_attempted_at = datetime('now')
-				 WHERE id = ?`
-			)
-			.run(id);
+	async recordAttempt(id: string): Promise<void> {
+		await this.sql`
+			UPDATE federation_message
+			SET attempt_count     = attempt_count + 1,
+			    last_attempted_at = NOW()
+			WHERE id = ${id}`;
 	}
 }

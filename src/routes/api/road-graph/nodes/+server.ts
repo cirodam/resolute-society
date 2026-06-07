@@ -13,7 +13,7 @@ export async function POST({ request }: { request: Request }) {
 
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
-	const node = repos.roadGraph.createNode({ id: randomUUID(), societyId, lat, lng, label: label ?? null });
+	const node = await repos.roadGraph.createNode({ id: randomUUID(), societyId, lat, lng, label: label ?? null });
 
 	return json(node);
 }

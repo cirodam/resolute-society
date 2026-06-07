@@ -6,21 +6,21 @@ export function isValidPositiveAmount(amount: number): boolean {
 	return Number.isFinite(amount) && amount > 0;
 }
 
-export function hasSufficientBalance(
+export async function hasSufficientBalance(
 	entityType: EntityType,
 	entityId: string,
 	amount: number
-): boolean {
-	return calculateBalance(entityType, entityId) >= amount;
+): Promise<boolean> {
+	return (await calculateBalance(entityType, entityId)) >= amount;
 }
 
-export function disburseToResolvedPrincipal(params: {
+export async function disburseToResolvedPrincipal(params: {
 	fromType: EntityType;
 	fromId: string;
 	amount: number;
 	recipient: ResolvedPrincipal;
 	note: string;
-}): string {
+}): Promise<string> {
 	return createLedgerTransaction({
 		fromType: params.fromType,
 		fromId: params.fromId,

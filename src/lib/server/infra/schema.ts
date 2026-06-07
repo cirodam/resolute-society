@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS society_config (
 	federation_url    TEXT,
 	federation_ip_address TEXT,
 	founder_person_id TEXT REFERENCES person(id),
-	created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS person (
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS person (
 	membership_status TEXT NOT NULL DEFAULT 'provisional' CHECK (membership_status IN ('provisional', 'full', 'deleted')),
 	public_key        TEXT,
 	private_key       TEXT,
-	welcome_seen_at   TEXT
+	welcome_seen_at   TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS association (
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS association (
 	special_type TEXT NOT NULL DEFAULT 'none' CHECK (special_type IN ('none', 'college', 'hub')),
 	description  TEXT,
 	location_id  TEXT REFERENCES location(id),
-	created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS association_member (
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS position (
 	default_allowance             REAL NOT NULL DEFAULT 0,
 	current_allowance             REAL NOT NULL DEFAULT 0,
 	allowance_modification_reason TEXT,
-	created_at                    TEXT NOT NULL DEFAULT (datetime('now')),
+	created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE (society_id, name)
 );
 
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS txn (
 	to_id          TEXT NOT NULL,
 	amount         REAL NOT NULL,
 	note           TEXT,
-	created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_txn_from_entity_created_at ON txn(from_type, from_id, created_at DESC);
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS event (
 	starts_at      TEXT NOT NULL,
 	ends_at        TEXT,
 	created_by     TEXT NOT NULL REFERENCES person(id),
-	created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS post (
@@ -128,8 +128,8 @@ CREATE TABLE IF NOT EXISTS post (
 	author_id  TEXT NOT NULL REFERENCES person(id),
 	title      TEXT NOT NULL,
 	body       TEXT NOT NULL,
-	created_at TEXT NOT NULL DEFAULT (datetime('now')),
-	deleted_at TEXT
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS post_reply (
@@ -137,15 +137,15 @@ CREATE TABLE IF NOT EXISTS post_reply (
 	post_id    TEXT NOT NULL REFERENCES post(id),
 	author_id  TEXT NOT NULL REFERENCES person(id),
 	body       TEXT NOT NULL,
-	created_at TEXT NOT NULL DEFAULT (datetime('now')),
-	deleted_at TEXT
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS allowance_group (
 	id         TEXT PRIMARY KEY,
 	society_id TEXT NOT NULL REFERENCES society_config(id),
 	name       TEXT NOT NULL,
-	created_at TEXT NOT NULL DEFAULT (datetime('now')),
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE (society_id, name)
 );
 
@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS allowance_group_member (
 	group_id  TEXT NOT NULL REFERENCES allowance_group(id),
 	person_id TEXT NOT NULL REFERENCES person(id),
 	amount    REAL NOT NULL,
-	joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+	joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY (group_id, person_id)
 );
 
@@ -165,9 +165,9 @@ CREATE TABLE IF NOT EXISTS message (
 	recipient_id TEXT NOT NULL REFERENCES person(id),
 	subject      TEXT NOT NULL,
 	body         TEXT NOT NULL,
-	read_at      TEXT,
-	archived_at  TEXT,
-	created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+	read_at      TIMESTAMPTZ,
+	archived_at  TIMESTAMPTZ,
+	created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_message_recipient ON message(recipient_id, archived_at, created_at DESC);
@@ -184,8 +184,8 @@ CREATE TABLE IF NOT EXISTS item_listing (
 	society_credits_price    REAL,
 	federation_credits_price REAL,
 	status                   TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'sold', 'closed')),
-	created_at               TEXT NOT NULL DEFAULT (datetime('now')),
-	closed_at                TEXT,
+	created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	closed_at                TIMESTAMPTZ,
 	CHECK (federation_credits_price IS NULL OR society_credits_price IS NOT NULL)
 );
 
@@ -202,7 +202,7 @@ CREATE TABLE IF NOT EXISTS service_listing (
 	federation_credits_rate REAL,
 	rate_unit               TEXT CHECK (rate_unit IN ('hour', 'job', 'day')),
 	status                  TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
-	created_at              TEXT NOT NULL DEFAULT (datetime('now')),
+	created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	CHECK (federation_credits_rate IS NULL OR society_credits_rate IS NOT NULL)
 );
 
@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS course (
 	approval_status   TEXT NOT NULL DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected')),
 	approved_by       TEXT REFERENCES person(id),
 	approved_at       TEXT,
-	created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_course_society ON course(society_id, status, starts_at);
@@ -238,7 +238,7 @@ CREATE INDEX IF NOT EXISTS idx_course_society ON course(society_id, status, star
 CREATE TABLE IF NOT EXISTS course_enrollment (
 	course_id   TEXT NOT NULL REFERENCES course(id),
 	student_id  TEXT NOT NULL REFERENCES person(id),
-	enrolled_at TEXT NOT NULL DEFAULT (datetime('now')),
+	enrolled_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	status      TEXT NOT NULL DEFAULT 'enrolled' CHECK (status IN ('enrolled', 'completed', 'dropped')),
 	PRIMARY KEY (course_id, student_id)
 );
@@ -251,7 +251,7 @@ CREATE TABLE IF NOT EXISTS permission (
 	name        TEXT NOT NULL,
 	description TEXT,
 	category    TEXT NOT NULL,
-	created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_permission_code     ON permission(code);
@@ -260,7 +260,7 @@ CREATE INDEX IF NOT EXISTS idx_permission_category ON permission(category);
 CREATE TABLE IF NOT EXISTS position_permission (
 	position_id   TEXT NOT NULL REFERENCES position(id) ON DELETE CASCADE,
 	permission_id TEXT NOT NULL REFERENCES permission(id) ON DELETE CASCADE,
-	granted_at    TEXT NOT NULL DEFAULT (datetime('now')),
+	granted_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY (position_id, permission_id)
 );
 
@@ -269,10 +269,10 @@ CREATE TABLE IF NOT EXISTS federation_message (
 	type              TEXT    NOT NULL,
 	society_handle    TEXT    NOT NULL,
 	payload           TEXT    NOT NULL,
-	created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
-	last_attempted_at TEXT,
+	created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	last_attempted_at TIMESTAMPTZ,
 	attempt_count     INTEGER NOT NULL DEFAULT 0,
-	delivered_at      TEXT
+	delivered_at      TIMESTAMPTZ
 );
 
 CREATE INDEX IF NOT EXISTS idx_federation_message_pending
@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS dependant (
 	society_id TEXT NOT NULL REFERENCES society_config(id),
 	dob        TEXT NOT NULL,
 	sex        TEXT CHECK (sex IN ('male', 'female', 'other')),
-	created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_dependant_society ON dependant(society_id);
@@ -302,7 +302,7 @@ CREATE TABLE IF NOT EXISTS federation_keypair (
 	id          INTEGER PRIMARY KEY CHECK (id = 1),
 	public_key  TEXT NOT NULL,
 	private_key TEXT NOT NULL,
-	created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS location_category (
@@ -310,7 +310,7 @@ CREATE TABLE IF NOT EXISTS location_category (
 	society_id TEXT NOT NULL REFERENCES society_config(id),
 	name       TEXT NOT NULL,
 	color      TEXT NOT NULL DEFAULT '#7a5c1a',
-	created_at TEXT NOT NULL DEFAULT (datetime('now')),
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE (society_id, name)
 );
 
@@ -325,7 +325,7 @@ CREATE TABLE IF NOT EXISTS location (
 	lat         REAL NOT NULL,
 	lng         REAL NOT NULL,
 	notes       TEXT,
-	created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_location_society ON location(society_id);
@@ -336,7 +336,7 @@ CREATE TABLE IF NOT EXISTS nutrient (
 	name       TEXT NOT NULL,
 	unit       TEXT NOT NULL,
 	sort_order INTEGER NOT NULL DEFAULT 0,
-	created_at TEXT NOT NULL DEFAULT (datetime('now')),
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE (society_id, name)
 );
 
@@ -349,7 +349,7 @@ CREATE TABLE IF NOT EXISTS dri_profile (
 	age_min    INTEGER NOT NULL,
 	age_max    INTEGER NOT NULL,
 	sex        TEXT NOT NULL CHECK (sex IN ('male', 'female', 'any')),
-	created_at TEXT NOT NULL DEFAULT (datetime('now')),
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE (society_id, age_min, age_max, sex)
 );
 
@@ -366,7 +366,7 @@ CREATE TABLE IF NOT EXISTS food (
 	id         TEXT PRIMARY KEY,
 	society_id TEXT NOT NULL REFERENCES society_config(id),
 	name       TEXT NOT NULL,
-	created_at TEXT NOT NULL DEFAULT (datetime('now')),
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE (society_id, name)
 );
 
@@ -389,12 +389,12 @@ CREATE TABLE IF NOT EXISTS ledger_day (
 	total_supply      REAL NOT NULL DEFAULT 0,
 	transaction_count INTEGER NOT NULL DEFAULT 0,
 	status            TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed', 'archived')),
-	closed_at         TEXT,
+	closed_at         TIMESTAMPTZ,
 	closed_by_id      TEXT REFERENCES person(id),
 	witnessed_by_id   TEXT REFERENCES person(id),
-	printed_at        TEXT,
-	archived_at       TEXT,
-	created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+	printed_at        TIMESTAMPTZ,
+	archived_at       TIMESTAMPTZ,
+	created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE (society_id, date),
 	UNIQUE (society_id, page_number)
 );
@@ -408,7 +408,7 @@ CREATE TABLE IF NOT EXISTS balance_checkpoint (
 	entity_id   TEXT NOT NULL,
 	balance     REAL NOT NULL,
 	as_of_date  TEXT NOT NULL,
-	created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+	created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE (society_id, entity_type, entity_id, as_of_date)
 );
 
@@ -417,12 +417,12 @@ CREATE INDEX IF NOT EXISTS idx_balance_checkpoint_lookup
 
 CREATE TABLE IF NOT EXISTS scheduled_job_state (
 	job_name           TEXT PRIMARY KEY,
-	last_started_at    TEXT,
-	last_success_at    TEXT,
-	last_error_at      TEXT,
+	last_started_at    TIMESTAMPTZ,
+	last_success_at    TIMESTAMPTZ,
+	last_error_at      TIMESTAMPTZ,
 	last_error_message TEXT,
-	lock_until         TEXT,
-	updated_at         TEXT NOT NULL DEFAULT (datetime('now'))
+	lock_until         TIMESTAMPTZ,
+	updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS road_node (
@@ -431,7 +431,7 @@ CREATE TABLE IF NOT EXISTS road_node (
 	lat        REAL NOT NULL,
 	lng        REAL NOT NULL,
 	label      TEXT,
-	created_at TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_road_node_society ON road_node(society_id);
@@ -442,29 +442,18 @@ CREATE TABLE IF NOT EXISTS road_edge (
 	node_a_id   TEXT NOT NULL REFERENCES road_node(id) ON DELETE CASCADE,
 	node_b_id   TEXT NOT NULL REFERENCES road_node(id) ON DELETE CASCADE,
 	distance_km REAL NOT NULL,
-	created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+	created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_road_edge_society ON road_edge(society_id);
 `;
 
-export function migrate(): void {
-	db().exec(SCHEMA);
+export async function migrate(): Promise<void> {
+	await db().unsafe(SCHEMA);
 	// Additive column migrations for existing databases
-	const run = (sql: string) => { try { db().exec(sql); } catch {} };
-	run(`ALTER TABLE person ADD COLUMN location_id TEXT REFERENCES location(id)`);
-	run(`ALTER TABLE association ADD COLUMN location_id TEXT REFERENCES location(id)`);
-
-	const columns = db().prepare("PRAGMA table_info(person)").all() as Array<{ name: string }>;
-	if (!columns.some((column) => column.name === 'welcome_seen_at')) {
-		db().prepare('ALTER TABLE person ADD COLUMN welcome_seen_at TEXT').run();
-	}
-	if (!columns.some((column) => column.name === 'sex')) {
-		db().prepare("ALTER TABLE person ADD COLUMN sex TEXT CHECK (sex IN ('male', 'female', 'other'))").run();
-	}
-
-	const dependantColumns = db().prepare("PRAGMA table_info(dependant)").all() as Array<{ name: string }>;
-	if (!dependantColumns.some((column) => column.name === 'sex')) {
-		db().prepare("ALTER TABLE dependant ADD COLUMN sex TEXT CHECK (sex IN ('male', 'female', 'other'))").run();
-	}
+	await db()`ALTER TABLE person ADD COLUMN IF NOT EXISTS location_id TEXT REFERENCES location(id)`;
+	await db()`ALTER TABLE association ADD COLUMN IF NOT EXISTS location_id TEXT REFERENCES location(id)`;
+	await db()`ALTER TABLE person ADD COLUMN IF NOT EXISTS welcome_seen_at TIMESTAMPTZ`;
+	await db()`ALTER TABLE person ADD COLUMN IF NOT EXISTS sex TEXT CHECK (sex IN ('male', 'female', 'other'))`;
+	await db()`ALTER TABLE dependant ADD COLUMN IF NOT EXISTS sex TEXT CHECK (sex IN ('male', 'female', 'other'))`;
 }

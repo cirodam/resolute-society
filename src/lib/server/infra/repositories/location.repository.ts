@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 
 export interface LocationCategory {
 	id: string;
@@ -53,24 +53,20 @@ const SELECT = `
 `;
 
 export class LocationRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	listBySociety(societyId: string): LocationRow[] {
-		return (
-			this.database
-				.prepare(`${SELECT} WHERE l.society_id = ? ORDER BY c.name, l.name`)
-				.all(societyId) as LocationDbRow[]
-		).map(mapRow);
+	async listBySociety(societyId: string): Promise<LocationRow[]> {
+		const rows = await this.sql<LocationDbRow[]>`
+			${this.sql.unsafe(SELECT)} WHERE l.society_id = ${societyId} ORDER BY c.name, l.name`;
+		return rows.map(mapRow);
 	}
 
-	findById(id: string): LocationRow | null {
-		const row = this.database
-			.prepare(`${SELECT} WHERE l.id = ?`)
-			.get(id) as LocationDbRow | undefined;
+	async findById(id: string): Promise<LocationRow | null> {
+		const [row] = await this.sql<LocationDbRow[]>`${this.sql.unsafe(SELECT)} WHERE l.id = ${id}`;
 		return row ? mapRow(row) : null;
 	}
 
-	create(params: {
+	async create(params: {
 		id: string;
 		societyId: string;
 		name: string;
@@ -79,25 +75,13 @@ export class LocationRepository {
 		lat: number;
 		lng: number;
 		notes: string | null;
-	}): void {
-		this.database
-			.prepare(
-				`INSERT INTO location (id, society_id, name, category_id, address, lat, lng, notes)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-			)
-			.run(
-				params.id,
-				params.societyId,
-				params.name,
-				params.categoryId,
-				params.address,
-				params.lat,
-				params.lng,
-				params.notes
-			);
+	}): Promise<void> {
+		await this.sql`
+			INSERT INTO location (id, society_id, name, category_id, address, lat, lng, notes)
+			VALUES (${params.id}, ${params.societyId}, ${params.name}, ${params.categoryId}, ${params.address}, ${params.lat}, ${params.lng}, ${params.notes})`;
 	}
 
-	update(params: {
+	async update(params: {
 		id: string;
 		name: string;
 		categoryId: string | null;
@@ -105,25 +89,14 @@ export class LocationRepository {
 		lat: number;
 		lng: number;
 		notes: string | null;
-	}): void {
-		this.database
-			.prepare(
-				`UPDATE location
-				 SET name = ?, category_id = ?, address = ?, lat = ?, lng = ?, notes = ?
-				 WHERE id = ?`
-			)
-			.run(
-				params.name,
-				params.categoryId,
-				params.address,
-				params.lat,
-				params.lng,
-				params.notes,
-				params.id
-			);
+	}): Promise<void> {
+		await this.sql`
+			UPDATE location
+			SET name = ${params.name}, category_id = ${params.categoryId}, address = ${params.address}, lat = ${params.lat}, lng = ${params.lng}, notes = ${params.notes}
+			WHERE id = ${params.id}`;
 	}
 
-	delete(id: string): void {
-		this.database.prepare('DELETE FROM location WHERE id = ?').run(id);
+	async delete(id: string): Promise<void> {
+		await this.sql`DELETE FROM location WHERE id = ${id}`;
 	}
 }

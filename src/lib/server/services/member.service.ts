@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { db } from '$lib/server/infra/db';
-import { getRepositories } from '$lib/server/infra/repositories';
+import { createRepositories } from '$lib/server/infra/repositories';
 import { generateFederationKeypair } from '$lib/server/federation/crypto';
 import { calculateAgeYears, calculateEndowmentTarget } from '$lib/server/economy/endowment';
 import { BCRYPT_ROUNDS } from '$lib/server/utils/form.util';
@@ -45,10 +45,9 @@ export async function createMember(params: CreateMemberParams): Promise<CreateMe
 	const age = calculateAgeYears(dob);
 	const endowment = calculateEndowmentTarget(dob);
 
-	const repos = getRepositories();
-
-	db().transaction(() => {
-		repos.people.createPerson({
+	await db().begin(async (sql) => {
+		const repos = createRepositories(sql);
+		await repos.people.createPerson({
 			personId,
 			societyId,
 			handle,
@@ -64,7 +63,7 @@ export async function createMember(params: CreateMemberParams): Promise<CreateMe
 		});
 
 		if (endowment > 0) {
-			repos.ledger.createTransaction({
+			await repos.ledger.createTransaction({
 				fromType: 'system',
 				fromId: 'mint',
 				toType: 'society',
@@ -73,7 +72,7 @@ export async function createMember(params: CreateMemberParams): Promise<CreateMe
 				note: `Money creation: ${givenName} ${surname} joined (${age} person-years)`
 			});
 		}
-	})();
+	});
 
 	return { personId, publicKey: keypair.publicKey, age };
 }

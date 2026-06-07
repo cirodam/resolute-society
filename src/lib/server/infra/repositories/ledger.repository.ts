@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 import { randomUUID } from 'node:crypto';
 import type { EntityType } from '$lib/server/types';
 
@@ -36,74 +36,55 @@ export interface CreateTransactionParams {
 }
 
 export class LedgerRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	calculateBalance(entityType: EntityType, entityId: string): number {
-		const credits = this.database
-			.prepare(
-				`SELECT COALESCE(SUM(amount), 0) as total
-				 FROM txn WHERE to_type = ? AND to_id = ?`
-			)
-			.get(entityType, entityId) as { total: number };
+	async calculateBalance(entityType: EntityType, entityId: string): Promise<number> {
+		const [credits] = await this.sql<Array<{ total: string }>>`
+			SELECT COALESCE(SUM(amount), 0) as total
+			FROM txn WHERE to_type = ${entityType} AND to_id = ${entityId}`;
 
-		const debits = this.database
-			.prepare(
-				`SELECT COALESCE(SUM(amount), 0) as total
-				 FROM txn WHERE from_type = ? AND from_id = ?`
-			)
-			.get(entityType, entityId) as { total: number };
+		const [debits] = await this.sql<Array<{ total: string }>>`
+			SELECT COALESCE(SUM(amount), 0) as total
+			FROM txn WHERE from_type = ${entityType} AND from_id = ${entityId}`;
 
-		return credits.total - debits.total;
+		return Number(credits.total) - Number(debits.total);
 	}
 
-	calculateBalances(type: EntityType, ids: string[]): Map<string, number> {
+	async calculateBalances(type: EntityType, ids: string[]): Promise<Map<string, number>> {
 		if (ids.length === 0) return new Map();
 
 		const balances = new Map<string, number>();
 		for (const id of ids) balances.set(id, 0);
 
-		const placeholders = ids.map(() => '?').join(',');
+		const credits = await this.sql<Array<{ to_id: string; total: string }>>`
+			SELECT to_id, SUM(amount) as total
+			FROM txn WHERE to_type = ${type} AND to_id = ANY(${ids})
+			GROUP BY to_id`;
 
-		const credits = this.database
-			.prepare(
-				`SELECT to_id, SUM(amount) as total
-				 FROM txn WHERE to_type = ? AND to_id IN (${placeholders})
-				 GROUP BY to_id`
-			)
-			.all(type, ...ids) as Array<{ to_id: string; total: number }>;
-
-		const debits = this.database
-			.prepare(
-				`SELECT from_id, SUM(amount) as total
-				 FROM txn WHERE from_type = ? AND from_id IN (${placeholders})
-				 GROUP BY from_id`
-			)
-			.all(type, ...ids) as Array<{ from_id: string; total: number }>;
+		const debits = await this.sql<Array<{ from_id: string; total: string }>>`
+			SELECT from_id, SUM(amount) as total
+			FROM txn WHERE from_type = ${type} AND from_id = ANY(${ids})
+			GROUP BY from_id`;
 
 		for (const credit of credits)
-			balances.set(credit.to_id, (balances.get(credit.to_id) ?? 0) + credit.total);
+			balances.set(credit.to_id, (balances.get(credit.to_id) ?? 0) + Number(credit.total));
 		for (const debit of debits)
-			balances.set(debit.from_id, (balances.get(debit.from_id) ?? 0) - debit.total);
+			balances.set(debit.from_id, (balances.get(debit.from_id) ?? 0) - Number(debit.total));
 
 		return balances;
 	}
 
-	calculateMoneySupply(societyId: string): CalculateMoneySupplyResult {
-		const societyBalance = this.calculateBalance('society', societyId);
+	async calculateMoneySupply(societyId: string): Promise<CalculateMoneySupplyResult> {
+		const societyBalance = await this.calculateBalance('society', societyId);
 
-		const people = this.database
-			.prepare('SELECT id FROM person WHERE society_id = ?')
-			.all(societyId) as Array<{ id: string }>;
+		const people = await this.sql<Array<{ id: string }>>`SELECT id FROM person WHERE society_id = ${societyId}`;
+		const associations = await this.sql<Array<{ id: string }>>`SELECT id FROM association WHERE society_id = ${societyId}`;
 
-		const associations = this.database
-			.prepare('SELECT id FROM association WHERE society_id = ?')
-			.all(societyId) as Array<{ id: string }>;
-
-		const personBalances = this.calculateBalances(
+		const personBalances = await this.calculateBalances(
 			'person',
 			people.map((p) => p.id)
 		);
-		const associationBalances = this.calculateBalances(
+		const associationBalances = await this.calculateBalances(
 			'association',
 			associations.map((a) => a.id)
 		);
@@ -158,53 +139,40 @@ export class LedgerRepository {
 		LEFT JOIN society_config ts ON txn.to_type = 'society' AND ts.id = txn.to_id
 	`;
 
-	listPersonTransactions(personId: string): TxnRow[] {
-		return this.database
-			.prepare(
-				`${this.transactionSelect}
-				 WHERE (from_type = 'person' AND from_id = ?)
-				    OR (to_type = 'person' AND to_id = ?)
-				 ORDER BY txn.created_at DESC`
-			)
-			.all(personId, personId) as TxnRow[];
+	async listPersonTransactions(personId: string): Promise<TxnRow[]> {
+		return await this.sql<TxnRow[]>`
+			${this.sql.unsafe(this.transactionSelect)}
+			WHERE (from_type = 'person' AND from_id = ${personId})
+			   OR (to_type = 'person' AND to_id = ${personId})
+			ORDER BY txn.created_at DESC`;
 	}
 
-	listSocietyTransactions(societyId: string): TxnRow[] {
-		return this.database
-			.prepare(
-				`${this.transactionSelect}
-				 WHERE (from_type = 'society' AND from_id = ?)
-				    OR (to_type = 'society' AND to_id = ?)
-				 ORDER BY txn.created_at DESC`
-			)
-			.all(societyId, societyId) as TxnRow[];
+	async listSocietyTransactions(societyId: string): Promise<TxnRow[]> {
+		return await this.sql<TxnRow[]>`
+			${this.sql.unsafe(this.transactionSelect)}
+			WHERE (from_type = 'society' AND from_id = ${societyId})
+			   OR (to_type = 'society' AND to_id = ${societyId})
+			ORDER BY txn.created_at DESC`;
 	}
 
-	listForDate(date: string): TxnRow[] {
-		return this.database
-			.prepare(
-				`${this.transactionSelect}
-				 WHERE DATE(txn.created_at) = ?
-				 ORDER BY txn.created_at ASC`
-			)
-			.all(date) as TxnRow[];
+	async listForDate(date: string): Promise<TxnRow[]> {
+		return await this.sql<TxnRow[]>`
+			${this.sql.unsafe(this.transactionSelect)}
+			WHERE DATE(txn.created_at) = ${date}
+			ORDER BY txn.created_at ASC`;
 	}
 
-	countForDate(date: string): number {
-		const result = this.database
-			.prepare(`SELECT COUNT(*) as count FROM txn WHERE DATE(created_at) = ?`)
-			.get(date) as { count: number };
+	async countForDate(date: string): Promise<number> {
+		const [result] = await this.sql<Array<{ count: number }>>`
+			SELECT COUNT(*)::int as count FROM txn WHERE DATE(created_at) = ${date}`;
 		return result.count;
 	}
 
-	createTransaction(params: CreateTransactionParams): string {
+	async createTransaction(params: CreateTransactionParams): Promise<string> {
 		const id = randomUUID();
-		this.database
-			.prepare(
-				`INSERT INTO txn (id, from_type, from_id, to_type, to_id, amount, note)
-				 VALUES (?, ?, ?, ?, ?, ?, ?)`
-			)
-			.run(id, params.fromType, params.fromId, params.toType, params.toId, params.amount, params.note);
+		await this.sql`
+			INSERT INTO txn (id, from_type, from_id, to_type, to_id, amount, note)
+			VALUES (${id}, ${params.fromType}, ${params.fromId}, ${params.toType}, ${params.toId}, ${params.amount}, ${params.note})`;
 		return id;
 	}
 }

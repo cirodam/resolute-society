@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 
 export interface FederationKeypairRow {
 	id: number;
@@ -8,21 +8,14 @@ export interface FederationKeypairRow {
 }
 
 export class FederationKeypairRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	get(): FederationKeypairRow | null {
-		return (
-			(this.database
-				.prepare('SELECT * FROM federation_keypair WHERE id = 1')
-				.get() as FederationKeypairRow | undefined) ?? null
-		);
+	async get(): Promise<FederationKeypairRow | null> {
+		const [row] = await this.sql<FederationKeypairRow[]>`SELECT * FROM federation_keypair WHERE id = 1`;
+		return row ?? null;
 	}
 
-	create(publicKey: string, privateKey: string): void {
-		this.database
-			.prepare(
-				`INSERT INTO federation_keypair (id, public_key, private_key) VALUES (1, ?, ?)`
-			)
-			.run(publicKey, privateKey);
+	async create(publicKey: string, privateKey: string): Promise<void> {
+		await this.sql`INSERT INTO federation_keypair (id, public_key, private_key) VALUES (1, ${publicKey}, ${privateKey})`;
 	}
 }

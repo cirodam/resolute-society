@@ -5,21 +5,21 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repos = getRepositories();
-	const person = repos.people.findDetailById(params.id);
+	const person = await repos.people.findDetailById(params.id);
 
 	if (!person || person.membership_status === 'deleted') {
 		throw error(404, 'Person not found');
 	}
 
-	const society = repos.societies.findById(person.society_id);
+	const society = await repos.societies.findById(person.society_id);
 	if (!society) throw error(404, 'Society not found');
 
 	return {
 		society,
 		person,
 		age: calculateAgeYears(person.dob),
-		associations: repos.people.listAssociations(params.id),
-		dependants: repos.dependants.listByGuardian(params.id),
+		associations: await repos.people.listAssociations(params.id),
+		dependants: await repos.dependants.listByGuardian(params.id),
 		printedAt: new Date().toISOString()
 	};
 };

@@ -48,20 +48,20 @@ function accumulateRequirements(
 	}
 }
 
-function buildPopulation(societyId: string): PersonEntry[] {
+async function buildPopulation(societyId: string): Promise<PersonEntry[]> {
 	const repos = getRepositories();
 	return [
-		...repos.people.listForNutrition(societyId),
-		...repos.dependants.listBySociety(societyId)
+		...(await repos.people.listForNutrition(societyId)),
+		...(await repos.dependants.listBySociety(societyId))
 	];
 }
 
-export function calculatePopulationRequirements(societyId: string): PopulationRequirement[] {
+export async function calculatePopulationRequirements(societyId: string): Promise<PopulationRequirement[]> {
 	const repos   = getRepositories();
-	const nutrients  = repos.nutrition.listNutrients(societyId);
-	const profiles   = repos.nutrition.listDriProfiles(societyId);
-	const driValues  = repos.nutrition.listAllDriValues(societyId);
-	const population = buildPopulation(societyId);
+	const nutrients  = await repos.nutrition.listNutrients(societyId);
+	const profiles   = await repos.nutrition.listDriProfiles(societyId);
+	const driValues  = await repos.nutrition.listAllDriValues(societyId);
+	const population = await buildPopulation(societyId);
 
 	const totals = new Map<string, number>();
 	for (const person of population) {
@@ -78,10 +78,10 @@ export function calculatePopulationRequirements(societyId: string): PopulationRe
 	}));
 }
 
-export function getPopulationDemographics(societyId: string): DemographicGroup[] {
+export async function getPopulationDemographics(societyId: string): Promise<DemographicGroup[]> {
 	const repos      = getRepositories();
-	const profiles   = repos.nutrition.listDriProfiles(societyId);
-	const population = buildPopulation(societyId);
+	const profiles   = await repos.nutrition.listDriProfiles(societyId);
+	const population = await buildPopulation(societyId);
 
 	const counts = new Map<string, number>();
 	for (const person of population) {

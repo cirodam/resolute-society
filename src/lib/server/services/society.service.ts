@@ -7,10 +7,10 @@ export type MemberStub = {
 	societyId: string;
 };
 
-export function resolveSocietyMember(handle: string, societyId: string): MemberStub | null {
+export async function resolveSocietyMember(handle: string, societyId: string): Promise<MemberStub | null> {
 	const repos = getRepositories();
 
-	const person = repos.people.findByHandleAndSociety(handle, societyId);
+	const person = await repos.people.findByHandleAndSociety(handle, societyId);
 	if (person) {
 		return {
 			type: 'person',
@@ -20,7 +20,7 @@ export function resolveSocietyMember(handle: string, societyId: string): MemberS
 		};
 	}
 
-	const association = repos.associations.findByHandleAndSociety(handle, societyId);
+	const association = await repos.associations.findByHandleAndSociety(handle, societyId);
 	if (!association) return null;
 
 	return {
@@ -31,7 +31,7 @@ export function resolveSocietyMember(handle: string, societyId: string): MemberS
 	};
 }
 
-export function isSocietyMember(personId: string, societyId: string): boolean {
-	const person = getRepositories().people.findDetailById(personId);
+export async function isSocietyMember(personId: string, societyId: string): Promise<boolean> {
+	const person = await getRepositories().people.findDetailById(personId);
 	return !!person && person.society_id === societyId;
 }

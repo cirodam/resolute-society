@@ -7,15 +7,15 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ url }) => {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
-	const society = repos.societies.findDetailById(societyId);
+	const society = await repos.societies.findDetailById(societyId);
 	if (!society) throw error(404, 'Society not found');
 
 	const prefilledLat = url.searchParams.get('lat');
 	const prefilledLng = url.searchParams.get('lng');
 
 	return {
-		locations: repos.locations.listBySociety(societyId),
-		categories: repos.locationCategories.listBySociety(societyId),
+		locations: await repos.locations.listBySociety(societyId),
+		categories: await repos.locationCategories.listBySociety(societyId),
 		prefilledLat: prefilledLat ? parseFloat(prefilledLat) : null,
 		prefilledLng: prefilledLng ? parseFloat(prefilledLng) : null
 	};
@@ -27,7 +27,7 @@ export const actions: Actions = {
 		const name = data.get('name')?.toString().trim();
 		const color = data.get('color')?.toString() || '#7a5c1a';
 		if (!name) return fail(400, { categoryError: 'Name is required' });
-		getRepositories().locationCategories.create({
+		await getRepositories().locationCategories.create({
 			id: randomUUID(),
 			societyId: resolveSocietyId(undefined),
 			name,
@@ -42,7 +42,7 @@ export const actions: Actions = {
 		const name = data.get('name')?.toString().trim();
 		const color = data.get('color')?.toString() || '#7a5c1a';
 		if (!id || !name) return fail(400, { categoryError: 'Invalid request' });
-		getRepositories().locationCategories.update({ id, name, color });
+		await getRepositories().locationCategories.update({ id, name, color });
 		return { categoryUpdated: true };
 	},
 
@@ -50,7 +50,7 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const id = data.get('id')?.toString();
 		if (!id) return fail(400, { categoryError: 'ID required' });
-		getRepositories().locationCategories.delete(id);
+		await getRepositories().locationCategories.delete(id);
 		return { categoryDeleted: true };
 	},
 
@@ -66,7 +66,7 @@ export const actions: Actions = {
 		if (!name) return fail(400, { createError: 'Name is required' });
 		if (isNaN(lat) || isNaN(lng)) return fail(400, { createError: 'Valid coordinates are required' });
 
-		getRepositories().locations.create({
+		await getRepositories().locations.create({
 			id: randomUUID(),
 			societyId: resolveSocietyId(undefined),
 			name,
@@ -93,7 +93,7 @@ export const actions: Actions = {
 		if (!name) return fail(400, { updateError: 'Name is required' });
 		if (isNaN(lat) || isNaN(lng)) return fail(400, { updateError: 'Valid coordinates are required' });
 
-		getRepositories().locations.update({ id, name, categoryId, address, lat, lng, notes });
+		await getRepositories().locations.update({ id, name, categoryId, address, lat, lng, notes });
 		return { updated: true };
 	},
 
@@ -101,7 +101,7 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const id = data.get('id')?.toString();
 		if (!id) return fail(400, { deleteError: 'ID is required' });
-		getRepositories().locations.delete(id);
+		await getRepositories().locations.delete(id);
 		return { deleted: true };
 	}
 };

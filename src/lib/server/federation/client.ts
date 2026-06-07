@@ -60,12 +60,12 @@ export async function getFederationBalance(principal: string): Promise<number> {
 	return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function joinFederation(inviteToken: string): void {
+export async function joinFederation(inviteToken: string): Promise<void> {
 	const repos = getRepositories();
-	const keypair = repos.keypair.get();
+	const keypair = await repos.keypair.get();
 	if (!keypair) throw new Error('No federation keypair — server may still be initializing');
 
-	const societies = repos.societies.listAll();
+	const societies = await repos.societies.listAll();
 	if (!societies.length) throw new Error('No society found');
 	const society = societies[0];
 	const { id: societyId, handle: societyHandle, name, address, lat, lng } = society;
@@ -80,7 +80,7 @@ export function joinFederation(inviteToken: string): void {
 	enqueueFederationMessage(type, societyHandle, { societyId, name, inviteToken, publicKey: keypair.public_key, signature, address, lat, lng }, { id, timestamp });
 
 	// Backfill all existing members so the federation knows about them from day one.
-	const members = repos.people.listForFederationSync(societyId);
+	const members = await repos.people.listForFederationSync(societyId);
 	const now = Date.now();
 	for (const member of members) {
 		const age = member.dob
@@ -108,13 +108,14 @@ export function enqueueFederationMessage<T extends FederationMessageType>(
 		payload,
 		timestamp: overrides?.timestamp ?? new Date().toISOString()
 	};
-	getRepositories().federationMessageQueue.enqueue(message);
-	// Attempt immediate delivery — failures are retried by sweepFederationMessages.
-	attemptDelivery(message).catch(() => {});
+	// Enqueue first, then attempt delivery. Failures are retried by sweepFederationMessages.
+	getRepositories().federationMessageQueue.enqueue(message)
+		.then(() => attemptDelivery(message).catch(() => {}))
+		.catch((err) => console.warn('[federation] enqueue failed:', (err as Error).message));
 }
 
 export async function sweepFederationMessages(): Promise<void> {
-	const pending = getRepositories().federationMessageQueue.getPending();
+	const pending = await getRepositories().federationMessageQueue.getPending();
 	await Promise.allSettled(
 		pending.map((row) =>
 			attemptDelivery({
@@ -130,7 +131,7 @@ export async function sweepFederationMessages(): Promise<void> {
 
 async function attemptDelivery(message: FederationMessageEnvelope): Promise<void> {
 	const queue = getRepositories().federationMessageQueue;
-	queue.recordAttempt(message.id);
+	await queue.recordAttempt(message.id);
 
 	console.log(`[federation] dispatching ${message.type} (${message.id}) to ${FEDERATION_URL}/api/messages`);
 
@@ -146,6 +147,6 @@ async function attemptDelivery(message: FederationMessageEnvelope): Promise<void
 		throw new Error(`Federation message delivery failed (${res.status}): ${text}`);
 	}
 
-	queue.markDelivered(message.id);
+	await queue.markDelivered(message.id);
 	console.log(`[federation] delivered ${message.type} (${message.id})`);
 }

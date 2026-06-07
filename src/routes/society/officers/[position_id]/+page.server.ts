@@ -7,22 +7,22 @@ import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repositories = getRepositories();
-	const society = repositories.positions.findSociety(resolveSocietyId(undefined));
+	const society = await repositories.positions.findSociety(resolveSocietyId(undefined));
 
 	if (!society) {
 		throw error(404, 'Society not found');
 	}
 
-	const position = repositories.positions.findPositionDetail(params.position_id, resolveSocietyId(undefined));
+	const position = await repositories.positions.findPositionDetail(params.position_id, resolveSocietyId(undefined));
 
 	if (!position) {
 		throw error(404, 'Position not found');
 	}
 
-	const subordinates = repositories.positions.listSubordinates(params.position_id);
-	const eligibleMembers = repositories.positions.listEligibleMembers(resolveSocietyId(undefined));
-	const currentPermissions = repositories.positions.listCurrentPermissions(params.position_id);
-	const allPermissions = repositories.positions.listAllPermissions();
+	const subordinates = await repositories.positions.listSubordinates(params.position_id);
+	const eligibleMembers = await repositories.positions.listEligibleMembers(resolveSocietyId(undefined));
+	const currentPermissions = await repositories.positions.listCurrentPermissions(params.position_id);
+	const allPermissions = await repositories.positions.listAllPermissions();
 
 	return {
 		society,
@@ -37,7 +37,7 @@ export const load: PageServerLoad = async ({ params }) => {
 export const actions: Actions = {
 	assign: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'positions.assign_person', resolveSocietyId(undefined));
+		await requirePermission(event, 'positions.assign_person', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const personId = formData.get('person_id')?.toString();
@@ -47,11 +47,11 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		if (repositories.positions.isPersonInCurrentAssembly(personId, resolveSocietyId(undefined))) {
+		if (await repositories.positions.isPersonInCurrentAssembly(personId, resolveSocietyId(undefined))) {
 			return fail(400, { message: 'Assembly members cannot be officers' });
 		}
 
-		const position = repositories.positions.findPositionTerm(params.position_id);
+		const position = await repositories.positions.findPositionTerm(params.position_id);
 		if (!position) {
 			return fail(404, { message: 'Position not found' });
 		}
@@ -60,7 +60,7 @@ export const actions: Actions = {
 		const expiresAt = new Date(appointedAt);
 		expiresAt.setFullYear(expiresAt.getFullYear() + position.term_limit_years);
 
-		repositories.positions.assignPerson(
+		await repositories.positions.assignPerson(
 			params.position_id,
 			personId,
 			appointedAt.toISOString(),
@@ -72,16 +72,16 @@ export const actions: Actions = {
 
 	remove: async (event) => {
 		const { params } = event;
-		requirePermission(event, 'positions.remove_person', resolveSocietyId(undefined));
+		await requirePermission(event, 'positions.remove_person', resolveSocietyId(undefined));
 
-		getRepositories().positions.clearAppointment(params.position_id);
+		await getRepositories().positions.clearAppointment(params.position_id);
 
 		return { success: true };
 	},
 
 	createSubordinate: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'positions.create_subordinate', resolveSocietyId(undefined));
+		await requirePermission(event, 'positions.create_subordinate', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const name = formData.get('name')?.toString();
@@ -95,18 +95,18 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		const parent = repositories.positions.findParentPosition(params.position_id);
+		const parent = await repositories.positions.findParentPosition(params.position_id);
 		if (!parent) {
 			return fail(404, { error: 'Parent position not found' });
 		}
 
 		const childType = parent.type === 'officer' ? 'section_chief' : 'line_worker';
 
-		if (repositories.positions.positionExistsInSociety(parent.society_id, name)) {
+		if (await repositories.positions.positionExistsInSociety(parent.society_id, name)) {
 			return fail(400, { error: 'Position with this name already exists' });
 		}
 
-		repositories.positions.createSubordinatePosition({
+		await repositories.positions.createSubordinatePosition({
 			societyId: parent.society_id,
 			parentPositionId: params.position_id,
 			childType,
@@ -123,7 +123,7 @@ export const actions: Actions = {
 
 	grantPermission: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
+		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const permissionId = formData.get('permission_id')?.toString();
@@ -133,19 +133,19 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		const position = repositories.positions.findPositionSociety(params.position_id);
+		const position = await repositories.positions.findPositionSociety(params.position_id);
 		if (!position || position.society_id !== resolveSocietyId(undefined)) {
 			return fail(404, { error: 'Position not found' });
 		}
 
-		repositories.positions.grantPermission(params.position_id, permissionId);
+		await repositories.positions.grantPermission(params.position_id, permissionId);
 
 		return { success: true };
 	},
 
 	revokePermission: async (event) => {
 		const { request, params } = event;
-		requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
+		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const permissionId = formData.get('permission_id')?.toString();
@@ -155,12 +155,12 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		const position = repositories.positions.findPositionSociety(params.position_id);
+		const position = await repositories.positions.findPositionSociety(params.position_id);
 		if (!position || position.society_id !== resolveSocietyId(undefined)) {
 			return fail(404, { error: 'Position not found' });
 		}
 
-		repositories.positions.revokePermission(params.position_id, permissionId);
+		await repositories.positions.revokePermission(params.position_id, permissionId);
 
 		return { success: true };
 	}

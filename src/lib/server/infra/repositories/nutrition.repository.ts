@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 import { randomUUID } from 'node:crypto';
 
 export interface NutrientRow {
@@ -92,131 +92,98 @@ const SEED_FOODS: Array<{ name: string; values: NutrientValues }> = [
 // ── Repository ────────────────────────────────────────────────────────────────
 
 export class NutritionRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	hasData(societyId: string): boolean {
-		const result = this.database
-			.prepare('SELECT COUNT(*) as count FROM nutrient WHERE society_id = ?')
-			.get(societyId) as { count: number };
+	async hasData(societyId: string): Promise<boolean> {
+		const [result] = await this.sql<Array<{ count: number }>>`
+			SELECT COUNT(*)::int as count FROM nutrient WHERE society_id = ${societyId}`;
 		return result.count > 0;
 	}
 
-	listNutrients(societyId: string): NutrientRow[] {
-		return this.database
-			.prepare('SELECT id, name, unit, sort_order FROM nutrient WHERE society_id = ? ORDER BY sort_order')
-			.all(societyId) as NutrientRow[];
+	async listNutrients(societyId: string): Promise<NutrientRow[]> {
+		return await this.sql<NutrientRow[]>`
+			SELECT id, name, unit, sort_order FROM nutrient WHERE society_id = ${societyId} ORDER BY sort_order`;
 	}
 
-	listDriProfiles(societyId: string): DriProfileRow[] {
-		return this.database
-			.prepare('SELECT id, label, age_min, age_max, sex FROM dri_profile WHERE society_id = ? ORDER BY age_min, sex')
-			.all(societyId) as DriProfileRow[];
+	async listDriProfiles(societyId: string): Promise<DriProfileRow[]> {
+		return await this.sql<DriProfileRow[]>`
+			SELECT id, label, age_min, age_max, sex FROM dri_profile WHERE society_id = ${societyId} ORDER BY age_min, sex`;
 	}
 
-	listAllDriValues(societyId: string): DriValueRow[] {
-		return this.database
-			.prepare(
-				`SELECT dv.profile_id, dv.nutrient_id, dv.amount
-				 FROM dri_value dv
-				 JOIN dri_profile dp ON dp.id = dv.profile_id
-				 WHERE dp.society_id = ?`
-			)
-			.all(societyId) as DriValueRow[];
+	async listAllDriValues(societyId: string): Promise<DriValueRow[]> {
+		return await this.sql<DriValueRow[]>`
+			SELECT dv.profile_id, dv.nutrient_id, dv.amount
+			FROM dri_value dv
+			JOIN dri_profile dp ON dp.id = dv.profile_id
+			WHERE dp.society_id = ${societyId}`;
 	}
 
-	listFoods(societyId: string): FoodRow[] {
-		return this.database
-			.prepare('SELECT id, name FROM food WHERE society_id = ? ORDER BY name')
-			.all(societyId) as FoodRow[];
+	async listFoods(societyId: string): Promise<FoodRow[]> {
+		return await this.sql<FoodRow[]>`SELECT id, name FROM food WHERE society_id = ${societyId} ORDER BY name`;
 	}
 
-	findFood(foodId: string): FoodRow | null {
-		return (
-			(this.database
-				.prepare('SELECT id, name FROM food WHERE id = ?')
-				.get(foodId) as FoodRow | undefined) ?? null
-		);
+	async findFood(foodId: string): Promise<FoodRow | null> {
+		const [row] = await this.sql<FoodRow[]>`SELECT id, name FROM food WHERE id = ${foodId}`;
+		return row ?? null;
 	}
 
-	listAllFoodNutrients(societyId: string): FoodNutrientRow[] {
-		return this.database
-			.prepare(
-				`SELECT fn.food_id, fn.nutrient_id, fn.per_100g
-				 FROM food_nutrient fn
-				 JOIN food f ON f.id = fn.food_id
-				 WHERE f.society_id = ?`
-			)
-			.all(societyId) as FoodNutrientRow[];
+	async listAllFoodNutrients(societyId: string): Promise<FoodNutrientRow[]> {
+		return await this.sql<FoodNutrientRow[]>`
+			SELECT fn.food_id, fn.nutrient_id, fn.per_100g
+			FROM food_nutrient fn
+			JOIN food f ON f.id = fn.food_id
+			WHERE f.society_id = ${societyId}`;
 	}
 
-	listFoodNutrients(foodId: string): FoodNutrientRow[] {
-		return this.database
-			.prepare('SELECT food_id, nutrient_id, per_100g FROM food_nutrient WHERE food_id = ?')
-			.all(foodId) as FoodNutrientRow[];
+	async listFoodNutrients(foodId: string): Promise<FoodNutrientRow[]> {
+		return await this.sql<FoodNutrientRow[]>`
+			SELECT food_id, nutrient_id, per_100g FROM food_nutrient WHERE food_id = ${foodId}`;
 	}
 
-	createFood(societyId: string, name: string): string {
+	async createFood(societyId: string, name: string): Promise<string> {
 		const id = randomUUID();
-		this.database
-			.prepare('INSERT INTO food (id, society_id, name) VALUES (?, ?, ?)')
-			.run(id, societyId, name);
+		await this.sql`INSERT INTO food (id, society_id, name) VALUES (${id}, ${societyId}, ${name})`;
 		return id;
 	}
 
-	deleteFood(foodId: string): void {
-		this.database.prepare('DELETE FROM food WHERE id = ?').run(foodId);
+	async deleteFood(foodId: string): Promise<void> {
+		await this.sql`DELETE FROM food WHERE id = ${foodId}`;
 	}
 
-	setFoodNutrient(foodId: string, nutrientId: string, per100g: number): void {
-		this.database
-			.prepare(
-				`INSERT INTO food_nutrient (food_id, nutrient_id, per_100g)
-				 VALUES (?, ?, ?)
-				 ON CONFLICT (food_id, nutrient_id) DO UPDATE SET per_100g = excluded.per_100g`
-			)
-			.run(foodId, nutrientId, per100g);
+	async setFoodNutrient(foodId: string, nutrientId: string, per100g: number): Promise<void> {
+		await this.sql`
+			INSERT INTO food_nutrient (food_id, nutrient_id, per_100g)
+			VALUES (${foodId}, ${nutrientId}, ${per100g})
+			ON CONFLICT (food_id, nutrient_id) DO UPDATE SET per_100g = excluded.per_100g`;
 	}
 
-	setDriValue(profileId: string, nutrientId: string, amount: number): void {
-		this.database
-			.prepare(
-				`INSERT INTO dri_value (profile_id, nutrient_id, amount)
-				 VALUES (?, ?, ?)
-				 ON CONFLICT (profile_id, nutrient_id) DO UPDATE SET amount = excluded.amount`
-			)
-			.run(profileId, nutrientId, amount);
+	async setDriValue(profileId: string, nutrientId: string, amount: number): Promise<void> {
+		await this.sql`
+			INSERT INTO dri_value (profile_id, nutrient_id, amount)
+			VALUES (${profileId}, ${nutrientId}, ${amount})
+			ON CONFLICT (profile_id, nutrient_id) DO UPDATE SET amount = excluded.amount`;
 	}
 
-	seedDefaults(societyId: string): void {
-		this.database.transaction(() => {
+	async seedDefaults(societyId: string): Promise<void> {
+		await this.sql.begin(async (sql) => {
 			// Nutrients
 			const nutrientIds = new Map<string, string>();
 			for (const n of SEED_NUTRIENTS) {
 				const id = randomUUID();
-				this.database
-					.prepare('INSERT OR IGNORE INTO nutrient (id, society_id, name, unit, sort_order) VALUES (?, ?, ?, ?, ?)')
-					.run(id, societyId, n.name, n.unit, n.sort_order);
-				const row = this.database
-					.prepare('SELECT id FROM nutrient WHERE society_id = ? AND name = ?')
-					.get(societyId, n.name) as { id: string };
+				await sql`INSERT INTO nutrient (id, society_id, name, unit, sort_order) VALUES (${id}, ${societyId}, ${n.name}, ${n.unit}, ${n.sort_order}) ON CONFLICT DO NOTHING`;
+				const [row] = await sql<Array<{ id: string }>>`SELECT id FROM nutrient WHERE society_id = ${societyId} AND name = ${n.name}`;
 				nutrientIds.set(n.name, row.id);
 			}
 
 			// DRI profiles + values
 			for (const profile of SEED_DRI_PROFILES) {
 				const profileId = randomUUID();
-				this.database
-					.prepare('INSERT OR IGNORE INTO dri_profile (id, society_id, label, age_min, age_max, sex) VALUES (?, ?, ?, ?, ?, ?)')
-					.run(profileId, societyId, profile.label, profile.age_min, profile.age_max, profile.sex);
-				const row = this.database
-					.prepare('SELECT id FROM dri_profile WHERE society_id = ? AND age_min = ? AND age_max = ? AND sex = ?')
-					.get(societyId, profile.age_min, profile.age_max, profile.sex) as { id: string };
+				await sql`INSERT INTO dri_profile (id, society_id, label, age_min, age_max, sex) VALUES (${profileId}, ${societyId}, ${profile.label}, ${profile.age_min}, ${profile.age_max}, ${profile.sex}) ON CONFLICT DO NOTHING`;
+				const [row] = await sql<Array<{ id: string }>>`SELECT id FROM dri_profile WHERE society_id = ${societyId} AND age_min = ${profile.age_min} AND age_max = ${profile.age_max} AND sex = ${profile.sex}`;
 				for (const [nutrientName, amount] of Object.entries(profile.values)) {
 					const nutrientId = nutrientIds.get(nutrientName);
 					if (nutrientId) {
-						this.database
-							.prepare('INSERT OR IGNORE INTO dri_value (profile_id, nutrient_id, amount) VALUES (?, ?, ?)')
-							.run(row.id, nutrientId, amount);
+						await sql`INSERT INTO dri_value (profile_id, nutrient_id, amount) VALUES (${row.id}, ${nutrientId}, ${amount}) ON CONFLICT DO NOTHING`;
 					}
 				}
 			}
@@ -224,21 +191,15 @@ export class NutritionRepository {
 			// Foods + food nutrients
 			for (const food of SEED_FOODS) {
 				const foodId = randomUUID();
-				this.database
-					.prepare('INSERT OR IGNORE INTO food (id, society_id, name) VALUES (?, ?, ?)')
-					.run(foodId, societyId, food.name);
-				const row = this.database
-					.prepare('SELECT id FROM food WHERE society_id = ? AND name = ?')
-					.get(societyId, food.name) as { id: string };
+				await sql`INSERT INTO food (id, society_id, name) VALUES (${foodId}, ${societyId}, ${food.name}) ON CONFLICT DO NOTHING`;
+				const [row] = await sql<Array<{ id: string }>>`SELECT id FROM food WHERE society_id = ${societyId} AND name = ${food.name}`;
 				for (const [nutrientName, per100g] of Object.entries(food.values)) {
 					const nutrientId = nutrientIds.get(nutrientName);
 					if (nutrientId) {
-						this.database
-							.prepare('INSERT OR IGNORE INTO food_nutrient (food_id, nutrient_id, per_100g) VALUES (?, ?, ?)')
-							.run(row.id, nutrientId, per100g);
+						await sql`INSERT INTO food_nutrient (food_id, nutrient_id, per_100g) VALUES (${row.id}, ${nutrientId}, ${per100g}) ON CONFLICT DO NOTHING`;
 					}
 				}
 			}
-		})();
+		});
 	}
 }

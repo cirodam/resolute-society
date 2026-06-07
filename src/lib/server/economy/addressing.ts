@@ -36,11 +36,11 @@ export function parsePrincipalAddress(address: string): ParsedPrincipalAddress |
 	return { kind: 'member', personId: local, societyId: domain };
 }
 
-export function resolveSocietyMemberByHandle(
+export async function resolveSocietyMemberByHandle(
 	handle: string,
 	societyId: string
-): ResolvedPrincipal | null {
-	const member = resolveSocietyMember(handle, societyId);
+): Promise<ResolvedPrincipal | null> {
+	const member = await resolveSocietyMember(handle, societyId);
 	if (!member) return null;
 
 	return {

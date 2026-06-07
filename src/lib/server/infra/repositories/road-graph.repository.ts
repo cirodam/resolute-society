@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 
 export interface RoadNodeRow {
 	id: string;
@@ -19,39 +19,35 @@ export interface RoadEdgeRow {
 }
 
 export class RoadGraphRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	listNodesBySociety(societyId: string): RoadNodeRow[] {
-		return this.database
-			.prepare('SELECT * FROM road_node WHERE society_id = ? ORDER BY created_at')
-			.all(societyId) as RoadNodeRow[];
+	async listNodesBySociety(societyId: string): Promise<RoadNodeRow[]> {
+		return await this.sql<RoadNodeRow[]>`SELECT * FROM road_node WHERE society_id = ${societyId} ORDER BY created_at`;
 	}
 
-	listEdgesBySociety(societyId: string): RoadEdgeRow[] {
-		return this.database
-			.prepare('SELECT * FROM road_edge WHERE society_id = ? ORDER BY created_at')
-			.all(societyId) as RoadEdgeRow[];
+	async listEdgesBySociety(societyId: string): Promise<RoadEdgeRow[]> {
+		return await this.sql<RoadEdgeRow[]>`SELECT * FROM road_edge WHERE society_id = ${societyId} ORDER BY created_at`;
 	}
 
-	createNode(params: { id: string; societyId: string; lat: number; lng: number; label: string | null }): RoadNodeRow {
-		this.database
-			.prepare('INSERT INTO road_node (id, society_id, lat, lng, label) VALUES (?, ?, ?, ?, ?)')
-			.run(params.id, params.societyId, params.lat, params.lng, params.label);
-		return this.database.prepare('SELECT * FROM road_node WHERE id = ?').get(params.id) as RoadNodeRow;
+	async createNode(params: { id: string; societyId: string; lat: number; lng: number; label: string | null }): Promise<RoadNodeRow> {
+		const [row] = await this.sql<RoadNodeRow[]>`
+			INSERT INTO road_node (id, society_id, lat, lng, label) VALUES (${params.id}, ${params.societyId}, ${params.lat}, ${params.lng}, ${params.label})
+			RETURNING *`;
+		return row;
 	}
 
-	deleteNode(id: string): void {
-		this.database.prepare('DELETE FROM road_node WHERE id = ?').run(id);
+	async deleteNode(id: string): Promise<void> {
+		await this.sql`DELETE FROM road_node WHERE id = ${id}`;
 	}
 
-	createEdge(params: { id: string; societyId: string; nodeAId: string; nodeBId: string; distanceKm: number }): RoadEdgeRow {
-		this.database
-			.prepare('INSERT INTO road_edge (id, society_id, node_a_id, node_b_id, distance_km) VALUES (?, ?, ?, ?, ?)')
-			.run(params.id, params.societyId, params.nodeAId, params.nodeBId, params.distanceKm);
-		return this.database.prepare('SELECT * FROM road_edge WHERE id = ?').get(params.id) as RoadEdgeRow;
+	async createEdge(params: { id: string; societyId: string; nodeAId: string; nodeBId: string; distanceKm: number }): Promise<RoadEdgeRow> {
+		const [row] = await this.sql<RoadEdgeRow[]>`
+			INSERT INTO road_edge (id, society_id, node_a_id, node_b_id, distance_km) VALUES (${params.id}, ${params.societyId}, ${params.nodeAId}, ${params.nodeBId}, ${params.distanceKm})
+			RETURNING *`;
+		return row;
 	}
 
-	deleteEdge(id: string): void {
-		this.database.prepare('DELETE FROM road_edge WHERE id = ?').run(id);
+	async deleteEdge(id: string): Promise<void> {
+		await this.sql`DELETE FROM road_edge WHERE id = ${id}`;
 	}
 }

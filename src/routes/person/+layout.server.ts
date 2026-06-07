@@ -1,4 +1,3 @@
-import { db } from '$lib/server/infra/db';
 import { error, redirect } from '@sveltejs/kit';
 import { getRepositories } from '$lib/server/infra/repositories';
 import type { LayoutServerLoad } from './$types';
@@ -12,7 +11,7 @@ export const load: LayoutServerLoad = async ({ params, locals }) => {
 		throw error(400, 'Person ID required');
 	}
 
-	const personData = getRepositories().people.findSocietyByPersonId(params.id);
+	const personData = await getRepositories().people.findSocietyByPersonId(params.id);
 
 	if (!personData) {
 		throw error(404, 'Person not found');

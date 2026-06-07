@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	const repositories = getRepositories();
-	const society = repositories.societies.findDetailById(locals.person.society_id);
+	const society = await repositories.societies.findDetailById(locals.person.society_id);
 
 	if (!society) {
 		throw error(404, 'Society not found');
@@ -26,7 +26,7 @@ export const actions: Actions = {
 			throw error(401, 'Not authenticated');
 		}
 
-		getRepositories().people.markWelcomeSeen(locals.person.id);
+		await getRepositories().people.markWelcomeSeen(locals.person.id);
 		throw redirect(303, '/society');
 	}
 };

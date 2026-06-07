@@ -21,12 +21,13 @@ export async function POST({ request }: { request: Request }) {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
 
-	const nodeA = repos.roadGraph.listNodesBySociety(societyId).find(n => n.id === nodeAId);
-	const nodeB = repos.roadGraph.listNodesBySociety(societyId).find(n => n.id === nodeBId);
+	const nodes = await repos.roadGraph.listNodesBySociety(societyId);
+	const nodeA = nodes.find(n => n.id === nodeAId);
+	const nodeB = nodes.find(n => n.id === nodeBId);
 	if (!nodeA || !nodeB) throw error(404, 'One or both nodes not found');
 
 	const distanceKm = haversine(nodeA.lat, nodeA.lng, nodeB.lat, nodeB.lng);
-	const edge = repos.roadGraph.createEdge({ id: randomUUID(), societyId, nodeAId, nodeBId, distanceKm });
+	const edge = await repos.roadGraph.createEdge({ id: randomUUID(), societyId, nodeAId, nodeBId, distanceKm });
 
 	return json(edge);
 }

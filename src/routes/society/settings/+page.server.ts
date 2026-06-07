@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(303, '/login');
 	}
 
-	const society = getRepositories().societies.findDetailById(resolveSocietyId(undefined));
+	const society = await getRepositories().societies.findDetailById(resolveSocietyId(undefined));
 
 	if (!society) {
 		throw error(404, 'Society not found');
@@ -37,12 +37,12 @@ export const actions = {
 
 		const societyId = resolveSocietyId(undefined);
 		const repos = getRepositories();
-		const previousSociety = repos.societies.findDetailById(societyId);
+		const previousSociety = await repos.societies.findDetailById(societyId);
 		if (!previousSociety) {
 			throw error(404, 'Society not found');
 		}
 
-		const existing = repos.societies.findByHandle(handle);
+		const existing = await repos.societies.findByHandle(handle);
 		if (existing && existing.id !== societyId) {
 			return fail(400, { error: 'That handle is already taken' });
 		}
@@ -50,7 +50,7 @@ export const actions = {
 		const latValue = lat ? parseFloat(lat) : null;
 		const lngValue = lng ? parseFloat(lng) : null;
 
-		repos.societies.updateSociety({
+		await repos.societies.updateSociety({
 			societyId,
 			handle,
 			name,
@@ -67,7 +67,7 @@ export const actions = {
 			previousSociety.lng !== lngValue;
 
 		if (locationChanged) {
-			const memberCount = repos.people.countBySociety(societyId);
+			const memberCount = await repos.people.countBySociety(societyId);
 			enqueueFederationMessage('society_heartbeat', handle, {
 				societyId,
 				name,

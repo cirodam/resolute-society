@@ -9,10 +9,10 @@ export type SupplySnapshot = {
 	supplyShortfall: number;
 };
 
-export function getSupplySnapshot(societyId: string): SupplySnapshot {
+export async function getSupplySnapshot(societyId: string): Promise<SupplySnapshot> {
 	const repositories = getRepositories();
-	const summary = repositories.treasury.calculateSummary(societyId);
-	const expectedSupply = calculateExpectedSupply(repositories.people.listEndowmentMembers(societyId));
+	const summary = await repositories.treasury.calculateSummary(societyId);
+	const expectedSupply = calculateExpectedSupply(await repositories.people.listEndowmentMembers(societyId));
 
 	return {
 		totalSupply: summary.totalSupply,
@@ -22,13 +22,13 @@ export function getSupplySnapshot(societyId: string): SupplySnapshot {
 	};
 }
 
-export function reconcileEndowmentMint(societyId: string): {
+export async function reconcileEndowmentMint(societyId: string): Promise<{
 	minted: number;
 	expectedSupply: number;
 	totalSupply: number;
-} {
+}> {
 	const repositories = getRepositories();
-	const snapshot = getSupplySnapshot(societyId);
+	const snapshot = await getSupplySnapshot(societyId);
 
 	if (snapshot.supplyShortfall <= 0) {
 		return {
@@ -38,7 +38,7 @@ export function reconcileEndowmentMint(societyId: string): {
 		};
 	}
 
-	repositories.ledger.createTransaction({
+	await repositories.ledger.createTransaction({
 		fromType: 'system',
 		fromId: 'mint',
 		toType: 'society',
@@ -54,15 +54,15 @@ export function reconcileEndowmentMint(societyId: string): {
 	};
 }
 
-export function runSupplyReconciliationDemurrage(societyId: string): {
+export async function runSupplyReconciliationDemurrage(societyId: string): Promise<{
 	burned: number;
 	remainingExcess: number;
 	expectedSupply: number;
 	totalSupply: number;
 	principalCount: number;
-} {
+}> {
 	const repositories = getRepositories();
-	const snapshot = getSupplySnapshot(societyId);
+	const snapshot = await getSupplySnapshot(societyId);
 
 	if (snapshot.supplyExcess <= 0) {
 		return {
@@ -74,24 +74,24 @@ export function runSupplyReconciliationDemurrage(societyId: string): {
 		};
 	}
 
-	const people = repositories.treasury.listSocietyPrincipals(societyId);
-	const associations = repositories.treasury.listSocietyAssociations(societyId);
+	const people = await repositories.treasury.listSocietyPrincipals(societyId);
+	const associations = await repositories.treasury.listSocietyAssociations(societyId);
 	const principalBalances = [
-		...people.map((person) => ({
+		...(await Promise.all(people.map(async (person) => ({
 			type: 'person' as const,
 			id: person.id,
-			balance: calculateBalance('person', person.id)
-		})),
-		...associations.map((association) => ({
+			balance: await calculateBalance('person', person.id)
+		})))),
+		...(await Promise.all(associations.map(async (association) => ({
 			type: 'association' as const,
 			id: association.id,
-			balance: calculateBalance('association', association.id)
-		}))
+			balance: await calculateBalance('association', association.id)
+		}))))
 	];
 
 	const { deductions, burnAmount } = planProportionalBurn(principalBalances, snapshot.supplyExcess);
 	for (const deduction of deductions) {
-		repositories.ledger.createTransaction({
+		await repositories.ledger.createTransaction({
 			fromType: deduction.type,
 			fromId: deduction.id,
 			toType: 'system',

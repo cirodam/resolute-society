@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type postgres from 'postgres';
 
 export interface LocationCategoryRow {
 	id: string;
@@ -9,40 +9,32 @@ export interface LocationCategoryRow {
 }
 
 export class LocationCategoryRepository {
-	constructor(private readonly database: Database.Database) {}
+	constructor(private readonly sql: postgres.Sql) {}
 
-	listBySociety(societyId: string): LocationCategoryRow[] {
-		return this.database
-			.prepare(
-				`SELECT id, society_id, name, color, created_at
-				 FROM location_category
-				 WHERE society_id = ?
-				 ORDER BY name`
-			)
-			.all(societyId) as LocationCategoryRow[];
+	async listBySociety(societyId: string): Promise<LocationCategoryRow[]> {
+		return await this.sql<LocationCategoryRow[]>`
+			SELECT id, society_id, name, color, created_at
+			FROM location_category
+			WHERE society_id = ${societyId}
+			ORDER BY name`;
 	}
 
-	findById(id: string): LocationCategoryRow | null {
-		return (
-			(this.database
-				.prepare(`SELECT id, society_id, name, color, created_at FROM location_category WHERE id = ?`)
-				.get(id) as LocationCategoryRow | undefined) ?? null
-		);
+	async findById(id: string): Promise<LocationCategoryRow | null> {
+		const [row] = await this.sql<LocationCategoryRow[]>`
+			SELECT id, society_id, name, color, created_at FROM location_category WHERE id = ${id}`;
+		return row ?? null;
 	}
 
-	create(params: { id: string; societyId: string; name: string; color: string }): void {
-		this.database
-			.prepare(`INSERT INTO location_category (id, society_id, name, color) VALUES (?, ?, ?, ?)`)
-			.run(params.id, params.societyId, params.name, params.color);
+	async create(params: { id: string; societyId: string; name: string; color: string }): Promise<void> {
+		await this.sql`
+			INSERT INTO location_category (id, society_id, name, color) VALUES (${params.id}, ${params.societyId}, ${params.name}, ${params.color})`;
 	}
 
-	update(params: { id: string; name: string; color: string }): void {
-		this.database
-			.prepare(`UPDATE location_category SET name = ?, color = ? WHERE id = ?`)
-			.run(params.name, params.color, params.id);
+	async update(params: { id: string; name: string; color: string }): Promise<void> {
+		await this.sql`UPDATE location_category SET name = ${params.name}, color = ${params.color} WHERE id = ${params.id}`;
 	}
 
-	delete(id: string): void {
-		this.database.prepare(`DELETE FROM location_category WHERE id = ?`).run(id);
+	async delete(id: string): Promise<void> {
+		await this.sql`DELETE FROM location_category WHERE id = ${id}`;
 	}
 }

@@ -6,14 +6,14 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repositories = getRepositories();
-	const association = repositories.associations.findById(params.id);
-	const society = association ? repositories.societies.findDetailById(association.society_id) : null;
+	const association = await repositories.associations.findById(params.id);
+	const society = association ? await repositories.societies.findDetailById(association.society_id) : null;
 
 	if (!association || !society) {
 		throw error(404, 'Association not found');
 	}
 
-	const societyCredits = calculateBalance('association', params.id);
+	const societyCredits = await calculateBalance('association', params.id);
 	const federationCredits = await getFederationBalance(`${association.id}@${society.id}`);
 
 	return {
@@ -22,6 +22,6 @@ export const load: PageServerLoad = async ({ params }) => {
 			society_credits: societyCredits,
 			federation_credits: federationCredits
 		},
-		members: repositories.associations.listMembers(params.id)
+		members: await repositories.associations.listMembers(params.id)
 	};
 };

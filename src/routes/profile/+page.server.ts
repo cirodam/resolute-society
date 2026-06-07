@@ -1,0 +1,144 @@
+import { getRepositories } from '$lib/server/infra/repositories';
+import { getFederationBalance, getFederationHistory } from '$lib/server/federation/client';
+import { canonicalTransferData, signData } from '$lib/server/federation/crypto';
+import { enqueueFederationMessage } from '$lib/server/federation/client';
+import { resolveLocalEntityById } from '$lib/server/utils/local-entity.util';
+import { error, fail } from '@sveltejs/kit';
+import { randomUUID } from 'node:crypto';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ locals }) => {
+	if (!locals.person) {
+		throw error(401, 'Not authenticated');
+	}
+
+	const personId = locals.person.id;
+	const repositories = getRepositories();
+	const person = repositories.people.findProfileById(personId);
+	const society = person ? repositories.societies.findDetailById(person.society_id) : null;
+
+	if (!person || !society) {
+		throw error(404, 'Person not found');
+	}
+
+	const principal = `${person.id}@${society.id}`;
+
+	const societyCredits = repositories.ledger.calculateBalance('person', personId);
+	const [federationCredits, federationHistory] = await Promise.all([
+		getFederationBalance(principal),
+		getFederationHistory(principal)
+	]);
+
+	const localTxns = repositories.ledger.listPersonTransactions(personId);
+
+	// Calculate running balance for passbook view
+	const societyTransactions = localTxns.map((t, index, arr) => {
+		let balance = 0;
+		for (let i = 0; i <= index; i++) {
+			const txn = arr[i];
+			if (txn.to_type === 'person' && txn.to_id === personId) {
+				balance += txn.amount;
+			} else if (txn.from_type === 'person' && txn.from_id === personId) {
+				balance -= txn.amount;
+			}
+		}
+		return { ...t, running_balance: balance };
+	});
+
+	// Build federation passbook with running balance
+	const federationTransactions = federationHistory.map((t, index, arr) => {
+		let balance = 0;
+		for (let i = 0; i <= index; i++) {
+			const txn = arr[i];
+			if (txn.to_principal === principal) {
+				balance += txn.amount;
+			} else {
+				balance -= txn.amount;
+			}
+		}
+		return { ...t, running_balance: balance };
+	});
+
+	return {
+		person: {
+			...person,
+			society_credits: societyCredits,
+			federation_credits: federationCredits
+		},
+		principal,
+		societyHandle: society.handle,
+		hasKeypair: !!repositories.keypair.get(),
+		isAdmitted: repositories.federationMessageQueue.isAdmitted(society.handle),
+		societyTransactions,
+		federationTransactions
+	};
+};
+
+export const actions: Actions = {
+	send: async ({ request, locals }) => {
+		if (!locals.person) return fail(401, { sendError: 'Not authenticated' });
+
+		const data = await request.formData();
+		const toPrincipal = data.get('toPrincipal')?.toString().trim();
+		const currency = data.get('currency')?.toString() as 'society_credits' | 'federation_credits';
+		const amount = parseFloat(data.get('amount')?.toString() || '0');
+
+		if (!toPrincipal) return fail(400, { sendError: 'Recipient is required' });
+		if (currency !== 'society_credits' && currency !== 'federation_credits')
+			return fail(400, { sendError: 'Invalid currency' });
+		if (amount <= 0) return fail(400, { sendError: 'Amount must be greater than zero' });
+
+		const repos = getRepositories();
+		const person = repos.people.findProfileById(locals.person.id);
+		if (!person) return fail(404, { sendError: 'Person not found' });
+		const society = repos.societies.findDetailById(person.society_id);
+		if (!society) return fail(404, { sendError: 'Society not found' });
+
+		const fromPrincipal = `${person.id}@${society.id}`;
+		const toAt = toPrincipal.indexOf('@');
+		const toId = toPrincipal.slice(0, toAt);
+		const toSocietyId = toPrincipal.slice(toAt + 1);
+
+		if (currency === 'society_credits') {
+			if (toSocietyId !== society.id)
+				return fail(400, { sendError: 'Society credits cannot be sent cross-society' });
+
+			const fromEntity = resolveLocalEntityById(person.id, person.society_id, repos);
+			const toEntity = resolveLocalEntityById(toId, person.society_id, repos);
+
+			if (!fromEntity) return fail(400, { sendError: 'Your account could not be resolved' });
+			if (!toEntity) return fail(400, { sendError: 'Recipient not found in this society' });
+
+			repos.ledger.createTransaction({
+				fromType: fromEntity.type,
+				fromId: fromEntity.id,
+				toType: toEntity.type,
+				toId: toEntity.id,
+				amount,
+				note: null
+			});
+
+			return { sent: true, settled: 'local' as const };
+		}
+
+		// Federation credits
+		if (!repos.federationMessageQueue.isAdmitted(society.handle))
+			return fail(400, { sendError: 'Society is not yet admitted to the federation' });
+
+		const personPrivateKey = repos.people.findPrivateKeyById(person.id);
+		if (!personPrivateKey)
+			return fail(400, { sendError: 'No keypair found for your account' });
+
+		const transfer = {
+			id: randomUUID(),
+			fromPrincipal,
+			toPrincipal,
+			amount,
+			timestamp: new Date().toISOString()
+		};
+		const signature = signData(canonicalTransferData(transfer), personPrivateKey);
+		enqueueFederationMessage('transfer_requested', society.handle, { ...transfer, signature });
+
+		return { sent: true, settled: 'federation' as const };
+	}
+};

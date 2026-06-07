@@ -1,0 +1,456 @@
+/* Governance App Theme Overrides */
+
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=IM+Fell+English&family=IM+Fell+English+SC&family=Libre+Baskerville&display=swap');
+
+/* Background - Subtle sage/library green for classical institutional feel */
+html {
+	background-color: #e8ebe5;
+	background-image: linear-gradient(to bottom,
+		#d4d8d0 0%,
+		#dfe2da 18%,
+		#e3e6df 28%,
+		#e8ebe5 38%,
+		#ebe9e1 100%
+	);
+	background-attachment: fixed;
+}
+
+body {
+	background: transparent;
+}
+
+/* Governance-specific color variables */
+:root {
+	--divider-strong: rgba(0, 0, 0, 0.15);
+	--divider:        rgba(0, 0, 0, 0.08);
+	
+	/* Font families */
+	--font-display:   'Libre Baskerville', Georgia, serif;
+	--font-label:     'IM Fell English SC', serif;
+	--font-prose:     'Libre Baskerville', Georgia, serif;
+	--font-mono:      'Courier New', monospace;
+	
+	/* Green palette - primary institutional colors */
+	--accent:       #2d5a4f;
+	--accent-hover: #3d6b5e;
+	--accent-mid:   #4a8070;
+	--accent-lt:    #e8f0ee;
+	
+	/* Ink colors - text hierarchy */
+	--ink:        #151c1a;  /* Primary text */
+	--ink-mid:    #374340;  /* Secondary text, labels */
+	--ink-faint:  #7a8c89;  /* Tertiary text, placeholders */
+	
+	/* Gold palette - links, accents, interactive elements */
+	--gold:       #7a5c1a;  /* Links, accents, button text */
+	--gold-hover: #d4a24a;  /* Hover states */
+	
+	/* Danger/error states */
+	--danger:     #7a2e2e;
+	--danger-lt:  #f7efef;
+	
+	/* Surface colors */
+	--paper:      #fafaf7;  /* Primary surface, cards */
+	--surface-dk: #f2f2ef;  /* Secondary surface */
+	--disc-bg:    #f2f4f3;  /* Discussion background */
+	
+	/* Border colors - standardized opacities */
+	--border-strong:  rgba(45, 90, 79, 0.3);  /* Emphasis borders, focus states */
+	--border:         rgba(45, 90, 79, 0.2);  /* Standard borders */
+	--border-subtle:  rgba(45, 90, 79, 0.15); /* Dividers, subtle separators */
+	--border-faint:   rgba(45, 90, 79, 0.1);  /* Very subtle dividers */
+	
+	/* Background tints - for subtle highlighting */
+	--tint-gold:      rgba(122, 92, 26, 0.03); /* Hover states, selected items */
+	--tint-gold-mid:  rgba(122, 92, 26, 0.05); /* Credentials, code backgrounds */
+	--tint-green:     rgba(45, 90, 79, 0.03);  /* Table headers, subtle emphasis */
+	--tint-green-mid: rgba(45, 90, 79, 0.05);  /* Code blocks, readonly fields */
+	
+	/* Shadows */
+	--shadow-elevated: 
+		0 2px 4px rgba(0,0,0,0.06),
+		0 8px 24px rgba(0,0,0,0.10),
+		0 24px 64px rgba(0,0,0,0.12),
+		0 48px 96px rgba(0,0,0,0.08);
+	
+	/* Type scale */
+	--text-xs:   0.8125rem;   /* 13px - chapter labels, fine print */
+	--text-sm:   0.875rem;    /* 14px - group labels, metadata */
+	--text-base: 1rem;        /* 16px - buttons, nav links standard */
+	--text-md:   1.0625rem;   /* 17px - nav links, wordmark */
+	--text-body: 1.125rem;    /* 18px - reasoning, discussion posts */
+	--text-read: 1.1875rem;   /* 19px - document rule text, main prose */
+	--text-lg:   1.375rem;    /* 22px - section titles, thread titles */
+	--text-xl:   1.625rem;    /* 26px - article titles small */
+	--text-2xl:  2rem;        /* 32px - article titles large */
+	--text-3xl:  clamp(2.25rem, 4vw, 3rem);      /* 36-48px - page titles (Libre Baskerville) */
+	--text-4xl:  clamp(2.5rem, 5vw, 3.75rem);    /* 40-60px - document titles (IM Fell English) */
+}
+
+/* ── TYPOGRAPHY TOKENS ── */
+/*
+ * Font Hierarchy:
+ * - IM Fell English: Document content only (formal documents, letterheads)
+ * - Libre Baskerville: Page titles, headers, body text, readable prose
+ * - IM Fell English SC: Small caps labels, buttons, navigation
+ */
+
+/* Display — page titles, section headers, article headings */
+.t-display {
+	font-family: var(--font-display);
+	font-weight: 400;
+	line-height: 1.1;
+}
+
+/* Display italic — pull quotes, preambles, subtitles */
+.t-display-italic {
+	font-family: var(--font-display);
+	font-weight: 400;
+	font-style: italic;
+	line-height: 1.3;
+}
+
+/* Label — all small caps labeling: eyebrows, group headers,
+   section numbers, metadata labels, button text, nav links */
+.t-label {
+	font-family: var(--font-label);
+	font-weight: 400;
+	letter-spacing: 0.2em;
+}
+
+/* Label loose — wider tracking for eyebrows and category labels */
+.t-label-loose {
+	font-family: var(--font-label);
+	font-weight: 400;
+	letter-spacing: 0.26em;
+}
+
+/* Label tight — nav links, buttons, closer tracking */
+.t-label-tight {
+	font-family: var(--font-label);
+	font-weight: 400;
+	letter-spacing: 0.08em;
+}
+
+/* Prose — body text, document rule text, posts */
+.t-prose {
+	font-family: var(--font-prose);
+	font-weight: 400;
+	line-height: 1.8;
+}
+
+/* Prose italic — short preambles, article intros, attestation text */
+.t-prose-italic {
+	font-family: var(--font-prose);
+	font-weight: 400;
+	font-style: italic;
+	line-height: 1.65;
+}
+
+/* Numeric — financial figures only */
+.t-numeric {
+	font-family: 'Inconsolata', monospace;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+}
+
+/* Button styling */
+.btn {
+	font-family: var(--font-label) !important;
+	font-size: var(--text-base) !important;
+	letter-spacing: 0.16em !important;
+	line-height: 1 !important;
+	padding: 0.75rem 1.5rem !important;
+	border: 1px solid var(--divider-strong) !important;
+	background: transparent !important;
+	color: var(--ink-mid) !important;
+	cursor: pointer !important;
+	border-radius: 0 !important;
+	transition: color 0.15s, background 0.15s, border-color 0.15s !important;
+}
+
+.btn:hover:not(:disabled) {
+	border-color: var(--ink-mid) !important;
+	color: var(--ink) !important;
+}
+
+.btn--primary {
+	background: var(--accent) !important;
+	border-color: var(--accent) !important;
+	color: #fff !important;
+}
+
+.btn--primary:hover:not(:disabled) {
+	background: #224438 !important;
+	border-color: #224438 !important;
+	color: #fff !important;
+}
+
+.btn--secondary {
+	background: var(--ink) !important;
+	border-color: var(--ink) !important;
+	color: var(--paper) !important;
+}
+
+.btn--secondary:hover:not(:disabled) {
+	background: var(--ink-mid) !important;
+	border-color: var(--ink-mid) !important;
+	color: var(--paper) !important;
+}
+
+.btn:disabled {
+	opacity: 0.45 !important;
+	cursor: not-allowed !important;
+}
+
+/* ── FORM OVERRIDES ── */
+
+/* All form labels use small caps */
+label, .input-label {
+	font-family: var(--font-label) !important;
+	letter-spacing: 0.1em !important;
+	text-transform: lowercase !important;
+	color: var(--ink-mid) !important;
+	font-size: var(--text-sm) !important;
+}
+
+/* All inputs use readable serif */
+input, textarea, select {
+	font-family: var(--font-prose) !important;
+	font-size: var(--text-base) !important;
+	border-radius: 0 !important;
+}
+
+/* Input hints and error messages */
+.input-hint, .input-error {
+	font-family: var(--font-prose) !important;
+	font-size: var(--text-sm) !important;
+}
+
+/* ── UI UTILITIES ── */
+
+/* Links */
+a, .link {
+	color: var(--gold);
+	text-decoration: none;
+	transition: color 0.2s;
+}
+
+a:hover, .link:hover {
+	color: var(--gold-hover);
+}
+
+/* Code blocks and inline code */
+code, .code {
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	color: var(--ink-mid);
+	padding: var(--space-1) var(--space-2);
+	background: var(--tint-green-mid);
+	border: 1px solid var(--border-subtle);
+}
+
+/* Card borders - use for any bordered container */
+.card-border {
+	border: 1px solid var(--border);
+	background: var(--paper);
+}
+
+.card-border-accent {
+	border: 1px solid var(--border);
+	border-left: 3px solid var(--border-strong);
+	background: var(--paper);
+}
+
+/* Section headings - used in cards */
+h2, .heading-section {
+	font-family: var(--font-display);
+	font-size: var(--text-lg);
+	font-weight: 400;
+	color: var(--ink);
+	margin: 0 0 var(--space-3) 0;
+}
+
+h3, .heading-subsection {
+	font-family: var(--font-prose);
+	font-size: var(--text-base);
+	font-weight: 600;
+	color: var(--ink);
+	margin: 0;
+}
+
+/* Description text - used for help text, metadata */
+.text-secondary {
+	font-family: var(--font-prose);
+	font-size: var(--text-sm);
+	color: var(--ink-mid);
+	line-height: 1.6;
+}
+
+/* Dividers */
+.divider {
+	border-top: 1px solid var(--border-subtle);
+}
+
+.divider-strong {
+	border-top: 1px solid var(--border);
+}
+
+/* ── COMPONENT OVERRIDES ── */
+
+/* Page Headers */
+.page-header h1 {
+	font-family: var(--font-display) !important;
+	font-size: var(--text-3xl) !important;
+	font-weight: 400 !important;
+	color: var(--ink) !important;
+	text-shadow: none !important;
+}
+
+.page-header-description {
+	font-family: var(--font-prose) !important;
+	color: var(--ink-mid) !important;
+	line-height: 1.6 !important;
+}
+
+/* Content Container */
+.app-shell__content {
+	margin-top: 80px !important;
+}
+
+/* Sidebar - Dark green with light text */
+.sidebar {
+	background: #1e2926 !important;
+	border-right-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.sidebar__brand {
+	color: rgba(255, 255, 255, 0.7) !important;
+	border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+	text-align: center !important;
+	font-family: var(--font-label) !important;
+	font-size: var(--text-md) !important;
+	letter-spacing: 0.08em !important;
+}
+
+.sidebar__footer {
+	border-top-color: rgba(255, 255, 255, 0.1) !important;
+	color: rgba(255, 255, 255, 0.8);
+	text-align: left !important;
+}
+
+/* Footer identity section */
+.footer-identity {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.footer-name {
+	font-family: var(--font-label);
+	font-size: var(--text-sm);
+	letter-spacing: 0.2em;
+	font-weight: 400;
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.footer-handle {
+	font-family: var(--font-label);
+	font-size: var(--text-xs);
+	letter-spacing: 0.08em;
+	color: rgba(255, 255, 255, 0.6);
+}
+
+/* Footer sign out */
+.footer-signout-form {
+	margin-top: var(--space-2);
+}
+
+.footer-signout-button {
+	font-family: var(--font-label);
+	font-size: var(--text-xs);
+	letter-spacing: 0.08em;
+	color: rgba(255, 255, 255, 0.6);
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 0;
+	text-align: left;
+}
+
+.footer-signout-button:hover {
+	color: rgba(255, 255, 255, 0.95);
+}
+
+/* Sidebar links - Light text on dark background */
+.sidebar-link,
+.sidebar-link:link,
+.sidebar-link:visited {
+	color: rgba(255, 255, 255, 0.75) !important;
+	background: none !important;
+	background-color: transparent !important;
+	background-image: none !important;
+	box-shadow: none !important;
+	border-radius: 0 !important;
+	font-family: var(--font-label) !important;
+	font-size: var(--text-md) !important;
+	letter-spacing: 0.08em !important;
+	text-decoration: none !important;
+	justify-content: flex-start !important;
+	margin-left: 0 !important;
+	padding-left: var(--space-4) !important;
+}
+
+.sidebar-link:hover,
+.sidebar-link:focus {
+	color: rgba(255, 255, 255, 0.95) !important;
+	background: none !important;
+	background-color: transparent !important;
+	background-image: none !important;
+	box-shadow: none !important;
+	border-radius: 0 !important;
+}
+
+.sidebar-link--active,
+.sidebar-link--active:link,
+.sidebar-link--active:visited {
+	background: none !important;
+	background-color: transparent !important;
+	background-image: none !important;
+	color: #ffffff !important;
+	border-radius: 0 !important;
+}
+
+.sidebar-link--active:hover,
+.sidebar-link--active:focus {
+	background: none !important;
+	background-color: transparent !important;
+	background-image: none !important;
+	color: #ffffff !important;
+	border-radius: 0 !important;
+}
+
+.sidebar-divider {
+	border-top-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Sidebar groups */
+.sidebar-group__label {
+	color: rgba(255, 255, 255, 0.42) !important;
+	font-family: var(--font-label) !important;
+	font-size: var(--text-sm) !important;
+	letter-spacing: 0.26em !important;
+	text-align: left !important;
+	padding-left: var(--space-4) !important;
+}
+
+/* Sidebar link badges */
+.sidebar-link__badge {
+	background: rgba(255, 255, 255, 0.3) !important;
+	color: #1e2926 !important;
+	font-size: 11px !important;
+	font-weight: var(--weight-bold) !important;
+}
+
+/* Future governance theme overrides can go here */

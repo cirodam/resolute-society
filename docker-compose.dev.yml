@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      ORIGIN: http://localhost:3000
+      DATABASE_PATH: /app/data/resolute-society.sqlite
+      FEDERATION_URL: ${FEDERATION_URL:-}
+    volumes:
+      - app-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  app-data:

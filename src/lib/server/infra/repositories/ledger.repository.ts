@@ -172,7 +172,7 @@ export class LedgerRepository {
 	async createTransaction(params: CreateTransactionParams): Promise<string> {
 		const id = randomUUID();
 
-		await this.sql.begin(async (sql) => {
+		const execute = async (sql: postgres.Sql | postgres.TransactionSql) => {
 			await sql`LOCK TABLE txn IN SHARE ROW EXCLUSIVE MODE`;
 
 			const [last] = await sql<Array<{ chain_hash: string }>>`
@@ -194,7 +194,15 @@ export class LedgerRepository {
 			);
 
 			await sql`UPDATE txn SET chain_hash = ${chainHash} WHERE id = ${id}`;
-		});
+		};
+
+		// If already inside a transaction (TransactionSql has no .begin), run directly.
+		// The outer transaction provides atomicity; LOCK TABLE still applies within it.
+		if (typeof (this.sql as postgres.Sql).begin === 'function') {
+			await (this.sql as postgres.Sql).begin(execute);
+		} else {
+			await execute(this.sql);
+		}
 
 		return id;
 	}

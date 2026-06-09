@@ -32,7 +32,7 @@ The bootstrap script installs Docker, configures the firewall, downloads the com
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/cirodam/resolute-society/master/scripts/bootstrap-droplet.sh -o bootstrap.sh
-sudo bash bootstrap.sh society.example.com
+sudo bash bootstrap.sh bfsathensga.org
 ```
 
 Replace `society.example.com` with your actual domain. You can also omit it and set `DOMAIN` manually afterward in `/opt/resolute-society/.env`.

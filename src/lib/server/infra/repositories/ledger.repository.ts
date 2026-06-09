@@ -1,6 +1,7 @@
 import type postgres from 'postgres';
 import { randomUUID } from 'node:crypto';
 import type { EntityType } from '$lib/server/types';
+import { computeChainHash, GENESIS_PREV_HASH } from '$lib/server/infra/chain';
 
 export type { EntityType };
 
@@ -170,9 +171,54 @@ export class LedgerRepository {
 
 	async createTransaction(params: CreateTransactionParams): Promise<string> {
 		const id = randomUUID();
-		await this.sql`
-			INSERT INTO txn (id, from_type, from_id, to_type, to_id, amount, note)
-			VALUES (${id}, ${params.fromType}, ${params.fromId}, ${params.toType}, ${params.toId}, ${params.amount}, ${params.note})`;
+
+		await this.sql.begin(async (sql) => {
+			await sql`LOCK TABLE txn IN SHARE ROW EXCLUSIVE MODE`;
+
+			const [last] = await sql<Array<{ chain_hash: string }>>`
+				SELECT chain_hash FROM txn WHERE chain_hash IS NOT NULL
+				ORDER BY created_at DESC, id DESC LIMIT 1`;
+			const prevHash = last?.chain_hash ?? GENESIS_PREV_HASH;
+
+			const [row] = await sql<Array<{ amount: number; created_at: Date | string }>>`
+				INSERT INTO txn (id, from_type, from_id, to_type, to_id, amount, note)
+				VALUES (${id}, ${params.fromType}, ${params.fromId}, ${params.toType}, ${params.toId}, ${params.amount}, ${params.note})
+				RETURNING amount, created_at`;
+
+			const createdAt = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+			const chainHash = computeChainHash(
+				prevHash, id,
+				params.fromType, params.fromId,
+				params.toType, params.toId,
+				row.amount, params.note, createdAt
+			);
+
+			await sql`UPDATE txn SET chain_hash = ${chainHash} WHERE id = ${id}`;
+		});
+
 		return id;
+	}
+
+	async verifyChain(): Promise<{ valid: boolean; invalidAt?: string }> {
+		const rows = await this.sql<Array<{
+			id: string; from_type: string; from_id: string; to_type: string; to_id: string;
+			amount: number; note: string | null; chain_hash: string; created_at: Date | string;
+		}>>`
+			SELECT id, from_type, from_id, to_type, to_id, amount, note, chain_hash, created_at
+			FROM txn WHERE chain_hash IS NOT NULL
+			ORDER BY created_at ASC, id ASC`;
+
+		let prevHash = GENESIS_PREV_HASH;
+		for (const row of rows) {
+			const createdAt = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+			const expected = computeChainHash(
+				prevHash, row.id, row.from_type, row.from_id,
+				row.to_type, row.to_id, row.amount, row.note, createdAt
+			);
+			if (expected !== row.chain_hash) return { valid: false, invalidAt: row.id };
+			prevHash = row.chain_hash;
+		}
+
+		return { valid: true };
 	}
 }

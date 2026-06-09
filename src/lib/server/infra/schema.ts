@@ -1,4 +1,5 @@
 import { db } from './db';
+import { computeChainHash, GENESIS_PREV_HASH } from './chain';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS society_config (
@@ -452,4 +453,26 @@ export async function migrate(): Promise<void> {
 	await db().unsafe(SCHEMA);
 	await db().unsafe(`ALTER TABLE society_config DROP COLUMN IF EXISTS federation_url`);
 	await db().unsafe(`ALTER TABLE society_config ADD COLUMN IF NOT EXISTS federation_public_key TEXT`);
+	await db().unsafe(`ALTER TABLE txn ADD COLUMN IF NOT EXISTS chain_hash TEXT`);
+
+	// Backfill chain hashes for any rows that don't have one yet (idempotent)
+	type BackfillRow = { id: string; from_type: string; from_id: string; to_type: string; to_id: string; amount: number; note: string | null; created_at: Date | string };
+	const rows = await db()<BackfillRow[]>`
+		SELECT id, from_type, from_id, to_type, to_id, amount, note, created_at
+		FROM txn WHERE chain_hash IS NULL
+		ORDER BY created_at ASC, id ASC`;
+
+	if (rows.length > 0) {
+		const [lastHashed] = await db()<Array<{ chain_hash: string }>>`
+			SELECT chain_hash FROM txn WHERE chain_hash IS NOT NULL
+			ORDER BY created_at DESC, id DESC LIMIT 1`;
+		let prevHash = lastHashed?.chain_hash ?? GENESIS_PREV_HASH;
+
+		for (const row of rows) {
+			const createdAt = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+			const hash = computeChainHash(prevHash, row.id, row.from_type, row.from_id, row.to_type, row.to_id, row.amount, row.note, createdAt);
+			await db()`UPDATE txn SET chain_hash = ${hash} WHERE id = ${row.id}`;
+			prevHash = hash;
+		}
+	}
 }

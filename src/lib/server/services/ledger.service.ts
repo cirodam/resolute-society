@@ -23,6 +23,10 @@ export async function checkSufficientBalance(
 	return (await calculateBalance(entityType, entityId)) >= amount;
 }
 
+export async function verifyChain(): Promise<{ valid: boolean; invalidAt?: string }> {
+	return getRepositories().ledger.verifyChain();
+}
+
 // Validated path for peer-to-peer transfers only. Do NOT use for minting (system/mint has no
 // real balance and will always fail the check). Minting routes call repos.ledger.createTransaction
 // directly to bypass this guard.

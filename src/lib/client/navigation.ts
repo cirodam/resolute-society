@@ -29,3 +29,8 @@ export const nutritionTabs: NavTab[] = [
 	{ label: 'Requirements', href: '/society/nutrition/requirements' },
 	{ label: 'Planner', href: '/society/nutrition/planner' }
 ];
+
+export const settingsTabs: NavTab[] = [
+	{ label: 'Profile', href: '/profile/settings/profile' },
+	{ label: 'Schedule', href: '/profile/settings/schedule' }
+];

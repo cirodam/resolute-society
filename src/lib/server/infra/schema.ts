@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS society_config (
 	address               TEXT,
 	lat                   REAL,
 	lng                   REAL,
-	federation_url        TEXT,
-	federation_ip_address TEXT,
+	federation_ip_address  TEXT,
+	federation_public_key  TEXT,
 	founder_person_id     TEXT,
 	created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -450,4 +450,6 @@ CREATE INDEX IF NOT EXISTS idx_road_edge_society ON road_edge(society_id);
 
 export async function migrate(): Promise<void> {
 	await db().unsafe(SCHEMA);
+	await db().unsafe(`ALTER TABLE society_config DROP COLUMN IF EXISTS federation_url`);
+	await db().unsafe(`ALTER TABLE society_config ADD COLUMN IF NOT EXISTS federation_public_key TEXT`);
 }

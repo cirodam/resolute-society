@@ -23,7 +23,6 @@ services:
       PORT: 3000
       ORIGIN: https://${DOMAIN}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/resolute_society
-      FEDERATION_URL: ${FEDERATION_URL:-}
     volumes:
       - app-data:/app/data
     networks:

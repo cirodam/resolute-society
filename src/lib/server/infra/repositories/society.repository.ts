@@ -17,8 +17,8 @@ export interface SocietyDetailRow {
 	address: string | null;
 	lat: number | null;
 	lng: number | null;
-	federation_url: string | null;
 	federation_ip_address: string | null;
+	federation_public_key: string | null;
 }
 
 export interface SocietyFounderRow {
@@ -32,7 +32,6 @@ export interface SocietyListRow {
 	address: string | null;
 	lat: number | null;
 	lng: number | null;
-	federation_url: string | null;
 	federation_ip_address: string | null;
 }
 
@@ -51,13 +50,13 @@ export class SocietyRepository {
 
 	async findDetailById(societyId: string): Promise<SocietyDetailRow | null> {
 		const [row] = await this.sql<SocietyDetailRow[]>`
-			SELECT id, handle, name, address, lat, lng, federation_url, federation_ip_address FROM society_config WHERE id = ${societyId}`;
+			SELECT id, handle, name, address, lat, lng, federation_ip_address, federation_public_key FROM society_config WHERE id = ${societyId}`;
 		return row ?? null;
 	}
 
 	async listAll(): Promise<SocietyListRow[]> {
 		return await this.sql<SocietyListRow[]>`
-			SELECT id, handle, name, address, lat, lng, federation_url, federation_ip_address FROM society_config ORDER BY name`;
+			SELECT id, handle, name, address, lat, lng, federation_ip_address FROM society_config ORDER BY name`;
 	}
 
 	async handleExists(handle: string): Promise<boolean> {
@@ -81,7 +80,6 @@ export class SocietyRepository {
 		address: string | null;
 		lat: number | null;
 		lng: number | null;
-		federationUrl: string | null;
 		federationIpAddress: string | null;
 	}): Promise<void> {
 		await this.sql`
@@ -91,9 +89,12 @@ export class SocietyRepository {
 			    address = ${params.address},
 			    lat = ${params.lat},
 			    lng = ${params.lng},
-			    federation_url = ${params.federationUrl},
 			    federation_ip_address = ${params.federationIpAddress}
 			WHERE id = ${params.societyId}`;
+	}
+
+	async storeFederationPublicKey(societyId: string, publicKey: string): Promise<void> {
+		await this.sql`UPDATE society_config SET federation_public_key = ${publicKey} WHERE id = ${societyId}`;
 	}
 
 	async setFounder(societyId: string, founderPersonId: string): Promise<void> {

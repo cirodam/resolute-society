@@ -68,3 +68,40 @@ export function verifyJoinMessage(canonical: string, publicKeyB64: string, signa
 		Buffer.from(signatureB64, 'base64')
 	);
 }
+
+export function signSocietyRequest(
+	canonical: string,
+	privateKeyB64: string
+): { timestamp: string; signature: string } {
+	const timestamp = new Date().toISOString();
+	const signature = (
+		sign(null, Buffer.from(`${canonical}\n${timestamp}`), {
+			key: Buffer.from(privateKeyB64, 'base64'),
+			format: 'der',
+			type: 'pkcs8'
+		}) as Buffer
+	).toString('base64');
+	return { timestamp, signature };
+}
+
+export function verifyFederationRequest(
+	body: string,
+	timestamp: string,
+	signature: string,
+	federationPublicKeyB64: string
+): boolean {
+	const ts = new Date(timestamp).getTime();
+	if (isNaN(ts) || Math.abs(Date.now() - ts) > 5 * 60 * 1000) return false;
+
+	try {
+		const canonical = `${body}\n${timestamp}`;
+		return verify(
+			null,
+			Buffer.from(canonical),
+			{ key: Buffer.from(federationPublicKeyB64, 'base64'), format: 'der', type: 'spki' },
+			Buffer.from(signature, 'base64')
+		);
+	} catch {
+		return false;
+	}
+}

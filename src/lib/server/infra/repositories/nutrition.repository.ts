@@ -165,41 +165,41 @@ export class NutritionRepository {
 	}
 
 	async seedDefaults(societyId: string): Promise<void> {
-		await this.sql.begin(async (sql) => {
-			// Nutrients
-			const nutrientIds = new Map<string, string>();
-			for (const n of SEED_NUTRIENTS) {
-				const id = randomUUID();
-				await sql`INSERT INTO nutrient (id, society_id, name, unit, sort_order) VALUES (${id}, ${societyId}, ${n.name}, ${n.unit}, ${n.sort_order}) ON CONFLICT DO NOTHING`;
-				const [row] = await sql<Array<{ id: string }>>`SELECT id FROM nutrient WHERE society_id = ${societyId} AND name = ${n.name}`;
-				nutrientIds.set(n.name, row.id);
-			}
+		const sql = this.sql;
 
-			// DRI profiles + values
-			for (const profile of SEED_DRI_PROFILES) {
-				const profileId = randomUUID();
-				await sql`INSERT INTO dri_profile (id, society_id, label, age_min, age_max, sex) VALUES (${profileId}, ${societyId}, ${profile.label}, ${profile.age_min}, ${profile.age_max}, ${profile.sex}) ON CONFLICT DO NOTHING`;
-				const [row] = await sql<Array<{ id: string }>>`SELECT id FROM dri_profile WHERE society_id = ${societyId} AND age_min = ${profile.age_min} AND age_max = ${profile.age_max} AND sex = ${profile.sex}`;
-				for (const [nutrientName, amount] of Object.entries(profile.values)) {
-					const nutrientId = nutrientIds.get(nutrientName);
-					if (nutrientId) {
-						await sql`INSERT INTO dri_value (profile_id, nutrient_id, amount) VALUES (${row.id}, ${nutrientId}, ${amount}) ON CONFLICT DO NOTHING`;
-					}
+		// Nutrients
+		const nutrientIds = new Map<string, string>();
+		for (const n of SEED_NUTRIENTS) {
+			const id = randomUUID();
+			await sql`INSERT INTO nutrient (id, society_id, name, unit, sort_order) VALUES (${id}, ${societyId}, ${n.name}, ${n.unit}, ${n.sort_order}) ON CONFLICT DO NOTHING`;
+			const [row] = await sql<Array<{ id: string }>>`SELECT id FROM nutrient WHERE society_id = ${societyId} AND name = ${n.name}`;
+			nutrientIds.set(n.name, row.id);
+		}
+
+		// DRI profiles + values
+		for (const profile of SEED_DRI_PROFILES) {
+			const profileId = randomUUID();
+			await sql`INSERT INTO dri_profile (id, society_id, label, age_min, age_max, sex) VALUES (${profileId}, ${societyId}, ${profile.label}, ${profile.age_min}, ${profile.age_max}, ${profile.sex}) ON CONFLICT DO NOTHING`;
+			const [row] = await sql<Array<{ id: string }>>`SELECT id FROM dri_profile WHERE society_id = ${societyId} AND age_min = ${profile.age_min} AND age_max = ${profile.age_max} AND sex = ${profile.sex}`;
+			for (const [nutrientName, amount] of Object.entries(profile.values)) {
+				const nutrientId = nutrientIds.get(nutrientName);
+				if (nutrientId) {
+					await sql`INSERT INTO dri_value (profile_id, nutrient_id, amount) VALUES (${row.id}, ${nutrientId}, ${amount}) ON CONFLICT DO NOTHING`;
 				}
 			}
+		}
 
-			// Foods + food nutrients
-			for (const food of SEED_FOODS) {
-				const foodId = randomUUID();
-				await sql`INSERT INTO food (id, society_id, name) VALUES (${foodId}, ${societyId}, ${food.name}) ON CONFLICT DO NOTHING`;
-				const [row] = await sql<Array<{ id: string }>>`SELECT id FROM food WHERE society_id = ${societyId} AND name = ${food.name}`;
-				for (const [nutrientName, per100g] of Object.entries(food.values)) {
-					const nutrientId = nutrientIds.get(nutrientName);
-					if (nutrientId) {
-						await sql`INSERT INTO food_nutrient (food_id, nutrient_id, per_100g) VALUES (${row.id}, ${nutrientId}, ${per100g}) ON CONFLICT DO NOTHING`;
-					}
+		// Foods + food nutrients
+		for (const food of SEED_FOODS) {
+			const foodId = randomUUID();
+			await sql`INSERT INTO food (id, society_id, name) VALUES (${foodId}, ${societyId}, ${food.name}) ON CONFLICT DO NOTHING`;
+			const [row] = await sql<Array<{ id: string }>>`SELECT id FROM food WHERE society_id = ${societyId} AND name = ${food.name}`;
+			for (const [nutrientName, per100g] of Object.entries(food.values)) {
+				const nutrientId = nutrientIds.get(nutrientName);
+				if (nutrientId) {
+					await sql`INSERT INTO food_nutrient (food_id, nutrient_id, per_100g) VALUES (${row.id}, ${nutrientId}, ${per100g}) ON CONFLICT DO NOTHING`;
 				}
 			}
-		});
+		}
 	}
 }

@@ -1,10 +1,33 @@
 import { json, error } from '@sveltejs/kit';
+import { getRepositories } from '$lib/server/infra/repositories';
+import { resolveSocietyId } from '$lib/server/utils/society-id.util';
+import { verifyFederationRequest } from '$lib/server/federation/crypto';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request }) => {
+	const timestamp = request.headers.get('X-Federation-Timestamp');
+	const signature = request.headers.get('X-Federation-Signature');
+
+	const rawBody = await request.text();
+
+	if (timestamp && signature) {
+		const society = await getRepositories().societies.findDetailById(resolveSocietyId(undefined));
+		const federationPublicKey = society?.federation_public_key ?? null;
+
+		if (!federationPublicKey) {
+			throw error(401, 'Federation public key not on record — rejoin the federation');
+		}
+
+		if (!verifyFederationRequest(rawBody, timestamp, signature, federationPublicKey)) {
+			throw error(401, 'Invalid federation signature');
+		}
+	} else {
+		throw error(401, 'Missing federation signature headers');
+	}
+
 	let body: unknown;
 	try {
-		body = await request.json();
+		body = JSON.parse(rawBody);
 	} catch {
 		throw error(400, 'Invalid JSON');
 	}

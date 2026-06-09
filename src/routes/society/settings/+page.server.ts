@@ -28,7 +28,6 @@ export const actions = {
 		const address = data.get('address')?.toString().trim() || null;
 		const lat = data.get('lat')?.toString();
 		const lng = data.get('lng')?.toString();
-		const federationUrl = data.get('federation_url')?.toString().trim() || null;
 		const federationIpAddress = data.get('federation_ip_address')?.toString().trim() || null;
 
 		if (!handle) return fail(400, { error: 'Handle is required' });
@@ -57,7 +56,6 @@ export const actions = {
 			address,
 			lat: latValue,
 			lng: lngValue,
-			federationUrl,
 			federationIpAddress
 		});
 

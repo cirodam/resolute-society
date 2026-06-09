@@ -1,9 +1,28 @@
 import { randomUUID } from 'node:crypto';
 import { getRepositories } from '../infra/repositories';
-import { canonicalJoinData, signJoinMessage } from './crypto';
+import { canonicalJoinData, signJoinMessage, signSocietyRequest } from './crypto';
 import type { FederationMessageEnvelope, FederationMessagePayloadMap, FederationMessageType } from './messages';
 
-const FEDERATION_URL = process.env.FEDERATION_URL ?? 'http://localhost:5173';
+async function societyAuthHeaders(canonical: string): Promise<Record<string, string>> {
+	const repos = getRepositories();
+	const [keypair, society] = await Promise.all([
+		repos.keypair.get(),
+		repos.societies.listAll().then((s) => s[0])
+	]);
+	if (!keypair || !society) return {};
+	const { timestamp, signature } = signSocietyRequest(canonical, keypair.private_key);
+	return {
+		'X-Society-Handle':    society.handle,
+		'X-Society-Timestamp': timestamp,
+		'X-Society-Signature': signature
+	};
+}
+
+async function getFederationUrl(): Promise<string | null> {
+	const societies = await getRepositories().societies.listAll();
+	const ip = societies[0]?.federation_ip_address;
+	return ip ? `http://${ip}` : null;
+}
 
 export interface FederationTxnRow {
 	id: string;
@@ -15,9 +34,12 @@ export interface FederationTxnRow {
 }
 
 export async function getFederationHistory(principal: string): Promise<FederationTxnRow[]> {
+	const federationUrl = await getFederationUrl();
+	if (!federationUrl) return [];
+	const url = `${federationUrl}/api/history?principal=${encodeURIComponent(principal)}`;
 	let res: Response;
 	try {
-		res = await fetch(`${FEDERATION_URL}/api/history?principal=${encodeURIComponent(principal)}`);
+		res = await fetch(url, { headers: await societyAuthHeaders(`GET\n${url}`) });
 	} catch {
 		return [];
 	}
@@ -30,9 +52,12 @@ export async function getFederationHistory(principal: string): Promise<Federatio
 }
 
 export async function getFederationBalance(principal: string): Promise<number> {
+	const federationUrl = await getFederationUrl();
+	if (!federationUrl) return 0;
+	const url = `${federationUrl}/api/balance?principal=${encodeURIComponent(principal)}`;
 	let res: Response;
 	try {
-		res = await fetch(`${FEDERATION_URL}/api/balance?principal=${encodeURIComponent(principal)}`);
+		res = await fetch(url, { headers: await societyAuthHeaders(`GET\n${url}`) });
 	} catch {
 		return 0;
 	}
@@ -65,6 +90,9 @@ export async function joinFederation(inviteToken: string): Promise<void> {
 	const keypair = await repos.keypair.get();
 	if (!keypair) throw new Error('No federation keypair — server may still be initializing');
 
+	const federationUrl = await getFederationUrl();
+	if (!federationUrl) throw new Error('Federation IP not configured');
+
 	const societies = await repos.societies.listAll();
 	if (!societies.length) throw new Error('No society found');
 	const society = societies[0];
@@ -77,7 +105,23 @@ export async function joinFederation(inviteToken: string): Promise<void> {
 	const canonical = canonicalJoinData({ id, type, societyHandle, timestamp, societyId, name, inviteToken, publicKey: keypair.public_key });
 	const signature = signJoinMessage(canonical, keypair.private_key);
 
-	enqueueFederationMessage(type, societyHandle, { societyId, name, inviteToken, publicKey: keypair.public_key, signature, address, lat, lng }, { id, timestamp });
+	const message = { id, type, societyHandle, timestamp, payload: { societyId, name, inviteToken, publicKey: keypair.public_key, signature, address, lat, lng } };
+	const res = await fetch(`${federationUrl}/api/messages`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(message)
+	});
+
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(`Federation join failed (${res.status}): ${text}`);
+	}
+
+	const body = await res.json() as { ok: boolean; federationPublicKey?: string | null };
+	if (body.federationPublicKey) {
+		await repos.societies.storeFederationPublicKey(societyId, body.federationPublicKey);
+		console.log('[federation] stored federation public key');
+	}
 
 	// Backfill all existing members so the federation knows about them from day one.
 	const members = await repos.people.listForFederationSync(societyId);
@@ -130,15 +174,26 @@ export async function sweepFederationMessages(): Promise<void> {
 }
 
 async function attemptDelivery(message: FederationMessageEnvelope): Promise<void> {
+	const federationUrl = await getFederationUrl();
+	if (!federationUrl) throw new Error('Federation IP not configured');
+
 	const queue = getRepositories().federationMessageQueue;
 	await queue.recordAttempt(message.id);
 
-	console.log(`[federation] dispatching ${message.type} (${message.id}) to ${FEDERATION_URL}/api/messages`);
+	const bodyStr = JSON.stringify(message);
+	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
-	const res = await fetch(`${FEDERATION_URL}/api/messages`, {
+	// society_join is open — society isn't registered yet so there's no key to verify against
+	if (message.type !== 'society_join') {
+		Object.assign(headers, await societyAuthHeaders(bodyStr));
+	}
+
+	console.log(`[federation] dispatching ${message.type} (${message.id}) to ${federationUrl}/api/messages`);
+
+	const res = await fetch(`${federationUrl}/api/messages`, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(message)
+		headers,
+		body: bodyStr
 	});
 
 	if (!res.ok) {

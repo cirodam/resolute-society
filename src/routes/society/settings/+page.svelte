@@ -95,17 +95,6 @@
 				<p class="section-note">Connection details for the federation network.</p>
 
 				<div class="form-group">
-					<label for="federation_url">Federation URL</label>
-					<input
-						id="federation_url"
-						name="federation_url"
-						type="url"
-						value={society.federation_url || ''}
-						placeholder="https://federation.example.org"
-					/>
-				</div>
-
-				<div class="form-group">
 					<label for="federation_ip_address">Federation IP Address</label>
 					<input
 						id="federation_ip_address"

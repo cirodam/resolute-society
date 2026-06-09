@@ -28,13 +28,13 @@
 
 			<div class="sidebar-divider"></div>
 
-			<a href="/society/governance" class="sidebar-link">
+			<a href="/society/assembly" class="sidebar-link">
 				Governance
 			</a>
-			<a href="/society/activities" class="sidebar-link">
+			<a href="/society/calendar" class="sidebar-link">
 				Activities
 			</a>
-			<a href="/society/economy" class="sidebar-link">
+			<a href="/society/market" class="sidebar-link">
 				Economy
 			</a>
 			<a href="/society/nutrition" class="sidebar-link">

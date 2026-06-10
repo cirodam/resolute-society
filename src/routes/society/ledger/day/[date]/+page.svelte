@@ -279,7 +279,6 @@
 	.col-from { width: 18%; }
 	.col-to   { width: 18%; }
 	.col-amount { width: 90px; text-align: right; }
-	.col-note { }
 
 	.txn-table .col-amount { text-align: right; }
 	.txn-table th.col-amount { text-align: right; }

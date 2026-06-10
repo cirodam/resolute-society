@@ -1,5 +1,10 @@
 import { getRepositories } from '$lib/server/infra/repositories';
 import { calculateBalance } from '$lib/server/services/ledger.service';
+import {
+	createLedgerTransaction,
+	createSystemLedgerTransaction,
+	runInRepositoryTransaction
+} from '$lib/server/economy/transactions';
 import { calculateExpectedSupply, planProportionalBurn } from './endowment';
 
 export type SupplySnapshot = {
@@ -38,7 +43,7 @@ export async function reconcileEndowmentMint(societyId: string): Promise<{
 		};
 	}
 
-	await repositories.ledger.createTransaction({
+	await createSystemLedgerTransaction({
 		fromType: 'system',
 		fromId: 'mint',
 		toType: 'society',
@@ -90,16 +95,21 @@ export async function runSupplyReconciliationDemurrage(societyId: string): Promi
 	];
 
 	const { deductions, burnAmount } = planProportionalBurn(principalBalances, snapshot.supplyExcess);
-	for (const deduction of deductions) {
-		await repositories.ledger.createTransaction({
-			fromType: deduction.type,
-			fromId: deduction.id,
-			toType: 'system',
-			toId: 'burn',
-			amount: deduction.amount,
-			note: 'Supply reconciliation demurrage'
-		});
-	}
+	await runInRepositoryTransaction(async (repositories) => {
+		for (const deduction of deductions) {
+			await createLedgerTransaction(
+				{
+					fromType: deduction.type,
+					fromId: deduction.id,
+					toType: 'system',
+					toId: 'burn',
+					amount: deduction.amount,
+					note: 'Supply reconciliation demurrage'
+				},
+				repositories
+			);
+		}
+	});
 
 	return {
 		burned: burnAmount,

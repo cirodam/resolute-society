@@ -301,7 +301,7 @@
 		<div class="coord-capture">
 			<div class="coord-fields">
 				<div class="coord-field">
-					<label class="t-label">Latitude</label>
+					<span class="t-label">Latitude</span>
 					<div class="coord-input-row">
 						<input type="text" readonly value={clickedLat !== null ? clickedLat.toFixed(6) : ''} placeholder="click map to capture" />
 						<button class="btn" disabled={clickedLat === null} onclick={() => copyToClipboard(clickedLat!.toFixed(6), 'lat')}>
@@ -310,7 +310,7 @@
 					</div>
 				</div>
 				<div class="coord-field">
-					<label class="t-label">Longitude</label>
+					<span class="t-label">Longitude</span>
 					<div class="coord-input-row">
 						<input type="text" readonly value={clickedLng !== null ? clickedLng.toFixed(6) : ''} placeholder="click map to capture" />
 						<button class="btn" disabled={clickedLng === null} onclick={() => copyToClipboard(clickedLng!.toFixed(6), 'lng')}>
@@ -520,7 +520,7 @@
 		gap: 0.4rem;
 	}
 
-	.coord-field label { font-size: var(--text-xs); letter-spacing: 0.12em; }
+	.coord-field .t-label { font-size: var(--text-xs); letter-spacing: 0.12em; }
 
 	.coord-input-row { display: flex; gap: 0.5rem; }
 	.coord-input-row input {

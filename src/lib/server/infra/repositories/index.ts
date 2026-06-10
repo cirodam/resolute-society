@@ -196,7 +196,7 @@ export type { LocationCategoryRow } from './location-category.repository';
 export { LedgerRepository } from './ledger.repository';
 export type { CalculateMoneySupplyResult, TxnRow } from './ledger.repository';
 export { LedgerDayRepository } from './ledger-day.repository';
-export type { LedgerDayRow, CloseDayParams } from './ledger-day.repository';
+export type { LedgerDayRow, CloseDayParams, CloseDayResult } from './ledger-day.repository';
 export { NutritionRepository } from './nutrition.repository';
 export type { NutrientRow, DriProfileRow, DriValueRow, FoodRow, FoodNutrientRow } from './nutrition.repository';
 export { RoadGraphRepository } from './road-graph.repository';

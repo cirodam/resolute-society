@@ -1,5 +1,5 @@
 import { calculateBalance, type EntityType } from '$lib/server/services/ledger.service';
-import { createLedgerTransaction } from '$lib/server/economy/transactions';
+import { createLedgerTransaction, runInRepositoryTransaction } from '$lib/server/economy/transactions';
 
 export type DemurrageMode = 'percent' | 'flat';
 
@@ -56,17 +56,22 @@ export async function collectDemurrage(params: {
 	const deductions = planDemurrageDeductions(principalBalances, params.mode, params.value);
 
 	let totalCollected = 0;
-	for (const deduction of deductions) {
-		totalCollected += deduction.amount;
-		await createLedgerTransaction({
-			fromType: deduction.type,
-			fromId: deduction.id,
-			toType: params.target.type,
-			toId: params.target.id,
-			amount: deduction.amount,
-			note: params.note
-		});
-	}
+	await runInRepositoryTransaction(async (repositories) => {
+		for (const deduction of deductions) {
+			totalCollected += deduction.amount;
+			await createLedgerTransaction(
+				{
+					fromType: deduction.type,
+					fromId: deduction.id,
+					toType: params.target.type,
+					toId: params.target.id,
+					amount: deduction.amount,
+					note: params.note
+				},
+				repositories
+			);
+		}
+	});
 
 	return {
 		totalCollected,

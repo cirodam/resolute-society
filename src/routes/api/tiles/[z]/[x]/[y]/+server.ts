@@ -18,7 +18,7 @@ export const GET: RequestHandler = async ({ params }) => {
 };
 
 function png(body: Buffer): Response {
-	return new Response(body, {
+	return new Response(new Uint8Array(body), {
 		headers: {
 			'Content-Type': 'image/png',
 			'Cache-Control': 'public, max-age=31536000, immutable'

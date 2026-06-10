@@ -30,6 +30,10 @@ export interface CloseDayParams {
 	witnessedById: string | null;
 }
 
+export interface CloseDayResult {
+	closed: boolean;
+}
+
 const DAY_SELECT = `
 	SELECT
 		ld.*,
@@ -78,8 +82,8 @@ export class LedgerDayRepository {
 		return (await this.findByDate(societyId, date))!;
 	}
 
-	async close(params: CloseDayParams): Promise<void> {
-		await this.sql`
+	async close(params: CloseDayParams): Promise<CloseDayResult> {
+		const result = await this.sql`
 			UPDATE ledger_day
 			SET status = 'closed',
 			    closing_balance   = ${params.closingBalance},
@@ -89,6 +93,8 @@ export class LedgerDayRepository {
 			    closed_by_id      = ${params.closedById},
 			    witnessed_by_id   = ${params.witnessedById}
 			WHERE id = ${params.dayId} AND status = 'open'`;
+
+		return { closed: result.count > 0 };
 	}
 
 	async markPrinted(dayId: string): Promise<void> {

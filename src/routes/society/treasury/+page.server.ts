@@ -18,7 +18,13 @@ import {
 	hasSufficientBalance,
 	isValidPositiveAmount
 } from '$lib/server/economy/disbursement';
+import { createLedgerTransaction, runInRepositoryTransaction } from '$lib/server/economy/transactions';
+import {
+	LedgerTransactionValidationError,
+	LEDGER_TRANSACTION_ERROR
+} from '$lib/server/services/ledger.service';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { withCriticalAction } from '$lib/server/http/critical-action';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -68,7 +74,7 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions = {
-	runDemurrage: async (event) => {
+	runDemurrage: withCriticalAction(async (event) => {
 		const { request, params } = event;
 		requireSocietyTreasuryPermission({
 			event,
@@ -95,25 +101,43 @@ export const actions = {
 		const people = await repositories.treasury.listSocietyPrincipals(resolveSocietyId(undefined));
 		const associations = await repositories.treasury.listSocietyAssociations(resolveSocietyId(undefined));
 
-		const { totalCollected } = await collectDemurrage({
-			principals: [
-				...people.map((person) => ({ type: 'person' as const, id: person.id })),
-				...associations.map((association) => ({ type: 'association' as const, id: association.id }))
-			],
-			target: { type: 'society', id: resolveSocietyId(undefined) },
+		let totalCollected: number;
+		try {
+			const result = await collectDemurrage({
+				principals: [
+					...people.map((person) => ({ type: 'person' as const, id: person.id })),
+					...associations.map((association) => ({ type: 'association' as const, id: association.id }))
+				],
+				target: { type: 'society', id: resolveSocietyId(undefined) },
 				mode: demurrageMode,
-			value,
-			note: `Demurrage: ${demurrageMode === 'percent' ? value + '%' : value + ' per principal'}`
-		});
+				value,
+				note: `Demurrage: ${demurrageMode === 'percent' ? value + '%' : value + ' per principal'}`
+			});
+			totalCollected = result.totalCollected;
+		} catch (error) {
+			if (error instanceof LedgerTransactionValidationError) {
+				if (error.code === LEDGER_TRANSACTION_ERROR.INSUFFICIENT_BALANCE) {
+					return fail(400, { error: 'Insufficient balance for one or more principals' });
+				}
+				if (error.code === LEDGER_TRANSACTION_ERROR.NON_POSITIVE_AMOUNT) {
+					return fail(400, { error: 'Demurrage amount must be greater than zero' });
+				}
+			}
+			return fail(500, { error: 'Demurrage batch failed and was rolled back' });
+		}
 
 		return {
 			success: true,
 			collected: totalCollected,
 			principalCount: people.length + associations.length
 		};
-	},
+	}, {
+		legacyKey: 'error',
+		fallbackCode: 'TREASURY_DEMURRAGE_FAILED',
+		fallbackMessage: 'Demurrage action failed'
+	}),
 
-	reconcileEndowmentMint: async (event) => {
+	reconcileEndowmentMint: withCriticalAction(async (event) => {
 		requireSocietyTreasuryPermission({
 			event,
 			societyId: resolveSocietyId(undefined),
@@ -127,16 +151,33 @@ export const actions = {
 			expectedSupply: result.expectedSupply,
 			totalSupply: result.totalSupply
 		};
-	},
+	}, {
+		legacyKey: 'error',
+		fallbackCode: 'TREASURY_ENDOWMENT_MINT_FAILED',
+		fallbackMessage: 'Endowment reconciliation mint failed'
+	}),
 
-	runSupplyReconciliationDemurrage: async (event) => {
+	runSupplyReconciliationDemurrage: withCriticalAction(async (event) => {
 		requireSocietyTreasuryPermission({
 			event,
 			societyId: resolveSocietyId(undefined),
 			permissionCode: 'treasury.run_demurrage'
 		});
 
-		const result = await runSupplyReconciliationDemurrage(resolveSocietyId(undefined));
+		let result: Awaited<ReturnType<typeof runSupplyReconciliationDemurrage>>;
+		try {
+			result = await runSupplyReconciliationDemurrage(resolveSocietyId(undefined));
+		} catch (error) {
+			if (error instanceof LedgerTransactionValidationError) {
+				if (error.code === LEDGER_TRANSACTION_ERROR.INSUFFICIENT_BALANCE) {
+					return fail(400, { supplyReconcileError: 'Insufficient balance for reconciliation demurrage' });
+				}
+				if (error.code === LEDGER_TRANSACTION_ERROR.NON_POSITIVE_AMOUNT) {
+					return fail(400, { supplyReconcileError: 'Reconciliation amount must be greater than zero' });
+				}
+			}
+			return fail(500, { supplyReconcileError: 'Supply reconciliation batch failed and was rolled back' });
+		}
 
 		return {
 			supplyReconcileSuccess: true,
@@ -146,9 +187,13 @@ export const actions = {
 			totalSupply: result.totalSupply,
 			principalCount: result.principalCount
 		};
-	},
+	}, {
+		legacyKey: 'supplyReconcileError',
+		fallbackCode: 'TREASURY_SUPPLY_RECONCILE_FAILED',
+		fallbackMessage: 'Supply reconciliation demurrage failed'
+	}),
 
-	transfer: async (event) => {
+	transfer: withCriticalAction(async (event) => {
 		const { request, params } = event;
 		requireSocietyTreasuryPermission({
 			event,
@@ -186,9 +231,13 @@ export const actions = {
 		}
 
 		return fail(400, { transferError: 'Person or association not found with that handle' });
-	},
+	}, {
+		legacyKey: 'transferError',
+		fallbackCode: 'TREASURY_TRANSFER_FAILED',
+		fallbackMessage: 'Treasury transfer failed'
+	}),
 
-	transferFederationCredits: async (event) => {
+	transferFederationCredits: withCriticalAction(async (event) => {
 		const { request } = event;
 		requireSocietyTreasuryPermission({
 			event,
@@ -227,9 +276,13 @@ export const actions = {
 		enqueueFederationMessage('transfer_requested', society.handle, { ...transfer, signature });
 
 		return { federationTransferSuccess: true, toPrincipal, amount };
-	},
+	}, {
+		legacyKey: 'federationTransferError',
+		fallbackCode: 'TREASURY_FEDERATION_TRANSFER_FAILED',
+		fallbackMessage: 'Federation transfer failed'
+	}),
 
-	runAllowanceGroup: async (event) => {
+	runAllowanceGroup: withCriticalAction(async (event) => {
 		const { request, params } = event;
 		requireSocietyTreasuryPermission({
 			event,
@@ -264,15 +317,32 @@ export const actions = {
 			});
 		}
 
-		for (const member of members) {
-			await repositories.ledger.createTransaction({
-				fromType: 'society',
-				fromId: resolveSocietyId(undefined),
-				toType: 'person',
-				toId: member.id,
-						amount: member.amount,
-				note: `Allowance: ${group.name}`
+		try {
+			await runInRepositoryTransaction(async (repositories) => {
+				for (const member of members) {
+					await createLedgerTransaction(
+						{
+							fromType: 'society',
+							fromId: resolveSocietyId(undefined),
+							toType: 'person',
+							toId: member.id,
+							amount: member.amount,
+							note: `Allowance: ${group.name}`
+						},
+						repositories
+					);
+				}
 			});
+		} catch (error) {
+			if (error instanceof LedgerTransactionValidationError) {
+				if (error.code === LEDGER_TRANSACTION_ERROR.INSUFFICIENT_BALANCE) {
+					return fail(400, { allowanceError: 'Insufficient treasury balance' });
+				}
+				if (error.code === LEDGER_TRANSACTION_ERROR.NON_POSITIVE_AMOUNT) {
+					return fail(400, { allowanceError: 'Allowance amount must be greater than zero' });
+				}
+			}
+			return fail(500, { allowanceError: 'Allowance batch failed and was rolled back' });
 		}
 
 		return {
@@ -281,9 +351,13 @@ export const actions = {
 			distributed: totalRequired,
 			recipientCount: members.length
 		};
-	},
+	}, {
+		legacyKey: 'allowanceError',
+		fallbackCode: 'TREASURY_ALLOWANCE_GROUP_FAILED',
+		fallbackMessage: 'Allowance group run failed'
+	}),
 
-	createAllowanceGroup: async (event) => {
+	createAllowanceGroup: withCriticalAction(async (event) => {
 		const { request, params } = event;
 		await requirePermission(event, 'treasury.create_allowance_group', resolveSocietyId(undefined));
 		const data = await request.formData();
@@ -301,9 +375,13 @@ export const actions = {
 		await repositories.allowanceGroups.create(resolveSocietyId(undefined), name, randomUUID());
 
 		return { createGroupSuccess: true };
-	},
+	}, {
+		legacyKey: 'createGroupError',
+		fallbackCode: 'TREASURY_CREATE_GROUP_FAILED',
+		fallbackMessage: 'Create allowance group failed'
+	}),
 
-	deleteAllowanceGroup: async (event) => {
+	deleteAllowanceGroup: withCriticalAction(async (event) => {
 		const { request, params } = event;
 		await requirePermission(event, 'treasury.delete_allowance_group', resolveSocietyId(undefined));
 		const data = await request.formData();
@@ -323,9 +401,13 @@ export const actions = {
 		await repositories.allowanceGroups.delete(groupId);
 
 		return { deleteGroupSuccess: true };
-	},
+	}, {
+		legacyKey: 'deleteGroupError',
+		fallbackCode: 'TREASURY_DELETE_GROUP_FAILED',
+		fallbackMessage: 'Delete allowance group failed'
+	}),
 
-	addGroupMember: async (event) => {
+	addGroupMember: withCriticalAction(async (event) => {
 		const { request, params } = event;
 		await requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
 		const data = await request.formData();
@@ -345,9 +427,13 @@ export const actions = {
 		await repositories.allowanceGroups.addMember(groupId, personId, amount);
 
 		return { addMemberSuccess: true };
-	},
+	}, {
+		legacyKey: 'addMemberError',
+		fallbackCode: 'TREASURY_ADD_GROUP_MEMBER_FAILED',
+		fallbackMessage: 'Add group member failed'
+	}),
 
-	removeGroupMember: async (event) => {
+	removeGroupMember: withCriticalAction(async (event) => {
 		const { request, params } = event;
 		await requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
 		const data = await request.formData();
@@ -361,9 +447,13 @@ export const actions = {
 		await getRepositories().allowanceGroups.removeMember(groupId, personId);
 
 		return { removeMemberSuccess: true };
-	},
+	}, {
+		legacyKey: 'removeMemberError',
+		fallbackCode: 'TREASURY_REMOVE_GROUP_MEMBER_FAILED',
+		fallbackMessage: 'Remove group member failed'
+	}),
 
-	updateMemberAmount: async (event) => {
+	updateMemberAmount: withCriticalAction(async (event) => {
 		const { request, params } = event;
 		await requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
 		const data = await request.formData();
@@ -378,9 +468,13 @@ export const actions = {
 		await getRepositories().allowanceGroups.updateMemberAmount(groupId, personId, amount);
 
 		return { updateAmountSuccess: true };
-	},
+	}, {
+		legacyKey: 'updateAmountError',
+		fallbackCode: 'TREASURY_UPDATE_GROUP_AMOUNT_FAILED',
+		fallbackMessage: 'Update group member amount failed'
+	}),
 
-	runPositionPayroll: async (event) => {
+	runPositionPayroll: withCriticalAction(async (event) => {
 		const { params } = event;
 		requireSocietyTreasuryPermission({
 			event,
@@ -402,15 +496,32 @@ export const actions = {
 			});
 		}
 
-		for (const position of positions) {
-			await repositories.ledger.createTransaction({
-				fromType: 'society',
-				fromId: resolveSocietyId(undefined),
-				toType: 'person',
-				toId: position.current_person_id,
-						amount: position.current_allowance,
-				note: `Payroll: ${position.name}`
+		try {
+			await runInRepositoryTransaction(async (repositories) => {
+				for (const position of positions) {
+					await createLedgerTransaction(
+						{
+							fromType: 'society',
+							fromId: resolveSocietyId(undefined),
+							toType: 'person',
+							toId: position.current_person_id,
+							amount: position.current_allowance,
+							note: `Payroll: ${position.name}`
+						},
+						repositories
+					);
+				}
 			});
+		} catch (error) {
+			if (error instanceof LedgerTransactionValidationError) {
+				if (error.code === LEDGER_TRANSACTION_ERROR.INSUFFICIENT_BALANCE) {
+					return fail(400, { payrollError: 'Insufficient treasury balance' });
+				}
+				if (error.code === LEDGER_TRANSACTION_ERROR.NON_POSITIVE_AMOUNT) {
+					return fail(400, { payrollError: 'Payroll allowance must be greater than zero' });
+				}
+			}
+			return fail(500, { payrollError: 'Payroll batch failed and was rolled back' });
 		}
 
 		return {
@@ -418,9 +529,13 @@ export const actions = {
 			paidCount: positions.length,
 			totalAmount: totalPayroll
 		};
-	},
+	}, {
+		legacyKey: 'payrollError',
+		fallbackCode: 'TREASURY_PAYROLL_FAILED',
+		fallbackMessage: 'Payroll run failed'
+	}),
 
-	adjustPositionAllowance: async (event) => {
+	adjustPositionAllowance: withCriticalAction(async (event) => {
 		const { request, params } = event;
 		await requirePermission(event, 'treasury.adjust_position_allowance', resolveSocietyId(undefined));
 		const data = await request.formData();
@@ -440,9 +555,13 @@ export const actions = {
 		});
 
 		return { adjustAllowanceSuccess: true };
-	},
+	}, {
+		legacyKey: 'adjustAllowanceError',
+		fallbackCode: 'TREASURY_ADJUST_ALLOWANCE_FAILED',
+		fallbackMessage: 'Adjust position allowance failed'
+	}),
 
-	distributeUniversalAllowance: async (event) => {
+	distributeUniversalAllowance: withCriticalAction(async (event) => {
 		const { request, params } = event;
 		requireSocietyTreasuryPermission({
 			event,
@@ -471,15 +590,32 @@ export const actions = {
 			});
 		}
 
-		for (const member of members) {
-			await repositories.ledger.createTransaction({
-				fromType: 'society',
-				fromId: resolveSocietyId(undefined),
-				toType: 'person',
-				toId: member.id,
-						amount: amountPerMember,
-				note: 'Universal allowance distribution'
+		try {
+			await runInRepositoryTransaction(async (repositories) => {
+				for (const member of members) {
+					await createLedgerTransaction(
+						{
+							fromType: 'society',
+							fromId: resolveSocietyId(undefined),
+							toType: 'person',
+							toId: member.id,
+							amount: amountPerMember,
+							note: 'Universal allowance distribution'
+						},
+						repositories
+					);
+				}
 			});
+		} catch (error) {
+			if (error instanceof LedgerTransactionValidationError) {
+				if (error.code === LEDGER_TRANSACTION_ERROR.INSUFFICIENT_BALANCE) {
+					return fail(400, { universalAllowanceError: 'Insufficient treasury balance' });
+				}
+				if (error.code === LEDGER_TRANSACTION_ERROR.NON_POSITIVE_AMOUNT) {
+					return fail(400, { universalAllowanceError: 'Amount must be greater than 0' });
+				}
+			}
+			return fail(500, { universalAllowanceError: 'Universal allowance batch failed and was rolled back' });
 		}
 
 		return {
@@ -488,5 +624,9 @@ export const actions = {
 			totalAmount,
 			amountPerMember
 		};
-	}
+	}, {
+		legacyKey: 'universalAllowanceError',
+		fallbackCode: 'TREASURY_UNIVERSAL_ALLOWANCE_FAILED',
+		fallbackMessage: 'Universal allowance distribution failed'
+	})
 } satisfies Actions;

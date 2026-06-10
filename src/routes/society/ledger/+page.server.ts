@@ -3,6 +3,8 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { calculateBalance } from '$lib/server/services/ledger.service';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { performCloseDay } from './close-day';
+import { withCriticalAction } from '$lib/server/http/critical-action';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -27,7 +29,7 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions = {
-	closeDay: async (event) => {
+	closeDay: withCriticalAction(async (event) => {
 		await requirePermission(event, 'ledger.close_day', resolveSocietyId(undefined));
 
 		const data = await event.request.formData();
@@ -37,34 +39,34 @@ export const actions = {
 		const societyId = resolveSocietyId(undefined);
 		const today = new Date().toISOString().slice(0, 10);
 
-		const lastClosed = await repos.ledgerDays.findLastClosed(societyId);
-		const openingBalance = lastClosed
-			? lastClosed.closing_balance
-			: await calculateBalance('society', societyId);
-
-		const day = await repos.ledgerDays.findOrCreate(societyId, today, openingBalance);
-
-		if (day.status === 'closed' || day.status === 'archived') {
-			return fail(400, { closeDayError: "Today's ledger is already closed" });
-		}
-
-		const closingBalance = await calculateBalance('society', societyId);
-		const summary = await repos.treasury.calculateSummary(societyId);
-		const transactionCount = await repos.ledger.countForDate(today);
-
-		await repos.ledgerDays.close({
-			dayId: day.id,
-			closingBalance,
-			totalSupply: summary.totalSupply,
-			transactionCount,
+		const result = await performCloseDay({
+			today,
 			closedById: event.locals.person!.id,
-			witnessedById: witnessedById || null
+			witnessedById: witnessedById || null,
+			getOpeningBalance: async () => {
+				const lastClosed = await repos.ledgerDays.findLastClosed(societyId);
+				return lastClosed
+					? lastClosed.closing_balance
+					: await calculateBalance('society', societyId);
+			},
+			findOrCreateDay: (openingBalance) => repos.ledgerDays.findOrCreate(societyId, today, openingBalance),
+			computeClosingBalance: () => calculateBalance('society', societyId),
+			computeTotalSupply: async () => (await repos.treasury.calculateSummary(societyId)).totalSupply,
+			countTransactions: () => repos.ledger.countForDate(today),
+			closeDay: (params) => repos.ledgerDays.close(params),
+			refetchDay: () => repos.ledgerDays.findByDate(societyId, today)
 		});
 
-		return { closeDaySuccess: true, date: today, pageNumber: day.page_number };
-	},
+		if (!result.ok) return result.failure;
 
-	markPrinted: async (event) => {
+		return { closeDaySuccess: true, date: result.date, pageNumber: result.pageNumber };
+	}, {
+		legacyKey: 'closeDayError',
+		fallbackCode: 'LEDGER_CLOSE_FAILED',
+		fallbackMessage: 'Unexpected ledger close failure'
+	}),
+
+	markPrinted: withCriticalAction(async (event) => {
 		await requirePermission(event, 'ledger.close_day', resolveSocietyId(undefined));
 
 		const data = await event.request.formData();
@@ -75,5 +77,9 @@ export const actions = {
 		await getRepositories().ledgerDays.markPrinted(dayId);
 
 		return { markPrintedSuccess: true };
-	}
+	}, {
+		legacyKey: 'markPrintedError',
+		fallbackCode: 'LEDGER_MARK_PRINTED_FAILED',
+		fallbackMessage: 'Unable to mark ledger day as printed'
+	})
 } satisfies Actions;

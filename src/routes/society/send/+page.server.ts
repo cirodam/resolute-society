@@ -3,8 +3,16 @@ import { randomUUID } from 'node:crypto';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { resolveLocalEntityById } from '$lib/server/utils/local-entity.util';
+import { hasPermission } from '$lib/server/services/auth.service';
+import { authorizeFromPrincipal, parsePrincipalRef } from '$lib/server/economy/send-auth';
+import { createLedgerTransaction } from '$lib/server/economy/transactions';
+import {
+	LedgerTransactionValidationError,
+	LEDGER_TRANSACTION_ERROR
+} from '$lib/server/services/ledger.service';
 import { canonicalTransferData, signData } from '$lib/server/federation/crypto';
 import { enqueueFederationMessage } from '$lib/server/federation/client';
+import { withCriticalAction } from '$lib/server/http/critical-action';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -15,24 +23,31 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!society) throw error(404, 'Society not found');
 
 	const fromPrincipal = locals.person ? `${locals.person.id}@${society.id}` : '';
+	const canTransferFromTreasury = locals.person
+		? await hasPermission({
+			personId: locals.person.id,
+			societyId,
+			permissionCode: 'treasury.transfer'
+		})
+		: false;
 
 	return {
 		society,
 		fromPrincipal,
+		canTransferFromTreasury,
 		hasKeypair: !!(await repos.keypair.get()),
 		isAdmitted: await repos.federationMessageQueue.isAdmitted(society.handle)
 	};
 };
 
 export const actions: Actions = {
-	send: async ({ request }) => {
+	send: withCriticalAction(async ({ request, locals }) => {
 		const data = await request.formData();
-		const fromPrincipal = data.get('fromPrincipal')?.toString().trim();
+		const requestedFromPrincipal = data.get('fromPrincipal')?.toString().trim();
 		const toPrincipal = data.get('toPrincipal')?.toString().trim();
 		const currency = data.get('currency')?.toString().trim() as 'society_credits' | 'federation_credits' | undefined;
 		const amount = parseFloat(data.get('amount')?.toString() || '0');
 
-		if (!fromPrincipal) return fail(400, { sendError: 'From principal is required' });
 		if (!toPrincipal) return fail(400, { sendError: 'To principal is required' });
 		if (currency !== 'society_credits' && currency !== 'federation_credits') {
 			return fail(400, { sendError: 'Currency is required' });
@@ -44,17 +59,34 @@ export const actions: Actions = {
 		const society = await repos.societies.findDetailById(societyId);
 		if (!society) return fail(404, { sendError: 'Society not found' });
 
-		const fromAt = fromPrincipal.indexOf('@');
-		const fromId = fromPrincipal.slice(0, fromAt);
-		const fromSocietyId = fromPrincipal.slice(fromAt + 1);
+		const canTransferFromTreasury = locals.person
+			? await hasPermission({
+				personId: locals.person.id,
+				societyId,
+				permissionCode: 'treasury.transfer'
+			})
+			: false;
 
-		if (fromSocietyId !== societyId) {
-			return fail(400, { sendError: 'Can only send from this society' });
+		const fromAuthorization = authorizeFromPrincipal({
+			requestedFromPrincipal,
+			authenticatedPersonId: locals.person?.id,
+			societyId,
+			canTransferFromTreasury
+		});
+
+		if (!fromAuthorization.ok) {
+			return fail(fromAuthorization.status, { sendError: fromAuthorization.sendError });
 		}
 
-		const toAt = toPrincipal.indexOf('@');
-		const toId = toPrincipal.slice(0, toAt);
-		const toSocietyId = toPrincipal.slice(toAt + 1);
+		const fromPrincipal = fromAuthorization.effectiveFromPrincipal;
+		const fromId = fromAuthorization.fromId;
+		const to = parsePrincipalRef(toPrincipal);
+		if (!to) {
+			return fail(400, { sendError: 'To principal is invalid' });
+		}
+
+		const toId = to.id;
+		const toSocietyId = to.societyId;
 
 		// Society credits are local-only. Federation credits always route through the federation
 		// — even same-society transfers — because the federation is the authoritative ledger.
@@ -69,14 +101,26 @@ export const actions: Actions = {
 			if (!fromEntity) return fail(400, { sendError: 'Sender not found in this society' });
 			if (!toEntity) return fail(400, { sendError: 'Recipient not found in this society' });
 
-			await repos.ledger.createTransaction({
-				fromType: fromEntity.type,
-				fromId: fromEntity.id,
-				toType: toEntity.type,
-				toId: toEntity.id,
-				amount,
-				note: null
-			});
+			try {
+				await createLedgerTransaction({
+					fromType: fromEntity.type,
+					fromId: fromEntity.id,
+					toType: toEntity.type,
+					toId: toEntity.id,
+					amount,
+					note: null
+				});
+			} catch (error) {
+				if (error instanceof LedgerTransactionValidationError) {
+					if (error.code === LEDGER_TRANSACTION_ERROR.INSUFFICIENT_BALANCE) {
+						return fail(400, { sendError: 'Insufficient balance' });
+					}
+					if (error.code === LEDGER_TRANSACTION_ERROR.NON_POSITIVE_AMOUNT) {
+						return fail(400, { sendError: 'Amount must be greater than zero' });
+					}
+				}
+				throw error;
+			}
 
 			return { sent: true, settled: 'local' as const };
 		}
@@ -112,5 +156,9 @@ export const actions: Actions = {
 		enqueueFederationMessage('transfer_requested', society.handle, { ...transfer, signature });
 
 		return { sent: true, settled: 'federation' as const };
-	}
+	}, {
+		legacyKey: 'sendError',
+		fallbackCode: 'SEND_FAILED',
+		fallbackMessage: 'Send action failed'
+	})
 };

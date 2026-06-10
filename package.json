@@ -19,6 +19,8 @@
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@types/leaflet": "^1.9.14",
+		"@types/markdown-it": "^14.1.2",
+		"@types/sanitize-html": "^2.16.1",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
 		"tsx": "^4.22.4",
@@ -29,6 +31,8 @@
 		"@types/bcrypt": "^6.0.0",
 		"bcrypt": "^6.0.0",
 		"leaflet": "^1.9.4",
-		"postgres": "^3.4.5"
+		"markdown-it": "^14.2.0",
+		"postgres": "^3.4.5",
+		"sanitize-html": "^2.17.4"
 	}
 }

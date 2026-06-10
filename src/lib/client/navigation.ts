@@ -30,6 +30,11 @@ export const nutritionTabs: NavTab[] = [
 	{ label: 'Planner', href: '/society/nutrition/planner' }
 ];
 
+export const knowledgeTabs: NavTab[] = [
+	{ label: 'Encyclopedia', href: '/society/encyclopedia' },
+	{ label: 'Guides', href: '/society/guides' }
+];
+
 export const settingsTabs: NavTab[] = [
 	{ label: 'Profile', href: '/profile/settings/profile' }
 ];

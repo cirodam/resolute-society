@@ -78,6 +78,49 @@ npm run build
 npm run preview
 ```
 
+## Encyclopedia Content
+
+The society encyclopedia is file-based and rendered from Markdown.
+
+- Store entries in `src/lib/content/encyclopedia/*.md`
+- Visit `/society/encyclopedia` to browse entries
+- Each file name becomes a slug, e.g. `getting-started.md` -> `/society/encyclopedia/getting-started`
+
+Optional frontmatter:
+
+```md
+---
+title: Entry Title
+summary: One sentence summary shown in the index.
+category: Topic Name
+order: 10
+---
+```
+
+Index behavior:
+- Entries are grouped by `category` (default: `General`)
+- Entries within each category are sorted by `order` ascending, then title
+- Categories are sorted alphabetically
+
+## Guides Content
+
+Guides are also file-based Markdown and share the same local knowledge navigation as the encyclopedia.
+
+- Store guides in `src/lib/content/guides/*.md`
+- Visit `/society/guides` to browse guides
+- Each file name becomes a slug, e.g. `new-member-onboarding.md` -> `/society/guides/new-member-onboarding`
+
+Optional frontmatter:
+
+```md
+---
+title: Guide Title
+summary: One sentence summary shown in the index.
+category: Topic Name
+order: 10
+---
+```
+
 ## Database Migrations
 
 Schema management is migration-based.

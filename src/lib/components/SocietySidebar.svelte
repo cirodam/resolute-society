@@ -40,6 +40,9 @@
 			<a href="/society/nutrition" class="sidebar-link">
 				Nutrition
 			</a>
+			<a href="/society/encyclopedia" class="sidebar-link">
+				Encyclopedia
+			</a>
 			<a href="/society/settings" class="sidebar-link">
 				Settings
 			</a>

@@ -42,6 +42,7 @@
 		<section class="courses-section">
 			<div class="section-header">
 				<h2 class="section-title">Courses</h2>
+				<a href="/society/courses/print" class="btn btn--secondary btn--small">Print</a>
 				<button class="btn btn--primary btn--small" onclick={() => showCourseForm = !showCourseForm}>
 					{showCourseForm ? 'Cancel' : '+ Offer Course'}
 				</button>

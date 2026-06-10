@@ -65,10 +65,13 @@
 
 <div class="page-container">
 	<div class="page-header">
-		<h1 class="t-display">Nutrition</h1>
-		<p class="page-header-description">
-			Food planning for {data.society.name}
-		</p>
+		<div class="header-content">
+			<div>
+				<h1 class="t-display">Nutrition</h1>
+				<p class="page-header-description">Food planning for {data.society.name}</p>
+			</div>
+			<a href="/society/nutrition/planner/print" class="btn btn--secondary btn--small">Print Plan</a>
+		</div>
 	</div>
 
 	<Subnav tabs={nutritionTabs} />

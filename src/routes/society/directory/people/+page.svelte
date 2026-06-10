@@ -8,8 +8,9 @@
 
 <section class="directory-section">
 	<div class="section-header">
-		<h2 class="section-title">People ({data.members.length})</h2>
+		<h2 class="section-title">People ({data.total})</h2>
 		<div class="header-actions">
+			<a href="/society/directory/people/print" class="btn btn--secondary btn--small">Print Roster</a>
 			{#if hasPermission(data.permissions, 'membership.create_member')}
 				<a href="/society/directory/new" class="btn btn--primary">Add Member</a>
 				<form method="POST" action="?/seedRandomPerson" use:enhance style="display: inline;">
@@ -69,10 +70,27 @@
 						</div>
 						<p class="member-handle">{member.handle}</p>
 					</a>
-
 				</div>
 			{/each}
 		</div>
+
+		{#if data.totalPages > 1}
+			{@const prevParams = new URLSearchParams(data.personQuery ? { person_q: data.personQuery, page: String(data.page - 1) } : { page: String(data.page - 1) })}
+			{@const nextParams = new URLSearchParams(data.personQuery ? { person_q: data.personQuery, page: String(data.page + 1) } : { page: String(data.page + 1) })}
+			<div class="pagination">
+				{#if data.page > 1}
+					<a href="?{prevParams}" class="btn btn--secondary btn--small">Previous</a>
+				{:else}
+					<span class="btn btn--secondary btn--small btn--disabled">Previous</span>
+				{/if}
+				<span class="page-indicator">Page {data.page} of {data.totalPages}</span>
+				{#if data.page < data.totalPages}
+					<a href="?{nextParams}" class="btn btn--secondary btn--small">Next</a>
+				{:else}
+					<span class="btn btn--secondary btn--small btn--disabled">Next</span>
+				{/if}
+			</div>
+		{/if}
 	{/if}
 </section>
 
@@ -119,15 +137,14 @@
 	}
 
 	.member-card {
-		padding: var(--space-4);
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
 		transition: border-color 0.15s, background 0.15s;
 	}
 
 	.member-link {
-		display: block;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		padding: var(--space-4);
 		text-decoration: none;
 		color: inherit;
 	}
@@ -182,5 +199,25 @@
 		font-size: var(--text-sm);
 		color: var(--ink-mid);
 		margin: 0;
+	}
+
+	.pagination {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-4);
+		margin-top: var(--space-6);
+	}
+
+	.page-indicator {
+		font-family: var(--font-label);
+		font-size: var(--text-sm);
+		color: var(--ink-mid);
+	}
+
+	.btn--disabled {
+		opacity: 0.4;
+		cursor: default;
+		pointer-events: none;
 	}
 </style>

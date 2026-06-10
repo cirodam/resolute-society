@@ -3,6 +3,7 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { error, fail } from '@sveltejs/kit';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -23,7 +24,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 export const actions: Actions = {
 	createPosition: async (event) => {
-		const { request, params } = event;
+		const { request, locals } = event;
 		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
@@ -41,13 +42,25 @@ export const actions: Actions = {
 			return fail(400, { error: 'Position with this name already exists' });
 		}
 
+		const positionId = randomUUID();
+		const societyId = resolveSocietyId(undefined);
 		await repositories.positions.createOfficerPosition({
-			societyId: resolveSocietyId(undefined),
-			positionId: randomUUID(),
+			societyId,
+			positionId,
 			name,
 			description,
 			termLimitYears,
 			defaultAllowance
+		});
+
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'POSITION_CREATED',
+			targetType: 'position',
+			targetId: positionId,
+			summary: `Officer position "${name}" created`,
+			metadata: { name, description, termLimitYears, defaultAllowance }
 		});
 
 		return { success: true };

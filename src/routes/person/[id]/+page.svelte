@@ -24,7 +24,7 @@
 	<header class="person-header">
 		<div class="person-name-block">
 			<h1 class="t-display person-name">{person.given_name} {person.surname}</h1>
-			<p class="person-handle">@{person.handle}</p>
+			<p class="person-handle">{person.handle}</p>
 		</div>
 		<div class="person-chips">
 			<span class="chip t-label chip--status">{person.membership_status.replace('_', ' ')}</span>

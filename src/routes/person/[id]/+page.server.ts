@@ -4,6 +4,7 @@ import { calculateEndowmentTarget } from '$lib/server/economy/endowment';
 import { getFederationBalance } from '$lib/server/federation/client';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { requirePermission } from '$lib/server/services/auth.service';
+import { audit } from '$lib/server/services/audit.service';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -53,7 +54,7 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	updateMembershipStatus: async ({ request, params }) => {
+	updateMembershipStatus: async ({ request, params, locals }) => {
 		const formData = await request.formData();
 		const status = formData.get('status')?.toString();
 
@@ -62,7 +63,19 @@ export const actions: Actions = {
 			return fail(400, { statusError: 'Invalid membership status' });
 		}
 
-		await getRepositories().people.updateMembershipStatus(params.id, status);
+		const repos = getRepositories();
+		const person = await repos.people.findDetailById(params.id);
+		await repos.people.updateMembershipStatus(params.id, status);
+
+		await audit({
+			actor: locals.person,
+			societyId: person?.society_id ?? '',
+			eventType: 'MEMBER_STATUS_CHANGED',
+			targetType: 'person',
+			targetId: params.id,
+			summary: `Member status changed to "${status}"`,
+			metadata: { personId: params.id, status, prev: person?.membership_status }
+		});
 
 		return { statusSuccess: true };
 	},
@@ -119,6 +132,16 @@ export const actions: Actions = {
 		await repositories.associations.removeMembershipsForPerson(params.id);
 		await repositories.allowanceGroups.removePersonFromAll(params.id);
 		await repositories.people.markDeleted(params.id);
+
+		await audit({
+			actor: locals.person,
+			societyId: person.society_id,
+			eventType: 'MEMBER_DELETED',
+			targetType: 'person',
+			targetId: params.id,
+			summary: `Member ${person.given_name} ${person.surname} (@${person.handle}) deleted`,
+			metadata: { personId: params.id, handle: person.handle, givenName: person.given_name, surname: person.surname }
+		});
 
 		redirect(303, '/society/directory/people');
 	}

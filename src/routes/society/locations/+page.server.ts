@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -22,39 +23,39 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
-	createCategory: async ({ request }) => {
+	createCategory: async ({ request, locals }) => {
 		const data = await request.formData();
 		const name = data.get('name')?.toString().trim();
 		const color = data.get('color')?.toString() || '#7a5c1a';
 		if (!name) return fail(400, { categoryError: 'Name is required' });
-		await getRepositories().locationCategories.create({
-			id: randomUUID(),
-			societyId: resolveSocietyId(undefined),
-			name,
-			color
-		});
+		const id = randomUUID();
+		const societyId = resolveSocietyId(undefined);
+		await getRepositories().locationCategories.create({ id, societyId, name, color });
+		await audit({ actor: locals.person, societyId, eventType: 'LOCATION_CATEGORY_CREATED', targetType: 'location_category', targetId: id, summary: `Location category "${name}" created`, metadata: { name, color } });
 		return { categoryCreated: true };
 	},
 
-	updateCategory: async ({ request }) => {
+	updateCategory: async ({ request, locals }) => {
 		const data = await request.formData();
 		const id = data.get('id')?.toString();
 		const name = data.get('name')?.toString().trim();
 		const color = data.get('color')?.toString() || '#7a5c1a';
 		if (!id || !name) return fail(400, { categoryError: 'Invalid request' });
 		await getRepositories().locationCategories.update({ id, name, color });
+		await audit({ actor: locals.person, societyId: resolveSocietyId(undefined), eventType: 'LOCATION_CATEGORY_UPDATED', targetType: 'location_category', targetId: id, summary: `Location category updated`, metadata: { name, color } });
 		return { categoryUpdated: true };
 	},
 
-	deleteCategory: async ({ request }) => {
+	deleteCategory: async ({ request, locals }) => {
 		const data = await request.formData();
 		const id = data.get('id')?.toString();
 		if (!id) return fail(400, { categoryError: 'ID required' });
 		await getRepositories().locationCategories.delete(id);
+		await audit({ actor: locals.person, societyId: resolveSocietyId(undefined), eventType: 'LOCATION_CATEGORY_DELETED', targetType: 'location_category', targetId: id, summary: `Location category deleted` });
 		return { categoryDeleted: true };
 	},
 
-	create: async ({ request }) => {
+	create: async ({ request, locals }) => {
 		const data = await request.formData();
 		const name = data.get('name')?.toString().trim();
 		const categoryId = data.get('category_id')?.toString() || null;
@@ -66,20 +67,14 @@ export const actions: Actions = {
 		if (!name) return fail(400, { createError: 'Name is required' });
 		if (isNaN(lat) || isNaN(lng)) return fail(400, { createError: 'Valid coordinates are required' });
 
-		await getRepositories().locations.create({
-			id: randomUUID(),
-			societyId: resolveSocietyId(undefined),
-			name,
-			categoryId,
-			address,
-			lat,
-			lng,
-			notes
-		});
+		const id = randomUUID();
+		const societyId = resolveSocietyId(undefined);
+		await getRepositories().locations.create({ id, societyId, name, categoryId, address, lat, lng, notes });
+		await audit({ actor: locals.person, societyId, eventType: 'LOCATION_CREATED', targetType: 'location', targetId: id, summary: `Location "${name}" created`, metadata: { name, address, lat, lng } });
 		return { created: true };
 	},
 
-	update: async ({ request }) => {
+	update: async ({ request, locals }) => {
 		const data = await request.formData();
 		const id = data.get('id')?.toString();
 		const name = data.get('name')?.toString().trim();
@@ -94,14 +89,16 @@ export const actions: Actions = {
 		if (isNaN(lat) || isNaN(lng)) return fail(400, { updateError: 'Valid coordinates are required' });
 
 		await getRepositories().locations.update({ id, name, categoryId, address, lat, lng, notes });
+		await audit({ actor: locals.person, societyId: resolveSocietyId(undefined), eventType: 'LOCATION_UPDATED', targetType: 'location', targetId: id, summary: `Location "${name}" updated`, metadata: { name, address, lat, lng } });
 		return { updated: true };
 	},
 
-	delete: async ({ request }) => {
+	delete: async ({ request, locals }) => {
 		const data = await request.formData();
 		const id = data.get('id')?.toString();
 		if (!id) return fail(400, { deleteError: 'ID is required' });
 		await getRepositories().locations.delete(id);
+		await audit({ actor: locals.person, societyId: resolveSocietyId(undefined), eventType: 'LOCATION_DELETED', targetType: 'location', targetId: id, summary: `Location deleted` });
 		return { deleted: true };
 	}
 };

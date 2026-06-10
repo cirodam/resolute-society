@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { randomUUID } from 'crypto';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -44,9 +45,11 @@ export const actions: Actions = {
 			return fail(400, { message: 'Society credits price required when federation credits price is set' });
 		}
 
+		const listingId = randomUUID();
+		const societyId = resolveSocietyId(undefined);
 		await getRepositories().market.createItemListing({
-			listingId: randomUUID(),
-			societyId: resolveSocietyId(undefined),
+			listingId,
+			societyId,
 			personId: locals.person.id,
 			type,
 			category,
@@ -54,6 +57,16 @@ export const actions: Actions = {
 			description,
 			societyCreditsPrice: societyPrice,
 			federationCreditsPrice: federationPrice
+		});
+
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'MARKET_ITEM_LISTED',
+			targetType: 'item_listing',
+			targetId: listingId,
+			summary: `Item listing "${title}" created (${type})`,
+			metadata: { title, type, category }
 		});
 
 		return { success: true };
@@ -83,9 +96,11 @@ export const actions: Actions = {
 			return fail(400, { message: 'Society credits rate required when federation credits rate is set' });
 		}
 
+		const listingId = randomUUID();
+		const societyId = resolveSocietyId(undefined);
 		await getRepositories().market.createServiceListing({
-			listingId: randomUUID(),
-			societyId: resolveSocietyId(undefined),
+			listingId,
+			societyId,
 			personId: locals.person.id,
 			category,
 			title,
@@ -93,6 +108,16 @@ export const actions: Actions = {
 			societyCreditsRate: societyRate,
 			federationCreditsRate: federationRate,
 			rateUnit
+		});
+
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'MARKET_SERVICE_LISTED',
+			targetType: 'service_listing',
+			targetId: listingId,
+			summary: `Service listing "${title}" created`,
+			metadata: { title, category, rateUnit }
 		});
 
 		return { success: true };

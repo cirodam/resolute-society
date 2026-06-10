@@ -19,6 +19,7 @@
 					The executive officers of {data.society.name}
 				</p>
 			</div>
+			<a href="/society/officers/print" class="btn btn--secondary btn--small">Print Roster</a>
 			{#if hasPermission(data.permissions, 'positions.create_officer')}
 				<button class="btn btn--primary btn--small" onclick={() => showPositionForm = !showPositionForm}>
 					{showPositionForm ? 'Cancel' : '+ Create Position'}

@@ -10,8 +10,10 @@ export async function resolveLocalEntity(
 ): Promise<LocalEntity | null> {
 	if (handle === 'treasury') return { type: 'society', id: societyId };
 	const person = await repos.people.findByHandleAndSociety(handle, societyId);
-	if (!person) return null;
-	return { type: 'person', id: person.id };
+	if (person) return { type: 'person', id: person.id };
+	const association = await repos.associations.findByHandleAndSociety(handle, societyId);
+	if (association) return { type: 'association', id: association.id };
+	return null;
 }
 
 export async function resolveLocalEntityById(
@@ -22,5 +24,7 @@ export async function resolveLocalEntityById(
 	if (id === 'treasury') return { type: 'society', id: societyId };
 	const person = await repos.people.findProfileById(id);
 	if (person && person.society_id === societyId) return { type: 'person', id: person.id };
+	const association = await repos.associations.findById(id);
+	if (association && association.society_id === societyId) return { type: 'association', id: association.id };
 	return null;
 }

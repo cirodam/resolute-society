@@ -75,6 +75,18 @@
 					<span class="field-hint">Link to a defined society location — required for hubs to appear on the map.</span>
 				</div>
 
+				<div class="form-group">
+					<label for="founder_handle">Founding Member Handle *</label>
+					<input
+						id="founder_handle"
+						name="founder_handle"
+						type="text"
+						required
+						placeholder="memberhandle"
+					/>
+					<span class="field-hint">This person will be added as the first member of the association.</span>
+				</div>
+
 				<div class="form-actions">
 					<a href="/society/directory" class="btn">
 						Cancel
@@ -109,6 +121,7 @@
 		flex-direction: column;
 		gap: var(--space-5);
 	}
+
 
 	.field-hint {
 		font-family: var(--font-prose);

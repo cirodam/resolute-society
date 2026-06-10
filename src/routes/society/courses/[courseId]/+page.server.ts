@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission, hasPermission } from '$lib/server/services/auth.service';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -73,6 +74,16 @@ export const actions: Actions = {
 
 		await repositories.courses.approveCourse(params.courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
 
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'COURSE_APPROVED',
+			targetType: 'course',
+			targetId: params.courseId,
+			summary: `Course approved`,
+			metadata: { courseId: params.courseId }
+		});
+
 		return { success: true };
 	},
 	rejectCourse: async (event) => {
@@ -91,6 +102,16 @@ export const actions: Actions = {
 		}
 
 		await repositories.courses.rejectCourse(params.courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
+
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'COURSE_REJECTED',
+			targetType: 'course',
+			targetId: params.courseId,
+			summary: `Course rejected`,
+			metadata: { courseId: params.courseId }
+		});
 
 		return { success: true };
 	}

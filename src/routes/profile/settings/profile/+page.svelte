@@ -15,7 +15,7 @@
 </script>
 
 <div class="settings-content">
-	<p class="person-subtitle">{person.given_name} {person.surname} · @{person.handle}</p>
+	<p class="person-subtitle">{person.given_name} {person.surname} · {person.handle}</p>
 
 	<!-- ── PROFILE ── -->
 	<div class="card card-border">

@@ -41,8 +41,39 @@ export interface ArchivedMessageRow {
 	direction: 'sent' | 'received';
 }
 
-export interface RecipientRow {
+export interface MessageRecipient {
+	type: 'person' | 'association';
 	id: string;
+}
+
+export interface AssociationInboxMessageRow {
+	id: string;
+	subject: string;
+	body: string;
+	created_at: string;
+	read_at: string | null;
+	sender_id: string;
+	sender_given_name: string;
+	sender_surname: string;
+	sender_handle: string;
+	sender_association_id: string | null;
+	sender_association_name: string | null;
+	sender_association_handle: string | null;
+}
+
+export interface AssociationSentMessageRow {
+	id: string;
+	subject: string;
+	body: string;
+	created_at: string;
+	read_at: string | null;
+	recipient_id: string | null;
+	recipient_given_name: string | null;
+	recipient_surname: string | null;
+	recipient_handle: string | null;
+	recipient_association_id: string | null;
+	recipient_association_name: string | null;
+	recipient_association_handle: string | null;
 }
 
 export class MessageRepository {
@@ -106,26 +137,71 @@ export class MessageRepository {
 		return result?.count ?? 0;
 	}
 
-	async findRecipientByHandleAndSociety(handle: string, societyHandle: string): Promise<RecipientRow | null> {
-		const [row] = await this.sql<RecipientRow[]>`
-			SELECT p.id
-			FROM person p
+	async findMessageRecipient(handle: string, societyHandle: string): Promise<MessageRecipient | null> {
+		const [person] = await this.sql<Array<{ id: string }>>`
+			SELECT p.id FROM person p
 			JOIN society_config s ON p.society_id = s.id
 			WHERE p.handle = ${handle} AND s.handle = ${societyHandle}`;
-		return row ?? null;
+		if (person) return { type: 'person', id: person.id };
+
+		const [assoc] = await this.sql<Array<{ id: string }>>`
+			SELECT a.id FROM association a
+			JOIN society_config s ON a.society_id = s.id
+			WHERE a.handle = ${handle} AND s.handle = ${societyHandle}`;
+		if (assoc) return { type: 'association', id: assoc.id };
+
+		return null;
 	}
 
 	async sendMessage(params: {
 		senderId: string;
-		recipientId: string;
+		senderAssociationId?: string | null;
+		recipientId?: string | null;
+		recipientAssociationId?: string | null;
 		subject: string;
 		body: string;
 	}): Promise<string> {
 		const messageId = randomUUID();
 		await this.sql`
-			INSERT INTO message (id, sender_id, recipient_id, subject, body)
-			VALUES (${messageId}, ${params.senderId}, ${params.recipientId}, ${params.subject}, ${params.body})`;
+			INSERT INTO message (id, sender_id, sender_association_id, recipient_id, recipient_association_id, subject, body)
+			VALUES (
+				${messageId},
+				${params.senderId},
+				${params.senderAssociationId ?? null},
+				${params.recipientId ?? null},
+				${params.recipientAssociationId ?? null},
+				${params.subject},
+				${params.body}
+			)`;
 		return messageId;
+	}
+
+	async listInboxForAssociation(associationId: string): Promise<AssociationInboxMessageRow[]> {
+		return await this.sql<AssociationInboxMessageRow[]>`
+			SELECT
+				m.id, m.subject, m.body, m.created_at, m.read_at,
+				p.id AS sender_id, p.given_name AS sender_given_name, p.surname AS sender_surname, p.handle AS sender_handle,
+				sa.id AS sender_association_id, sa.name AS sender_association_name, sa.handle AS sender_association_handle
+			FROM message m
+			JOIN person p ON m.sender_id = p.id
+			LEFT JOIN association sa ON m.sender_association_id = sa.id
+			WHERE m.recipient_association_id = ${associationId} AND m.archived_at IS NULL
+			ORDER BY m.created_at DESC
+			LIMIT 50`;
+	}
+
+	async listSentForAssociation(associationId: string): Promise<AssociationSentMessageRow[]> {
+		return await this.sql<AssociationSentMessageRow[]>`
+			SELECT
+				m.id, m.subject, m.body, m.created_at, m.read_at,
+				rp.id AS recipient_id, rp.given_name AS recipient_given_name, rp.surname AS recipient_surname, rp.handle AS recipient_handle,
+				ra.id AS recipient_association_id, ra.name AS recipient_association_name, ra.handle AS recipient_association_handle
+			FROM message m
+			LEFT JOIN person rp ON m.recipient_id = rp.id
+			LEFT JOIN association ra ON m.recipient_association_id = ra.id
+			WHERE m.sender_association_id = ${associationId} AND m.archived_at IS NULL
+			ORDER BY m.created_at DESC
+			LIMIT 50`;
 	}
 
 	async findOwnedMessage(messageId: string, personId: string): Promise<{ id: string } | null> {

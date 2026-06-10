@@ -35,7 +35,7 @@
 	<div class="page-header">
 		<h1 class="t-display">My Passbook</h1>
 		<p class="page-header-description">
-			{person.given_name} {person.surname} · @{person.handle}
+			{person.given_name} {person.surname} · {person.handle}
 		</p>
 	</div>
 
@@ -138,7 +138,7 @@
 									<div class="col-party">
 										<div class="party-cell">
 											<span class="party-name">{other.name}</span>
-											<span class="party-handle">@{other.handle}</span>
+											<span class="party-handle">{other.handle}</span>
 										</div>
 									</div>
 									<div class="col-note"><span class="note-text">{txn.note || '—'}</span></div>

@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { joinFederation } from '$lib/server/federation/client';
+import { audit } from '$lib/server/services/audit.service';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -45,7 +46,7 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	join: async ({ request }) => {
+	join: async ({ request, locals }) => {
 		const data = await request.formData();
 		const secret = data.get('secret')?.toString().trim();
 
@@ -58,6 +59,16 @@ export const actions: Actions = {
 		} catch (err) {
 			return fail(500, { joinError: (err as Error).message });
 		}
+
+		const societyId = resolveSocietyId(undefined);
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'FEDERATION_JOIN_REQUESTED',
+			targetType: 'society_config',
+			targetId: societyId,
+			summary: `Federation join requested`
+		});
 
 		return { joinQueued: true };
 	}

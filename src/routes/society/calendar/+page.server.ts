@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { randomUUID } from 'crypto';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -37,9 +38,11 @@ export const actions: Actions = {
 			return fail(400, { error: 'Title and start time are required' });
 		}
 
+		const eventId = randomUUID();
+		const societyId = resolveSocietyId(undefined);
 		await getRepositories().events.createEvent({
-			eventId: randomUUID(),
-			societyId: resolveSocietyId(undefined),
+			eventId,
+			societyId,
 			associationId,
 			title,
 			description,
@@ -47,6 +50,16 @@ export const actions: Actions = {
 			startsAt,
 			endsAt,
 			createdBy: locals.person.id
+		});
+
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'CALENDAR_EVENT_CREATED',
+			targetType: 'event',
+			targetId: eventId,
+			summary: `Event "${title}" created`,
+			metadata: { title, startsAt, endsAt, location, associationId }
 		});
 
 		return { success: true };

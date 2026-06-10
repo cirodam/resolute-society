@@ -734,3 +734,8 @@ h3, .heading-subsection {
 	border-color: var(--danger) !important;
 }
 
+
+/* ── Print ───────────────────────────────────────────────────────────────── */
+@media print {
+	.no-print { display: none !important; }
+}

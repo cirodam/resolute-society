@@ -3,6 +3,7 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission, hasPermission } from '$lib/server/services/auth.service';
 import { error, fail } from '@sveltejs/kit';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -58,8 +59,10 @@ export const actions: Actions = {
 
 		const maxStudents = type === 'tutoring' ? 1 : maxStudentsStr ? parseInt(maxStudentsStr) : null;
 
+		const courseId = randomUUID();
+		const societyId = resolveSocietyId(undefined);
 		await repositories.courses.createCourse({
-			societyId: resolveSocietyId(undefined),
+			societyId,
 			instructorId: locals.person.id,
 			title,
 			description,
@@ -73,7 +76,17 @@ export const actions: Actions = {
 			address,
 			startsAt,
 			endsAt,
-			courseId: randomUUID()
+			courseId
+		});
+
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'COURSE_CREATED',
+			targetType: 'course',
+			targetId: courseId,
+			summary: `Course "${title}" created`,
+			metadata: { title, type, startsAt, endsAt, locationType }
 		});
 
 		return { success: true };
@@ -133,6 +146,16 @@ export const actions: Actions = {
 
 		await repositories.courses.approveCourse(courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
 
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'COURSE_APPROVED',
+			targetType: 'course',
+			targetId: courseId,
+			summary: `Course approved`,
+			metadata: { courseId }
+		});
+
 		return { success: true };
 	},
 	rejectCourse: async (event) => {
@@ -158,6 +181,16 @@ export const actions: Actions = {
 		}
 
 		await repositories.courses.rejectCourse(courseId, resolveSocietyId(undefined), locals.person.id, new Date().toISOString());
+
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'COURSE_REJECTED',
+			targetType: 'course',
+			targetId: courseId,
+			summary: `Course rejected`,
+			metadata: { courseId }
+		});
 
 		return { success: true };
 	}

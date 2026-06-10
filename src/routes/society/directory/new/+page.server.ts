@@ -5,6 +5,7 @@ import { getRepositories } from '$lib/server/infra/repositories';
 import { enqueueFederationMessage } from '$lib/server/federation/client';
 import { createMember } from '$lib/server/services/member.service';
 import { parseSex } from '$lib/server/utils/form.util';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -22,6 +23,7 @@ export const load: PageServerLoad = async () => {
 
 export const actions = {
 	default: async (event) => {
+		const { locals } = event;
 		const societyId = resolveSocietyId(undefined);
 		await requirePermission(event, 'membership.create_member', societyId);
 
@@ -54,6 +56,16 @@ export const actions = {
 			sex,
 			locationId,
 			membershipStatus
+		});
+
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'MEMBER_CREATED',
+			targetType: 'person',
+			targetId: personId,
+			summary: `Member ${givenName} ${surname} (@${handle}) created`,
+			metadata: { handle, givenName, surname, membershipStatus }
 		});
 
 		const societyDetail = await repos.societies.findDetailById(societyId);

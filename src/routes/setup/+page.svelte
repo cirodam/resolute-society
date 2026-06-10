@@ -35,18 +35,15 @@
 
 				<div class="form-group">
 					<label for="society_handle">Handle</label>
-					<div class="input-prefix-group">
-						<span class="input-prefix">@</span>
-						<input
-							id="society_handle"
-							name="society_handle"
-							type="text"
-							required
-							placeholder="west-philly-mas"
-							pattern="[a-z0-9-]+"
-							title="Lowercase letters, numbers, and hyphens only"
-						/>
-					</div>
+					<input
+						id="society_handle"
+						name="society_handle"
+						type="text"
+						required
+						placeholder="west-philly-mas"
+						pattern="[a-z0-9-]+"
+						title="Lowercase letters, numbers, and hyphens only"
+					/>
 					<span class="input-hint">Lowercase letters, numbers, and hyphens only</span>
 				</div>
 
@@ -78,18 +75,15 @@
 
 				<div class="form-group">
 					<label for="handle">Handle</label>
-					<div class="input-prefix-group">
-						<span class="input-prefix">@</span>
-						<input
-							id="handle"
-							name="handle"
-							type="text"
-							required
-							placeholder="alexrivera"
-							pattern="[a-z0-9-]+"
-							title="Lowercase letters, numbers, and hyphens only"
-						/>
-					</div>
+					<input
+						id="handle"
+						name="handle"
+						type="text"
+						required
+						placeholder="alexrivera"
+						pattern="[a-z0-9-]+"
+						title="Lowercase letters, numbers, and hyphens only"
+					/>
 				</div>
 
 				<div class="form-group">
@@ -198,34 +192,6 @@
 		color: var(--ink-mid);
 	}
 
-	.input-prefix-group {
-		display: flex;
-		align-items: center;
-		border: 1px solid var(--border);
-		overflow: hidden;
-	}
-
-	.input-prefix {
-		padding: 0 var(--space-2);
-		background: var(--surface-dk);
-		color: var(--ink-mid);
-		font-size: var(--text-sm);
-		align-self: stretch;
-		display: flex;
-		align-items: center;
-		border-right: 1px solid var(--border);
-	}
-
-	.input-prefix-group input {
-		border: none;
-		border-radius: 0;
-		flex: 1;
-	}
-
-	.input-prefix-group input:focus {
-		outline: none;
-		box-shadow: none;
-	}
 
 	.input-hint {
 		font-size: var(--text-xs);

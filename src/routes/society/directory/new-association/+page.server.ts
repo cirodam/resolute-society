@@ -3,6 +3,7 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'crypto';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -20,28 +21,40 @@ export const load: PageServerLoad = async () => {
 
 export const actions = {
 	default: async (event) => {
-		const { request, params } = event;
+		const { request, locals } = event;
 		await requirePermission(event, 'membership.create_association', resolveSocietyId(undefined));
 
 		const data = await request.formData();
-		const handle = data.get('handle')?.toString();
-		const name = data.get('name')?.toString();
-		const type = data.get('type')?.toString() || null;
+		const handle = data.get('handle')?.toString().trim();
+		const name = data.get('name')?.toString().trim();
+		const type = data.get('type')?.toString().trim() || null;
 		const specialType = data.get('special_type')?.toString() || 'none';
 		const locationId = data.get('location_id')?.toString() || null;
+		const founderHandle = data.get('founder_handle')?.toString().trim();
 
 		if (!handle || !name) {
 			return fail(400, { error: 'Handle and name are required' });
 		}
+		if (!founderHandle) {
+			return fail(400, { error: 'A founding member handle is required' });
+		}
 
+		const societyId = resolveSocietyId(undefined);
 		const repositories = getRepositories();
+
 		if (await repositories.associations.handleExists(handle)) {
 			return fail(400, { error: 'Handle already taken' });
 		}
 
+		const founder = await repositories.people.findByHandleAndSociety(founderHandle, societyId);
+		if (!founder) {
+			return fail(400, { error: `No member found with handle @${founderHandle}` });
+		}
+
+		const associationId = randomUUID();
 		await repositories.associations.createAssociation({
-			associationId: randomUUID(),
-			societyId: resolveSocietyId(undefined),
+			associationId,
+			societyId,
 			handle,
 			name,
 			type,
@@ -49,6 +62,18 @@ export const actions = {
 			locationId
 		});
 
-		throw redirect(303, `/society/directory`);
+		await repositories.associations.addMember(associationId, founder.id);
+
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'ASSOCIATION_CREATED',
+			targetType: 'association',
+			targetId: associationId,
+			summary: `Association "${name}" (@${handle}) created with founding member @${founderHandle}`,
+			metadata: { handle, name, type, specialType, founderHandle }
+		});
+
+		throw redirect(303, `/association/${associationId}`);
 	}
 } satisfies Actions;

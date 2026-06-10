@@ -19,6 +19,7 @@
 					Events and gatherings for {data.society.name}
 				</p>
 			</div>
+			<a href="/society/calendar/print" class="btn btn--secondary btn--small">Print</a>
 			<button class="btn btn--primary btn--small" onclick={() => showEventForm = !showEventForm}>
 				{showEventForm ? 'Cancel' : '+ Add Event'}
 			</button>

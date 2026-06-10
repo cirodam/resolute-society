@@ -459,6 +459,24 @@ CREATE TABLE IF NOT EXISTS road_edge (
 );
 
 CREATE INDEX IF NOT EXISTS idx_road_edge_society ON road_edge(society_id);
+
+CREATE TABLE IF NOT EXISTS audit_event (
+	id              TEXT PRIMARY KEY,
+	society_id      TEXT NOT NULL REFERENCES society_config(id),
+	actor_person_id TEXT REFERENCES person(id),
+	actor_display   TEXT NOT NULL,
+	event_type      TEXT NOT NULL,
+	target_type     TEXT NOT NULL,
+	target_id       TEXT NOT NULL,
+	summary         TEXT NOT NULL,
+	metadata_json   TEXT NOT NULL DEFAULT '{}',
+	request_id      TEXT,
+	occurred_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_event_society_time ON audit_event(society_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_event_type_time    ON audit_event(event_type, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_event_target       ON audit_event(target_type, target_id, occurred_at DESC);
 `;
 
 export async function migrate(): Promise<void> {
@@ -478,5 +496,32 @@ export async function migrate(): Promise<void> {
 		CREATE INDEX IF NOT EXISTS idx_federation_message_next_attempt
 		ON federation_message(delivered_at, next_attempted_at)
 		WHERE delivered_at IS NULL;
+	`);
+
+	await db().unsafe(`
+		ALTER TABLE message
+		ADD COLUMN IF NOT EXISTS sender_association_id TEXT REFERENCES association(id);
+	`);
+
+	await db().unsafe(`
+		ALTER TABLE message
+		ALTER COLUMN recipient_id DROP NOT NULL;
+	`);
+
+	await db().unsafe(`
+		ALTER TABLE message
+		ADD COLUMN IF NOT EXISTS recipient_association_id TEXT REFERENCES association(id);
+	`);
+
+	await db().unsafe(`
+		CREATE INDEX IF NOT EXISTS idx_message_recipient_assoc
+		ON message(recipient_association_id, archived_at, created_at DESC)
+		WHERE recipient_association_id IS NOT NULL;
+	`);
+
+	await db().unsafe(`
+		CREATE INDEX IF NOT EXISTS idx_message_sender_assoc
+		ON message(sender_association_id, archived_at, created_at DESC)
+		WHERE sender_association_id IS NOT NULL;
 	`);
 }

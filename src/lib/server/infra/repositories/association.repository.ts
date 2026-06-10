@@ -97,6 +97,24 @@ export class AssociationRepository {
 			ORDER BY p.surname, p.given_name`;
 	}
 
+	async addMember(associationId: string, personId: string): Promise<void> {
+		await this.sql`
+			INSERT INTO association_member (association_id, person_id)
+			VALUES (${associationId}, ${personId})
+			ON CONFLICT DO NOTHING`;
+	}
+
+	async removeMember(associationId: string, personId: string): Promise<void> {
+		await this.sql`
+			DELETE FROM association_member WHERE association_id = ${associationId} AND person_id = ${personId}`;
+	}
+
+	async isMember(associationId: string, personId: string): Promise<boolean> {
+		const [row] = await this.sql`
+			SELECT 1 FROM association_member WHERE association_id = ${associationId} AND person_id = ${personId}`;
+		return !!row;
+	}
+
 	async handleExists(handle: string): Promise<boolean> {
 		const [existing] = await this.sql`SELECT id FROM association WHERE handle = ${handle}`;
 		return !!existing;

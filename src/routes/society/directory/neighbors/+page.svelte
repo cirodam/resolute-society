@@ -27,7 +27,7 @@
 				<a href="/person/{person.id}" class="neighbor-row card-border">
 					<div class="neighbor-identity">
 						<span class="neighbor-name">{person.given_name} {person.surname}</span>
-						<span class="neighbor-handle">@{person.handle}</span>
+						<span class="neighbor-handle">{person.handle}</span>
 						{#if person.location_name}
 							<span class="neighbor-location">{person.location_name}</span>
 						{/if}

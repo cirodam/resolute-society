@@ -1,6 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -31,6 +32,16 @@ export const actions = {
 				await repos.nutrition.setFoodNutrient(event.params.id, nutrient.id, value);
 			}
 		}
+
+		await audit({
+			actor: event.locals.person,
+			societyId,
+			eventType: 'NUTRITION_NUTRIENTS_SAVED',
+			targetType: 'food',
+			targetId: event.params.id,
+			summary: `Nutrient data saved for food item`,
+			metadata: { foodId: event.params.id }
+		});
 
 		return { saveSuccess: true };
 	}

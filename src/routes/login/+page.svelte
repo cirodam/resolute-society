@@ -24,7 +24,7 @@
 					name="handle"
 					type="text"
 					required
-					placeholder="@username"
+					placeholder="username"
 				/>
 			</div>
 

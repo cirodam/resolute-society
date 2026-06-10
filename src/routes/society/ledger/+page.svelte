@@ -145,14 +145,14 @@
 								<div class="col-from">
 									<div class="entity-cell">
 										<span class="entity-name">{txn.from_name}</span>
-										<span class="entity-handle">@{txn.from_handle}</span>
+										<span class="entity-handle">{txn.from_handle}</span>
 										<span class="entity-type">{txn.from_type}</span>
 									</div>
 								</div>
 								<div class="col-to">
 									<div class="entity-cell">
 										<span class="entity-name">{txn.to_name}</span>
-										<span class="entity-handle">@{txn.to_handle}</span>
+										<span class="entity-handle">{txn.to_handle}</span>
 										<span class="entity-type">{txn.to_type}</span>
 									</div>
 								</div>

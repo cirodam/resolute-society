@@ -3,6 +3,7 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { enqueueFederationMessage } from '$lib/server/federation/client';
 import { withCriticalAction } from '$lib/server/http/critical-action';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -22,7 +23,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions = {
-	updateSociety: withCriticalAction(async ({ request }) => {
+	updateSociety: withCriticalAction(async ({ request, locals }) => {
 		const data = await request.formData();
 		const handle = data.get('handle')?.toString().trim().toLowerCase();
 		const name = data.get('name')?.toString().trim();
@@ -58,6 +59,24 @@ export const actions = {
 			lat: latValue,
 			lng: lngValue,
 			federationIpAddress
+		});
+
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'SETTINGS_UPDATED',
+			targetType: 'society_config',
+			targetId: societyId,
+			summary: `Society settings updated`,
+			metadata: {
+				handle,
+				name,
+				address,
+				lat: latValue,
+				lng: lngValue,
+				federationIpAddress,
+				prev: { handle: previousSociety.handle, name: previousSociety.name, address: previousSociety.address, lat: previousSociety.lat, lng: previousSociety.lng, federationIpAddress: previousSociety.federation_ip_address }
+			}
 		});
 
 		const locationChanged =

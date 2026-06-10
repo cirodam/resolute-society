@@ -27,10 +27,13 @@
 
 <div class="page-container">
 	<div class="page-header">
-		<h1 class="t-display">General Assembly</h1>
-		<p class="page-header-description">
-			The governing body of {data.society.name}
-		</p>
+		<div class="header-content">
+			<div>
+				<h1 class="t-display">General Assembly</h1>
+				<p class="page-header-description">The governing body of {data.society.name}</p>
+			</div>
+			<a href="/society/assembly/print" class="btn btn--secondary btn--small">Print Roster</a>
+		</div>
 	</div>
 
 	<Subnav tabs={governanceTabs} />

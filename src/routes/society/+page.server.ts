@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { calculateBalance } from '$lib/server/services/ledger.service';
 import { getFederationBalance } from '$lib/server/federation/client';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -41,12 +42,24 @@ export const actions: Actions = {
 			return fail(400, { error: 'Title and body are required' });
 		}
 
+		const postId = randomUUID();
+		const societyId = resolveSocietyId(undefined);
 		await getRepositories().posts.createSocietyPost({
-			postId: randomUUID(),
-			societyId: resolveSocietyId(undefined),
+			postId,
+			societyId,
 			authorId: locals.person.id,
 			title,
 			body
+		});
+
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'POST_CREATED',
+			targetType: 'post',
+			targetId: postId,
+			summary: `Post "${title}" published`,
+			metadata: { title }
 		});
 
 		return { success: true };

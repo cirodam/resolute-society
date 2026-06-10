@@ -19,7 +19,7 @@
 	<div class="page-header">
 		<h1 class="t-display society-title">{society.name}</h1>
 		<p class="page-header-description">
-			@{society.handle}
+			{society.handle}
 		</p>
 	</div>
 
@@ -88,7 +88,7 @@
 							<p class="post-body">{post.body}</p>
 							<div class="post-footer">
 								<span class="post-author">
-									{post.author_given_name} {post.author_surname} <span class="author-handle">@{post.author_handle}</span>
+									{post.author_given_name} {post.author_surname} <span class="author-handle">{post.author_handle}</span>
 								</span>
 							</div>
 						</article>

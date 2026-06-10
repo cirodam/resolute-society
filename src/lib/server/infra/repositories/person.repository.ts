@@ -254,7 +254,7 @@ export class PersonRepository {
 			SELECT id, handle, given_name, surname, membership_status, sortition_number
 			FROM person
 			WHERE society_id = ${societyId} AND membership_status != 'deleted'
-			ORDER BY surname, given_name`;
+			ORDER BY given_name, surname`;
 	}
 
 	async listFullMembers(societyId: string): Promise<FullMemberRow[]> {

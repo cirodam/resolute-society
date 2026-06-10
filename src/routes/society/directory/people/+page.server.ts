@@ -5,6 +5,7 @@ import { getRepositories } from '$lib/server/infra/repositories';
 import { generateRandomPersonProfile } from '$lib/server/utils/random-person.util';
 import { enqueueFederationMessage } from '$lib/server/federation/client';
 import { createMember } from '$lib/server/services/member.service';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url }) => {
@@ -15,9 +16,12 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		throw error(404, 'Society not found');
 	}
 
+	const PAGE_SIZE = 24;
 	const personQuery = (url.searchParams.get('person_q') || '').trim().toLowerCase();
+	const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+
 	const allMembers = await repositories.people.listDirectoryMembers(resolveSocietyId(undefined));
-	const members = personQuery
+	const filtered = personQuery
 		? allMembers.filter((member) => {
 				const fullName = `${member.given_name} ${member.surname}`.toLowerCase();
 				return (
@@ -28,16 +32,25 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		  })
 		: allMembers;
 
+	const total = filtered.length;
+	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+	const safePage = Math.min(page, totalPages);
+	const members = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
 	return {
 		society,
 		members,
 		personQuery,
-		memberCount: allMembers.length
+		memberCount: allMembers.length,
+		page: safePage,
+		totalPages,
+		total
 	};
 };
 
 export const actions: Actions = {
 	seedRandomPerson: async (event) => {
+		const { locals } = event;
 		await requirePermission(event, 'membership.create_member', resolveSocietyId(undefined));
 
 		const societyId = resolveSocietyId(undefined);
@@ -76,6 +89,16 @@ export const actions: Actions = {
 			});
 		}
 
+		await audit({
+			actor: locals.person,
+			societyId,
+			eventType: 'MEMBER_SEEDED',
+			targetType: 'person',
+			targetId: personId,
+			summary: `Seeded random member ${givenName} ${surname} (@${handle})`,
+			metadata: { handle, givenName, surname }
+		});
+
 		return {
 			seedSuccess: true,
 			seededName: `${givenName} ${surname}`,
@@ -84,7 +107,7 @@ export const actions: Actions = {
 	},
 
 	runSortition: async (event) => {
-		const { params } = event;
+		const { locals } = event;
 		await requirePermission(event, 'membership.run_sortition', resolveSocietyId(undefined));
 
 		const repositories = getRepositories();
@@ -107,6 +130,16 @@ export const actions: Actions = {
 		for (let index = 0; index < members.length; index++) {
 			await repositories.people.setSortitionNumber(members[index].id, numbers[index]);
 		}
+
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'SORTITION_SHUFFLED',
+			targetType: 'society_config',
+			targetId: resolveSocietyId(undefined),
+			summary: `Sortition numbers shuffled for ${memberCount} full members`,
+			metadata: { memberCount }
+		});
 
 		return { sortitionSuccess: true, count: memberCount };
 	},

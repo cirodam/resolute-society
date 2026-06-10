@@ -24,8 +24,13 @@
 
 <div class="page-container">
 	<div class="page-header">
-		<h1 class="t-display">Locations</h1>
-		<p class="page-header-description">Named places associated with this society.</p>
+		<div class="header-content">
+			<div>
+				<h1 class="t-display">Locations</h1>
+				<p class="page-header-description">Named places associated with this society.</p>
+			</div>
+			<a href="/society/locations/print" class="btn btn--secondary btn--small">Print Directory</a>
+		</div>
 	</div>
 
 	<!-- ── CATEGORIES ── -->

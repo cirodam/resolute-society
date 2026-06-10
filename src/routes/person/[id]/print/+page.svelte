@@ -22,7 +22,7 @@
 	<div class="identity-block">
 		<div class="name-row">
 			<span class="full-name">{person.given_name} {person.surname}</span>
-			<span class="handle">@{person.handle}</span>
+			<span class="handle">{person.handle}</span>
 		</div>
 		<div class="detail-grid">
 			<div class="detail-item">

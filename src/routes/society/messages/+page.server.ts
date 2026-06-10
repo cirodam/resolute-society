@@ -88,7 +88,7 @@ export const actions = {
 		}
 
 		const repositories = getRepositories();
-		const recipient = await repositories.messages.findRecipientByHandleAndSociety(handle, societyHandle);
+		const recipient = await repositories.messages.findMessageRecipient(handle, societyHandle);
 
 		if (!recipient) {
 			return fail(400, { sendError: 'Recipient not found' });
@@ -96,7 +96,8 @@ export const actions = {
 
 		await repositories.messages.sendMessage({
 			senderId: locals.person.id,
-			recipientId: recipient.id,
+			recipientId: recipient.type === 'person' ? recipient.id : null,
+			recipientAssociationId: recipient.type === 'association' ? recipient.id : null,
 			subject,
 			body
 		});

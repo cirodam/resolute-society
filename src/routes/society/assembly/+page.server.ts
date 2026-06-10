@@ -2,6 +2,7 @@ import { requirePermission } from '$lib/server/services/auth.service';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { error, fail } from '@sveltejs/kit';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -29,7 +30,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 export const actions: Actions = {
 	assign: async (event) => {
-		const { request, params } = event;
+		const { request, locals } = event;
 		await requirePermission(event, 'assembly.assign_seat', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
@@ -52,11 +53,21 @@ export const actions: Actions = {
 
 		await repositories.assembly.assignSeat(assemblyId, personId, seatNumber);
 
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'ASSEMBLY_SEAT_ASSIGNED',
+			targetType: 'general_assembly',
+			targetId: assemblyId,
+			summary: `Person assigned to assembly seat ${seatNumber}`,
+			metadata: { assemblyId, personId, seatNumber }
+		});
+
 		return { success: true };
 	},
 
 	unassign: async (event) => {
-		const { request, params } = event;
+		const { request, locals } = event;
 		await requirePermission(event, 'assembly.unassign_seat', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
@@ -69,6 +80,16 @@ export const actions: Actions = {
 
 		const repositories = getRepositories();
 		await repositories.assembly.unassignSeat(assemblyId, seatNumber);
+
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'ASSEMBLY_SEAT_UNASSIGNED',
+			targetType: 'general_assembly',
+			targetId: assemblyId,
+			summary: `Assembly seat ${seatNumber} unassigned`,
+			metadata: { assemblyId, seatNumber }
+		});
 
 		return { success: true };
 	}

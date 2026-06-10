@@ -22,6 +22,7 @@ import { DependantRepository } from './dependant.repository';
 import { LedgerDayRepository } from './ledger-day.repository';
 import { NutritionRepository } from './nutrition.repository';
 import { RoadGraphRepository } from './road-graph.repository';
+import { AuditEventRepository } from './audit-event.repository';
 
 export type { EntityType } from './ledger.repository';
 
@@ -65,6 +66,7 @@ export interface Repositories {
 	locations: LocationRepository;
 	locationCategories: LocationCategoryRepository;
 	dependants: DependantRepository;
+	auditEvents: AuditEventRepository;
 	society: SocietyRepositories;
 }
 
@@ -94,6 +96,7 @@ export function createRepositories(sql: postgres.Sql | postgres.TransactionSql =
 	const ledgerDays = new LedgerDayRepository(s);
 	const nutrition = new NutritionRepository(s);
 	const roadGraph = new RoadGraphRepository(s);
+	const auditEvents = new AuditEventRepository(s);
 
 	const society: SocietyRepositories = {
 		people,
@@ -135,6 +138,7 @@ export function createRepositories(sql: postgres.Sql | postgres.TransactionSql =
 		locations,
 		locationCategories,
 		dependants,
+		auditEvents,
 		society
 	};
 }
@@ -158,7 +162,7 @@ export type {
 	CourseCreateParams
 } from './course.repository';
 export { MessageRepository } from './message.repository';
-export type { InboxMessageRow, SentMessageRow, ArchivedMessageRow, RecipientRow } from './message.repository';
+export type { InboxMessageRow, SentMessageRow, ArchivedMessageRow, MessageRecipient, AssociationInboxMessageRow, AssociationSentMessageRow } from './message.repository';
 export { MarketRepository } from './market.repository';
 export type { SocietyRow as MarketSocietyRow, ItemListingRow, ServiceListingRow } from './market.repository';
 export { PersonRepository } from './person.repository';
@@ -203,3 +207,5 @@ export { RoadGraphRepository } from './road-graph.repository';
 export type { RoadNodeRow, RoadEdgeRow } from './road-graph.repository';
 export { FederationMessageQueueRepository } from './federation-message-queue.repository';
 export type { FederationMessageRow } from './federation-message-queue.repository';
+export { AuditEventRepository } from './audit-event.repository';
+export type { AuditEventRow, AppendAuditEventParams } from './audit-event.repository';

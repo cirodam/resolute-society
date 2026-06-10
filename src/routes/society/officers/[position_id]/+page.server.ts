@@ -3,6 +3,7 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { error, fail } from '@sveltejs/kit';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { audit } from '$lib/server/services/audit.service';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -36,7 +37,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 export const actions: Actions = {
 	assign: async (event) => {
-		const { request, params } = event;
+		const { request, params, locals } = event;
 		await requirePermission(event, 'positions.assign_person', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
@@ -67,20 +68,40 @@ export const actions: Actions = {
 			expiresAt.toISOString()
 		);
 
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'OFFICER_ASSIGNED',
+			targetType: 'position',
+			targetId: params.position_id,
+			summary: `Person assigned to position`,
+			metadata: { positionId: params.position_id, personId, appointedAt: appointedAt.toISOString(), expiresAt: expiresAt.toISOString() }
+		});
+
 		return { success: true };
 	},
 
 	remove: async (event) => {
-		const { params } = event;
+		const { params, locals } = event;
 		await requirePermission(event, 'positions.remove_person', resolveSocietyId(undefined));
 
 		await getRepositories().positions.clearAppointment(params.position_id);
+
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'OFFICER_REMOVED',
+			targetType: 'position',
+			targetId: params.position_id,
+			summary: `Officer removed from position`,
+			metadata: { positionId: params.position_id }
+		});
 
 		return { success: true };
 	},
 
 	createSubordinate: async (event) => {
-		const { request, params } = event;
+		const { request, params, locals } = event;
 		await requirePermission(event, 'positions.create_subordinate', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
@@ -106,11 +127,12 @@ export const actions: Actions = {
 			return fail(400, { error: 'Position with this name already exists' });
 		}
 
+		const subordinateId = randomUUID();
 		await repositories.positions.createSubordinatePosition({
 			societyId: parent.society_id,
 			parentPositionId: params.position_id,
 			childType,
-			positionId: randomUUID(),
+			positionId: subordinateId,
 			name,
 			description,
 			section,
@@ -118,11 +140,21 @@ export const actions: Actions = {
 			defaultAllowance
 		});
 
+		await audit({
+			actor: locals.person,
+			societyId: parent.society_id,
+			eventType: 'POSITION_SUBORDINATE_CREATED',
+			targetType: 'position',
+			targetId: subordinateId,
+			summary: `Subordinate position "${name}" created under position ${params.position_id}`,
+			metadata: { name, description, section, termLimitYears, defaultAllowance, parentPositionId: params.position_id, childType }
+		});
+
 		return { success: true };
 	},
 
 	grantPermission: async (event) => {
-		const { request, params } = event;
+		const { request, params, locals } = event;
 		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
@@ -140,11 +172,21 @@ export const actions: Actions = {
 
 		await repositories.positions.grantPermission(params.position_id, permissionId);
 
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'PERMISSION_GRANTED',
+			targetType: 'position',
+			targetId: params.position_id,
+			summary: `Permission granted to position`,
+			metadata: { positionId: params.position_id, permissionId }
+		});
+
 		return { success: true };
 	},
 
 	revokePermission: async (event) => {
-		const { request, params } = event;
+		const { request, params, locals } = event;
 		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
 
 		const formData = await request.formData();
@@ -161,6 +203,16 @@ export const actions: Actions = {
 		}
 
 		await repositories.positions.revokePermission(params.position_id, permissionId);
+
+		await audit({
+			actor: locals.person,
+			societyId: resolveSocietyId(undefined),
+			eventType: 'PERMISSION_REVOKED',
+			targetType: 'position',
+			targetId: params.position_id,
+			summary: `Permission revoked from position`,
+			metadata: { positionId: params.position_id, permissionId }
+		});
 
 		return { success: true };
 	}

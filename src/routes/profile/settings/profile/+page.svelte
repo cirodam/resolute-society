@@ -110,9 +110,6 @@
 		</form>
 	</div>
 
-	<div class="nav-links">
-		<a href="/profile" class="link">← My Passbook</a>
-	</div>
 </div>
 
 <style>
@@ -174,8 +171,5 @@
 		color: var(--ink-faint);
 	}
 
-	.nav-links {
-		font-family: var(--font-prose);
-		font-size: var(--text-sm);
-	}
+
 </style>

@@ -65,7 +65,7 @@
 
 <div class="page-container">
 	<div class="page-header">
-		<div class="header-content">
+		<div class="section-header">
 			<div>
 				<h1 class="t-display">Nutrition</h1>
 				<p class="page-header-description">Food planning for {data.society.name}</p>
@@ -193,20 +193,7 @@
 		padding: var(--space-6, 2rem);
 	}
 
-	.page-header {
-		margin-bottom: var(--space-8, 3rem);
-	}
 
-	.page-header h1 {
-		margin: 0 0 var(--space-3, 0.75rem) 0;
-	}
-
-	.page-header-description {
-		margin: 0;
-		font-size: var(--text-base);
-		font-family: var(--font-prose);
-		color: var(--ink-mid);
-	}
 
 	.page-content {
 		display: flex;

@@ -1,4 +1,4 @@
-import { resolveSocietyMember } from '$lib/server/services/society.service';
+import { getRepositories } from '$lib/server/infra/repositories';
 import type { EntityType } from '$lib/server/types';
 
 export type ResolvedPrincipal = {
@@ -40,12 +40,10 @@ export async function resolveSocietyMemberByHandle(
 	handle: string,
 	societyId: string
 ): Promise<ResolvedPrincipal | null> {
-	const member = await resolveSocietyMember(handle, societyId);
-	if (!member) return null;
-
-	return {
-		type: member.type,
-		id: member.id,
-		label: member.label
-	};
+	const repos = getRepositories();
+	const person = await repos.people.findByHandleAndSociety(handle, societyId);
+	if (person) return { type: 'person', id: person.id, label: `${person.given_name} ${person.surname}` };
+	const association = await repos.associations.findByHandleAndSociety(handle, societyId);
+	if (!association) return null;
+	return { type: 'association', id: association.id, label: association.name };
 }

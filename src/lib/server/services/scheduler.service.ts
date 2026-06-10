@@ -30,7 +30,7 @@ function scheduledAnchorForToday(now: Date): Date {
 	return anchor;
 }
 
-function requiredRunAnchor(now: Date): Date {
+export function requiredRunAnchor(now: Date): Date {
 	const todayAnchor = scheduledAnchorForToday(now);
 	if (now >= todayAnchor) return todayAnchor;
 	const yesterdayAnchor = new Date(todayAnchor);

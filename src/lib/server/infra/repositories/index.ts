@@ -190,7 +190,7 @@ export type { SocietyHandleRow, SocietyIdentityRow } from './society.repository'
 export { EventRepository } from './event.repository';
 export type { EventRow, EventAssociationRow } from './event.repository';
 export { PostRepository } from './post.repository';
-export type { PostRow } from './post.repository';
+export type { PostRow, PostReplyRow } from './post.repository';
 export { LocationRepository } from './location.repository';
 export { DependantRepository } from './dependant.repository';
 export type { DependantRow } from './dependant.repository';

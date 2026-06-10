@@ -2,6 +2,8 @@
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import type { LocationRow, LocationCategoryRow } from '$lib/server/infra/repositories';
+	import Alert from '$lib/components/Alert.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -24,7 +26,7 @@
 
 <div class="page-container">
 	<div class="page-header">
-		<div class="header-content">
+		<div class="section-header">
 			<div>
 				<h1 class="t-display">Locations</h1>
 				<p class="page-header-description">Named places associated with this society.</p>
@@ -93,9 +95,7 @@
 		{/if}
 	</div>
 
-	{#if form?.createError || form?.updateError}
-		<div class="error-message">{form.createError ?? form.updateError}</div>
-	{/if}
+	<Alert type="error" message={form?.createError ?? form?.updateError} />
 
 	{#if showLocationForm || editingLocation}
 		<div class="form-card card-border">
@@ -159,9 +159,7 @@
 	{/if}
 
 	{#if data.locations.length === 0}
-		<div class="empty-state card-border">
-			<p>No locations yet. Add places relevant to your society — meeting halls, tool libraries, gardens, hubs.</p>
-		</div>
+		<EmptyState message="No locations yet. Add places relevant to your society — meeting halls, tool libraries, gardens, hubs." card />
 	{:else}
 		<div class="locations-list">
 			{#each data.locations as loc}
@@ -207,16 +205,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;
-	}
-
-	/* page-header has margin-bottom: 0 here, page-header h1 has different margin */
-	.page-header { margin-bottom: 0; }
-	.page-header h1 { margin: 0 0 0.25rem 0; }
-
-	/* error-message has different padding here (0.75rem 1rem vs global space-3) */
-	.error-message {
-		padding: 0.75rem 1rem;
-		margin-bottom: 0;
 	}
 
 	.toolbar { display: flex; justify-content: flex-end; }
@@ -348,9 +336,4 @@
 		white-space: pre-wrap;
 	}
 
-	/* empty-state has different padding and font-size here */
-	.empty-state {
-		padding: 2rem 1.5rem;
-		font-size: var(--text-sm);
-	}
 </style>

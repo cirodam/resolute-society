@@ -2,6 +2,8 @@
 	import { enhance } from '$app/forms';
 	import { formatDateTime } from '$lib/client/datetime';
 	import type { PageData } from './$types';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import TabNav from '$lib/components/TabNav.svelte';
 
 	let { data }: { data: PageData } = $props();
 	const person = $derived(data.person);
@@ -45,16 +47,14 @@
 		</div>
 	{/if}
 
-	<div class="tabs">
-		<button class="tab" class:tab--active={activeTab === 'society'} onclick={() => (activeTab = 'society')}>
-			Society Credits
-		</button>
-		{#if data.isAdmitted}
-			<button class="tab" class:tab--active={activeTab === 'federation'} onclick={() => (activeTab = 'federation')}>
-				Federation Credits
-			</button>
-		{/if}
-	</div>
+	<TabNav
+		tabs={[
+			{ value: 'society', label: 'Society Credits' },
+			...(data.isAdmitted ? [{ value: 'federation', label: 'Federation Credits' }] : [])
+		]}
+		active={activeTab}
+		onchange={(v) => (activeTab = v as 'society' | 'federation')}
+	/>
 
 	<!-- ── SOCIETY CREDITS TAB ── -->
 	{#if activeTab === 'society'}
@@ -119,7 +119,7 @@
 					<h2>Transaction History</h2>
 				</div>
 				{#if data.societyTransactions.length === 0}
-					<div class="empty-state"><p>No transactions yet.</p></div>
+					<EmptyState message="No transactions yet." />
 				{:else}
 					<div class="passbook-header">
 							<div class="col-date">Date</div>
@@ -226,7 +226,7 @@
 					<h2>Transaction History</h2>
 				</div>
 				{#if data.federationTransactions.length === 0}
-					<div class="empty-state"><p>No federation transactions yet.</p></div>
+					<EmptyState message="No federation transactions yet." />
 				{:else}
 					<div class="passbook-header">
 							<div class="col-date">Date</div>
@@ -273,29 +273,6 @@
 	}
 
 	.bio-text { margin: 0; font-family: var(--font-prose); font-size: var(--text-base); }
-
-	/* Tabs */
-	.tabs {
-		display: flex;
-		border-bottom: 2px solid var(--border);
-		margin-bottom: var(--space-6);
-	}
-
-	.tab {
-		padding: var(--space-3) var(--space-5);
-		margin-right: var(--space-4);
-		background: none;
-		border: none;
-		border-bottom: 2px solid transparent;
-		margin-bottom: -2px;
-		cursor: pointer;
-		font-family: var(--font-label);
-		font-size: var(--text-sm);
-		color: var(--ink-mid);
-		transition: color 0.15s, border-color 0.15s;
-	}
-
-	.tab--active { color: var(--accent); border-bottom-color: var(--accent); }
 
 	/* Tab content */
 	.tab-content { display: flex; flex-direction: column; gap: var(--space-8); }

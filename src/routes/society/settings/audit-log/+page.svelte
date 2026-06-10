@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { formatDateTime } from '$lib/client/datetime';
 	import type { PageData } from './$types';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -24,9 +25,7 @@
 </script>
 
 {#if data.events.length === 0}
-	<div class="empty-state card-border">
-		<p>No audit events recorded yet.</p>
-	</div>
+	<EmptyState message="No audit events recorded yet." card />
 {:else}
 	<div class="audit-table card-border">
 		<div class="audit-header">
@@ -76,12 +75,6 @@
 {/if}
 
 <style>
-	.empty-state {
-		padding: var(--space-6);
-		font-family: var(--font-prose);
-		color: var(--ink-mid);
-	}
-
 	.audit-table {
 		overflow: hidden;
 	}

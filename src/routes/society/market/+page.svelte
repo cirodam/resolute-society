@@ -4,6 +4,7 @@
 	import { formatShortDate } from '$lib/client/datetime';
 	import { economyTabs } from '$lib/client/navigation';
 	import Subnav from '$lib/components/Subnav.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -81,7 +82,7 @@
 			{/if}
 
 			{#if offers.length === 0 && !showOfferForm}
-				<p class="empty-state">No items for sale yet.</p>
+				<EmptyState message="No items for sale yet." />
 			{:else if !showOfferForm}
 				<div class="listings-grid">
 					{#each offers as item}
@@ -144,7 +145,7 @@
 			{/if}
 
 			{#if wanted.length === 0 && !showWantedForm}
-				<p class="empty-state">No wanted items yet.</p>
+				<EmptyState message="No wanted items yet." />
 			{:else if !showWantedForm}
 				<div class="listings-grid">
 					{#each wanted as item}
@@ -215,7 +216,7 @@
 			{/if}
 
 			{#if data.serviceListings.length === 0 && !showServiceForm}
-				<p class="empty-state">No services offered yet.</p>
+				<EmptyState message="No services offered yet." />
 			{:else if !showServiceForm}
 				<div class="listings-grid">
 					{#each data.serviceListings as service}

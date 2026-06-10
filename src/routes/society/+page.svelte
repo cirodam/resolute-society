@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import Alert from '$lib/components/Alert.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const society = $derived(data.society);
 	let showForm = $state(false);
@@ -17,10 +19,14 @@
 
 <div class="page-container page-container--content">
 	<div class="page-header">
-		<h1 class="t-display society-title">{society.name}</h1>
-		<p class="page-header-description">
-			{society.handle}
-		</p>
+		<h1 class="t-display society-title">
+			{#if society.name.toLowerCase().includes(' of ')}
+				{@const idx = society.name.toLowerCase().indexOf(' of ')}
+				{society.name.slice(0, idx)}<br><span class="title-of">{society.name.slice(idx + 1)}</span>
+			{:else}
+				{society.name}
+			{/if}
+		</h1>
 	</div>
 
 	<div class="page-content">
@@ -37,13 +43,8 @@
 
 			{#if showForm}
 				<div class="post-form card-border">
-					{#if form?.success}
-						<div class="success-message">Post created!</div>
-					{/if}
-
-					{#if form?.error}
-						<div class="error-message">{form.error}</div>
-					{/if}
+					<Alert type="success" message={form?.success ? 'Post created!' : null} />
+					<Alert type="error" message={form?.error} />
 
 					<form method="POST" action="?/createPost" use:enhance>
 						<div class="form-group">
@@ -77,10 +78,10 @@
 
 			<div class="posts-list">
 				{#if data.posts.length === 0}
-					<p class="empty-state">No posts yet. Be the first to post!</p>
+					<EmptyState message="No posts yet. Be the first to post!" />
 				{:else}
 					{#each data.posts as post}
-						<article class="post-card card-border">
+						<a href="/society/bulletin/{post.id}" class="post-card card-border">
 							<div class="post-header">
 								<h3 class="post-title">{post.title}</h3>
 								<span class="post-date">{formatDate(post.created_at)}</span>
@@ -91,7 +92,7 @@
 									{post.author_given_name} {post.author_surname} <span class="author-handle">{post.author_handle}</span>
 								</span>
 							</div>
-						</article>
+						</a>
 					{/each}
 				{/if}
 			</div>
@@ -106,6 +107,12 @@
 
 	.society-title {
 		margin: 0 0 var(--space-2) 0;
+	}
+
+	.title-of {
+		font-size: 0.65em;
+		color: var(--ink-mid);
+		letter-spacing: 0.08em;
 	}
 
 	.bulletin-section {
@@ -137,6 +144,15 @@
 
 	.post-card {
 		padding: var(--space-5);
+		display: block;
+		text-decoration: none;
+		color: inherit;
+		transition: border-color 0.15s, background 0.15s;
+	}
+
+	.post-card:hover {
+		border-color: var(--border-strong);
+		background: var(--tint-gold);
 	}
 
 	.post-header {

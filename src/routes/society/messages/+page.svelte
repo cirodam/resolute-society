@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import Alert from '$lib/components/Alert.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -39,13 +41,8 @@
 					New Message
 				</h2>
 
-				{#if form?.sendSuccess}
-					<div class="success-message">Message sent successfully!</div>
-				{/if}
-
-				{#if form?.sendError}
-					<div class="error-message">{form.sendError}</div>
-				{/if}
+				<Alert type="success" message={form?.sendSuccess ? 'Message sent successfully!' : null} />
+				<Alert type="error" message={form?.sendError} />
 
 				<form method="POST" action="?/sendMessage" use:enhance class="compose-form">
 					<div class="form-group">
@@ -87,7 +84,7 @@
 		<!-- Messages List -->
 		<div class="messages-section">
 			{#if data.messages.length === 0}
-				<p class="empty-state">No messages in {data.view}</p>
+				<EmptyState message="No messages in {data.view}" />
 			{:else}
 				<div class="messages-list">
 					{#each data.messages as message}

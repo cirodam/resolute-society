@@ -4,6 +4,7 @@
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import Subnav from '$lib/components/Subnav.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const society = $derived(data.society);
@@ -123,9 +124,7 @@
 		<div class="all-transactions">
 			<h2 class="t-label section-label">All Transactions</h2>
 			{#if transactions.length === 0}
-				<div class="empty-state card-border">
-					<p>No transactions recorded yet.</p>
-				</div>
+				<EmptyState message="No transactions recorded yet." card />
 			{:else}
 				<div class="ledger-table card-border">
 					<div class="table-header">

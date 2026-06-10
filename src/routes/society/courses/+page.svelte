@@ -4,6 +4,7 @@
 	import { formatDateRange, formatShortDate } from '$lib/client/datetime';
 	import { activitiesTabs } from '$lib/client/navigation';
 	import Subnav from '$lib/components/Subnav.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -42,10 +43,12 @@
 		<section class="courses-section">
 			<div class="section-header">
 				<h2 class="section-title">Courses</h2>
-				<a href="/society/courses/print" class="btn btn--secondary btn--small">Print</a>
-				<button class="btn btn--primary btn--small" onclick={() => showCourseForm = !showCourseForm}>
-					{showCourseForm ? 'Cancel' : '+ Offer Course'}
-				</button>
+				<div class="header-actions">
+					<a href="/society/courses/print" class="btn btn--secondary btn--small">Print</a>
+					<button class="btn btn--secondary btn--small" onclick={() => showCourseForm = !showCourseForm}>
+						{showCourseForm ? 'Cancel' : '+ Offer Course'}
+					</button>
+				</div>
 			</div>
 
 			{#if showCourseForm}
@@ -118,7 +121,7 @@
 			{/if}
 
 			{#if data.courses.length === 0 && !showCourseForm}
-				<p class="empty-state">No courses offered yet.</p>
+				<EmptyState message="No courses offered yet." />
 			{:else if !showCourseForm}
 				{#if data.canApprove && pendingCourses.length > 0}
 					<div class="pending-section">
@@ -207,7 +210,7 @@
 						</div>
 					</div>
 				{:else if data.canApprove}
-					<p class="empty-state">No published courses yet.</p>
+					<EmptyState message="No published courses yet." />
 				{/if}
 			{/if}
 		</section>

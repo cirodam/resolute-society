@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import Alert from '$lib/components/Alert.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 </script>
@@ -15,9 +16,7 @@
 
 	<div class="page-content">
 		<div class="form-container card-border">
-			{#if form?.error}
-				<div class="error-message">{form.error}</div>
-			{/if}
+			<Alert type="error" message={form?.error} />
 
 			<form method="POST" use:enhance class="person-form">
 				<div class="form-group">
@@ -129,10 +128,6 @@
 		padding: var(--space-6);
 	}
 
-	/* error-message has margin-bottom: space-5 here (vs global space-4) */
-	.error-message {
-		margin-bottom: var(--space-5);
-	}
 
 	.person-form {
 		display: flex;

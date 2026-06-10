@@ -12,19 +12,21 @@
 
 <div class="page-container">
 	<div class="page-header">
-		<div class="header-content">
+		<div class="section-header">
 			<div>
 				<h1 class="t-display">Officer Corps</h1>
 				<p class="page-header-description">
 					The executive officers of {data.society.name}
 				</p>
 			</div>
-			<a href="/society/officers/print" class="btn btn--secondary btn--small">Print Roster</a>
-			{#if hasPermission(data.permissions, 'positions.create_officer')}
-				<button class="btn btn--primary btn--small" onclick={() => showPositionForm = !showPositionForm}>
-					{showPositionForm ? 'Cancel' : '+ Create Position'}
-				</button>
-			{/if}
+			<div class="header-actions">
+				<a href="/society/officers/print" class="btn btn--secondary btn--small">Print Roster</a>
+				{#if hasPermission(data.permissions, 'positions.create_officer')}
+					<button class="btn btn--primary btn--small" onclick={() => showPositionForm = !showPositionForm}>
+						{showPositionForm ? 'Cancel' : '+ Create Position'}
+					</button>
+				{/if}
+			</div>
 		</div>
 	</div>
 
@@ -83,17 +85,6 @@
 </div>
 
 <style>
-	/* page-container: 1200px matches global, but remove since global handles it */
-	/* page-header matches global, remove */
-	/* page-header h1, page-header-description, btn--small, form-group: all global */
-
-	.header-content {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: var(--space-4);
-	}
-
 	.position-form {
 		padding: var(--space-5);
 		margin-bottom: var(--space-6);

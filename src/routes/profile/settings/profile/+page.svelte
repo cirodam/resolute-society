@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import Alert from '$lib/components/Alert.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const person = $derived(data.person);
@@ -23,9 +24,7 @@
 			<h2>Profile</h2>
 		</div>
 
-		{#if form?.saved}
-			<div class="success-message">Saved.</div>
-		{/if}
+		<Alert type="success" message={form?.saved ? 'Saved.' : null} />
 
 		<form method="POST" action="?/update" use:enhance class="profile-form">
 			<div class="form-group">
@@ -68,9 +67,7 @@
 			<h2>Dependants</h2>
 		</div>
 
-		{#if form?.dependantError}
-			<div class="error-message">{form.dependantError}</div>
-		{/if}
+		<Alert type="error" message={form?.dependantError} />
 
 		{#if data.dependants.length > 0}
 			<div class="dependant-list">

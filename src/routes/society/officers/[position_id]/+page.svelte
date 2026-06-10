@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { formatLongDate } from '$lib/client/datetime';
 	import { hasPermission } from '$lib/client/permissions';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -130,7 +131,7 @@
 					<div class="permission-grant-section">
 						<h3 class="subsection-title">Grant New Permission</h3>
 						{#if getAvailablePermissions().length === 0}
-							<p class="empty-state">All permissions have been granted to this position.</p>
+							<EmptyState message="All permissions have been granted to this position." />
 						{:else}
 							{#each [...groupedAvailable.entries()] as [category, perms]}
 								<div class="permission-category">
@@ -154,7 +155,7 @@
 				{/if}
 
 				{#if data.currentPermissions.length === 0}
-					<p class="empty-state">This position has no permissions granted yet.</p>
+					<EmptyState message="This position has no permissions granted yet." />
 				{:else}
 					{#each [...groupedCurrent.entries()] as [category, perms]}
 						<div class="permission-category">
@@ -616,8 +617,4 @@
 		color: var(--ink-mid);
 	}
 
-	/* empty-state here has extra font-size: text-sm */
-	.empty-state {
-		font-size: var(--text-sm);
-	}
 </style>

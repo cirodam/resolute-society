@@ -2,6 +2,8 @@
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
 	import { hasPermission } from '$lib/client/permissions';
+	import Alert from '$lib/components/Alert.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 </script>
@@ -12,7 +14,7 @@
 		<div class="header-actions">
 			<a href="/society/directory/people/print" class="btn btn--secondary btn--small">Print Roster</a>
 			{#if hasPermission(data.permissions, 'membership.create_member')}
-				<a href="/society/directory/new" class="btn btn--primary">Add Member</a>
+				<a href="/society/directory/new" class="btn btn--secondary btn--small">Add Member</a>
 				<form method="POST" action="?/seedRandomPerson" use:enhance style="display: inline;">
 					<button type="submit" class="btn btn--secondary btn--small">Seed Random Person</button>
 				</form>
@@ -40,20 +42,12 @@
 		</div>
 	</form>
 
-	{#if form?.seedSuccess}
-		<div class="success-message">Seeded member {form.seededName} ({form.seededHandle})</div>
-	{/if}
-
-	{#if form?.sortitionSuccess}
-		<div class="success-message">Assigned sortition numbers to {form.count} members</div>
-	{/if}
-
-	{#if form?.sortitionError}
-		<div class="error-message">{form.sortitionError}</div>
-	{/if}
+	<Alert type="success" message={form?.seedSuccess ? `Seeded member ${form.seededName} (${form.seededHandle})` : null} />
+	<Alert type="success" message={form?.sortitionSuccess ? `Assigned sortition numbers to ${form.count} members` : null} />
+	<Alert type="error" message={form?.sortitionError} />
 
 	{#if data.members.length === 0}
-		<p class="empty-state">No members match this search.</p>
+		<EmptyState message="No members match this search." />
 	{:else}
 		<div class="items-grid">
 			{#each data.members as member}

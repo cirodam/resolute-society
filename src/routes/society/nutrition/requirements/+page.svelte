@@ -2,6 +2,7 @@
 	import { nutritionTabs } from '$lib/client/navigation';
 	import type { PageData } from './$types';
 	import Subnav from '$lib/components/Subnav.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 </script>
@@ -34,9 +35,7 @@
 		{:else}
 			<section>
 				<h2 class="t-label section-label">Population Demographics</h2>
-				<div class="empty-state card-border">
-					<p>No members or dependants found. Add people to the society to see requirements.</p>
-				</div>
+				<EmptyState message="No members or dependants found. Add people to the society to see requirements." card />
 			</section>
 		{/if}
 
@@ -59,9 +58,7 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="empty-state card-border">
-					<p>No nutrient requirements calculated. Add members to the society first.</p>
-				</div>
+				<EmptyState message="No nutrient requirements calculated. Add members to the society first." card />
 			{/if}
 		</section>
 
@@ -172,11 +169,4 @@
 
 	.t-right { text-align: right; }
 
-	.empty-state {
-		padding: var(--space-8, 3rem);
-		text-align: center;
-		font-family: var(--font-prose);
-		color: var(--ink-mid);
-		font-style: italic;
-	}
 </style>

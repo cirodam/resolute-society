@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { hasPermission } from '$lib/client/permissions';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 </script>
@@ -9,9 +10,7 @@
 	<div class="section-header">
 		<h2 class="section-title">Associations ({data.associations.length})</h2>
 		{#if hasPermission(data.permissions, 'membership.create_association')}
-			<a href="/society/directory/new-association" class="btn btn--secondary">
-				Add Association
-			</a>
+			<a href="/society/directory/new-association" class="btn btn--secondary btn--small">Add Association</a>
 		{/if}
 	</div>
 
@@ -31,7 +30,7 @@
 	</form>
 
 	{#if data.associations.length === 0}
-		<p class="empty-state">No associations match this search.</p>
+		<EmptyState message="No associations match this search." />
 	{:else}
 		<div class="items-grid">
 			{#each data.associations as association}

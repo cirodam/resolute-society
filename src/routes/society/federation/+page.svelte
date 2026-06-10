@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import Alert from '$lib/components/Alert.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const society = $derived(data.society);
@@ -34,12 +36,8 @@
 			</div>
 		</div>
 
-		{#if form?.joinQueued}
-			<div class="success-message">Join message queued — delivery will be attempted shortly.</div>
-		{/if}
-		{#if form?.joinError}
-			<div class="error-message">{form.joinError}</div>
-		{/if}
+		<Alert type="success" message={form?.joinQueued ? 'Join message queued — delivery will be attempted shortly.' : null} />
+		<Alert type="error" message={form?.joinError} />
 
 		<form method="POST" action="?/join" use:enhance class="join-form">
 			<div class="join-fields">
@@ -79,7 +77,7 @@
 	</div>
 
 	{#if messages.length === 0}
-		<p class="empty-state">No federation messages yet.</p>
+		<EmptyState message="No federation messages yet." />
 	{:else}
 		<div class="messages-table-wrapper card-border">
 			<table class="messages-table">
@@ -278,14 +276,4 @@
 		border-color: var(--border-strong);
 	}
 
-	/* success/error-message have padding: space-3 space-4 here (different from global space-3 alone) */
-	.success-message {
-		padding: var(--space-3) var(--space-4);
-		margin-bottom: 0;
-	}
-
-	.error-message {
-		padding: var(--space-3) var(--space-4);
-		margin-bottom: 0;
-	}
 </style>

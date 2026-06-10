@@ -1,18 +1,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import Alert from '$lib/components/Alert.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const society = $derived(data.society);
 </script>
 
-{#if form?.success}
-	<div class="success-message">Settings saved.</div>
-{/if}
-
-{#if form?.error}
-	<div class="error-message">{form.error}</div>
-{/if}
+<Alert type="success" message={form?.success ? 'Settings saved.' : null} />
+<Alert type="error" message={form?.error} />
 
 <div class="settings-card card-border">
 	<form method="POST" action="?/updateSociety" use:enhance class="settings-form">

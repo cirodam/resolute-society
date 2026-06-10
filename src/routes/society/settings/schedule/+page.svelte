@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { formatDateTime } from '$lib/client/datetime';
 	import type { PageData } from './$types';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -17,9 +18,7 @@
 
 <div class="schedule-content">
 	{#if data.jobs.length === 0}
-		<div class="empty-state card-border">
-			<p>No scheduled jobs have run yet.</p>
-		</div>
+		<EmptyState message="No scheduled jobs have run yet." card />
 	{:else}
 		<div class="jobs-table card-border">
 			<div class="jobs-header">
@@ -172,11 +171,4 @@
 		color: var(--ink-mid);
 	}
 
-	.empty-state {
-		padding: var(--space-8) var(--space-5);
-		text-align: center;
-		font-family: var(--font-prose);
-		font-size: var(--text-sm);
-		color: var(--ink-faint);
-	}
 </style>

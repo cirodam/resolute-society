@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import TabNav from '$lib/components/TabNav.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const association = $derived(data.association);
@@ -155,7 +157,7 @@
 					{/each}
 				</div>
 			{:else}
-				<p class="empty-state">No members yet.</p>
+				<EmptyState message="No members yet." />
 			{/if}
 		</section>
 
@@ -193,18 +195,18 @@
 					</form>
 				{/if}
 
-				<div class="msg-tabs">
-					<button class="msg-tab" class:active={inboxView === 'inbox'} onclick={() => inboxView = 'inbox'}>
-						Inbox ({data.inbox.length})
-					</button>
-					<button class="msg-tab" class:active={inboxView === 'sent'} onclick={() => inboxView = 'sent'}>
-						Sent ({data.sent.length})
-					</button>
-				</div>
+				<TabNav
+					tabs={[
+						{ value: 'inbox', label: `Inbox (${data.inbox.length})` },
+						{ value: 'sent', label: `Sent (${data.sent.length})` }
+					]}
+					active={inboxView}
+					onchange={(v) => (inboxView = v as 'inbox' | 'sent')}
+				/>
 
 				{#if inboxView === 'inbox'}
 					{#if data.inbox.length === 0}
-						<p class="empty-state">No messages.</p>
+						<EmptyState message="No messages." />
 					{:else}
 						<div class="msg-list card-border">
 							{#each data.inbox as msg}
@@ -221,7 +223,7 @@
 					{/if}
 				{:else}
 					{#if data.sent.length === 0}
-						<p class="empty-state">No sent messages.</p>
+						<EmptyState message="No sent messages." />
 					{:else}
 						<div class="msg-list card-border">
 							{#each data.sent as msg}
@@ -491,33 +493,6 @@
 		margin-top: 0.25rem;
 	}
 
-	/* Messages */
-	.msg-tabs {
-		display: flex;
-		gap: 0;
-		border-bottom: 1px solid var(--border);
-		margin-bottom: var(--space-3);
-	}
-
-	.msg-tab {
-		font-family: var(--font-label);
-		font-size: var(--text-xs);
-		letter-spacing: 0.05em;
-		text-transform: lowercase;
-		padding: var(--space-2) var(--space-4);
-		background: none;
-		border: none;
-		border-bottom: 2px solid transparent;
-		color: var(--ink-mid);
-		cursor: pointer;
-		margin-bottom: -1px;
-	}
-
-	.msg-tab.active {
-		color: var(--gold);
-		border-bottom-color: var(--gold);
-	}
-
 	.msg-list {
 		display: flex;
 		flex-direction: column;
@@ -567,9 +542,4 @@
 		white-space: pre-wrap;
 	}
 
-	.empty-state {
-		font-family: var(--font-prose);
-		font-size: var(--text-sm);
-		color: var(--ink-faint);
-	}
 </style>

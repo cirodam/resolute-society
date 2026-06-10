@@ -5,6 +5,7 @@
 	import { governanceTabs } from '$lib/client/navigation';
 	import { hasPermission } from '$lib/client/permissions';
 	import Subnav from '$lib/components/Subnav.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -27,7 +28,7 @@
 
 <div class="page-container">
 	<div class="page-header">
-		<div class="header-content">
+		<div class="section-header">
 			<div>
 				<h1 class="t-display">General Assembly</h1>
 				<p class="page-header-description">The governing body of {data.society.name}</p>
@@ -202,7 +203,7 @@
 		{/if}
 
 		{#if data.assemblies.length === 0}
-			<p class="empty-state">No general assembly terms have been created yet.</p>
+			<EmptyState message="No general assembly terms have been created yet." />
 		{/if}
 	</div>
 </div>

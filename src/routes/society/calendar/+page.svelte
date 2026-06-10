@@ -4,6 +4,8 @@
 	import { formatTime, formatWeekdayDate } from '$lib/client/datetime';
 	import { activitiesTabs } from '$lib/client/navigation';
 	import Subnav from '$lib/components/Subnav.svelte';
+	import Alert from '$lib/components/Alert.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -12,29 +14,26 @@
 
 <div class="page-container page-container--content">
 	<div class="page-header">
-		<div class="header-content">
+		<div class="section-header">
 			<div>
 				<h1 class="t-display">Calendar</h1>
 				<p class="page-header-description">
 					Events and gatherings for {data.society.name}
 				</p>
 			</div>
-			<a href="/society/calendar/print" class="btn btn--secondary btn--small">Print</a>
-			<button class="btn btn--primary btn--small" onclick={() => showEventForm = !showEventForm}>
-				{showEventForm ? 'Cancel' : '+ Add Event'}
-			</button>
+			<div class="header-actions">
+				<a href="/society/calendar/print" class="btn btn--secondary btn--small">Print</a>
+				<button class="btn btn--secondary btn--small" onclick={() => showEventForm = !showEventForm}>
+					{showEventForm ? 'Cancel' : '+ Add Event'}
+				</button>
+			</div>
 		</div>
 	</div>
 
 	<Subnav tabs={activitiesTabs} />
 
-	{#if form?.success}
-		<div class="success-message">Event created successfully</div>
-	{/if}
-
-	{#if form?.error}
-		<div class="error-message">{form.error}</div>
-	{/if}
+	<Alert type="success" message={form?.success ? 'Event created successfully' : null} />
+	<Alert type="error" message={form?.error} />
 
 	{#if showEventForm}
 		<form method="POST" action="?/createEvent" use:enhance class="event-form card-border">
@@ -83,7 +82,7 @@
 
 	<div class="page-content">
 		{#if data.events.length === 0}
-			<p class="empty-state">No events scheduled yet.</p>
+			<EmptyState message="No events scheduled yet." />
 		{:else}
 			<div class="events-list">
 				{#each data.events as event}
@@ -126,13 +125,6 @@
 </div>
 
 <style>
-	.header-content {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: var(--space-4);
-	}
-
 	.event-form {
 		padding: var(--space-5);
 		margin-bottom: var(--space-6);

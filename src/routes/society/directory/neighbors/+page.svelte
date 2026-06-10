@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -20,7 +21,7 @@
 			</p>
 		</div>
 	{:else if data.neighbors.length === 0}
-		<p class="empty-state">No members within 3 miles of your location.</p>
+		<EmptyState message="No members within 3 miles of your location." />
 	{:else}
 		<div class="neighbor-list">
 			{#each data.neighbors as person}
@@ -116,9 +117,4 @@
 		flex-shrink: 0;
 	}
 
-	.empty-state {
-		font-family: var(--font-prose);
-		color: var(--ink-mid);
-		font-style: italic;
-	}
 </style>

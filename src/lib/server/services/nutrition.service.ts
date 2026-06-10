@@ -18,7 +18,7 @@ export interface DemographicGroup {
 
 type PersonEntry = { dob: string | null; sex: 'male' | 'female' | 'other' | null };
 
-function resolveProfileIds(age: number, sex: PersonEntry['sex'], profiles: DriProfileRow[]): string[] {
+export function resolveProfileIds(age: number, sex: PersonEntry['sex'], profiles: DriProfileRow[]): string[] {
 	const byAge = profiles.filter((p) => age >= p.age_min && age <= p.age_max);
 
 	if (sex === 'male' || sex === 'female') {
@@ -33,7 +33,7 @@ function resolveProfileIds(age: number, sex: PersonEntry['sex'], profiles: DriPr
 	return byAge.filter((p) => p.sex === 'male' || p.sex === 'female').map((p) => p.id);
 }
 
-function accumulateRequirements(
+export function accumulateRequirements(
 	totals: Map<string, number>,
 	profileIds: string[],
 	driValues: DriValueRow[]

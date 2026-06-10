@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { ActionData } from './$types';
+	import Alert from '$lib/components/Alert.svelte';
 
 	let { form }: { form: ActionData } = $props();
 </script>
@@ -14,9 +15,7 @@
 			</p>
 		</div>
 
-		{#if form?.error}
-			<div class="error-message">{form.error}</div>
-		{/if}
+		<Alert type="error" message={form?.error} />
 
 		<form method="POST" use:enhance class="setup-form">
 			<fieldset>

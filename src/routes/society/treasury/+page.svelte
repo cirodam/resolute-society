@@ -4,6 +4,8 @@
 	import { hasPermission } from '$lib/client/permissions';
 	import type { PageData, ActionData } from './$types';
 	import Subnav from '$lib/components/Subnav.svelte';
+	import Alert from '$lib/components/Alert.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const society = $derived(data.society);
@@ -105,17 +107,8 @@
 		<div class="demurrage-section">
 			<h2 class="section-title">Supply Reconciliation</h2>
 
-			{#if form?.endowmentMintSuccess}
-				<div class="success-message">
-					Minted {form.minted.toFixed(2)} credits to treasury. Supply is now {form.totalSupply.toFixed(2)} against target {form.expectedSupply.toFixed(2)}.
-				</div>
-			{/if}
-
-			{#if form?.supplyReconcileSuccess}
-				<div class="success-message">
-					Burned {form.burned.toFixed(2)} credits across {form.principalCount} principals. Remaining excess: {form.remainingExcess.toFixed(2)}.
-				</div>
-			{/if}
+			<Alert type="success" message={form?.endowmentMintSuccess ? `Minted ${form.minted.toFixed(2)} credits to treasury. Supply is now ${form.totalSupply.toFixed(2)} against target ${form.expectedSupply.toFixed(2)}.` : null} />
+			<Alert type="success" message={form?.supplyReconcileSuccess ? `Burned ${form.burned.toFixed(2)} credits across ${form.principalCount} principals. Remaining excess: ${form.remainingExcess.toFixed(2)}.` : null} />
 
 			<div class="demurrage-card card-border">
 				<p class="demurrage-description">
@@ -138,15 +131,8 @@
 		<div class="demurrage-section">
 			<h2 class="section-title">Run Demurrage</h2>
 
-			{#if form?.success}
-				<div class="success-message">
-					Collected {form.collected.toFixed(2)} credits from {form.principalCount} principals
-				</div>
-			{/if}
-
-			{#if form?.error}
-				<div class="error-message">{form.error}</div>
-			{/if}
+			<Alert type="success" message={form?.success ? `Collected ${form.collected.toFixed(2)} credits from ${form.principalCount} principals` : null} />
+			<Alert type="error" message={form?.error} />
 
 			<div class="demurrage-card card-border">
 				<p class="demurrage-description">
@@ -239,15 +225,8 @@
 			</button>
 
 			{#if universalExpanded}
-				{#if form?.universalAllowanceSuccess}
-					<div class="success-message">
-						Distributed {form.amountPerMember.toFixed(2)} credits to {form.memberCount} {form.memberCount === 1 ? 'member' : 'members'} ({form.totalAmount.toFixed(2)} total)
-					</div>
-				{/if}
-
-				{#if form?.universalAllowanceError}
-					<div class="error-message">{form.universalAllowanceError}</div>
-				{/if}
+				<Alert type="success" message={form?.universalAllowanceSuccess ? `Distributed ${form.amountPerMember.toFixed(2)} credits to ${form.memberCount} ${form.memberCount === 1 ? 'member' : 'members'} (${form.totalAmount.toFixed(2)} total)` : null} />
+				<Alert type="error" message={form?.universalAllowanceError} />
 
 				<div class="universal-allowance-form card-border">
 					{#if hasPermission(data.permissions, 'treasury.distribute_universal_allowance')}
@@ -295,23 +274,10 @@
 
 			{#if groupedExpanded}
 
-			{#if form?.allowanceSuccess}
-				<div class="success-message">
-					Distributed {form.distributed.toFixed(2)} credits to {form.recipientCount} members in "{form.groupName}"
-				</div>
-			{/if}
-
-			{#if form?.allowanceError}
-				<div class="error-message">{form.allowanceError}</div>
-			{/if}
-
-			{#if form?.createGroupSuccess}
-				<div class="success-message">Allowance group created successfully</div>
-			{/if}
-
-			{#if form?.createGroupError}
-				<div class="error-message">{form.createGroupError}</div>
-			{/if}
+			<Alert type="success" message={form?.allowanceSuccess ? `Distributed ${form.distributed.toFixed(2)} credits to ${form.recipientCount} members in "${form.groupName}"` : null} />
+			<Alert type="error" message={form?.allowanceError} />
+			<Alert type="success" message={form?.createGroupSuccess ? 'Allowance group created successfully' : null} />
+			<Alert type="error" message={form?.createGroupError} />
 
 			<div class="groups-display card-border">
 				<div class="groups-header">
@@ -347,7 +313,7 @@
 				{/if}
 
 				{#if data.allowanceGroups.length === 0}
-					<p class="empty-state">No allowance groups yet.</p>
+					<EmptyState message="No allowance groups yet." />
 				{:else}
 					<div class="groups-list">
 						{#each data.allowanceGroups as group}
@@ -485,23 +451,10 @@
 
 			{#if payrollExpanded}
 
-			{#if form?.payrollSuccess}
-				<div class="success-message">
-					Paid {form.paidCount} {form.paidCount === 1 ? 'position' : 'positions'} for {form.totalAmount.toFixed(2)} credits total
-				</div>
-			{/if}
-
-			{#if form?.payrollError}
-				<div class="error-message">{form.payrollError}</div>
-			{/if}
-
-			{#if form?.adjustAllowanceSuccess}
-				<div class="success-message">Allowance adjusted successfully</div>
-			{/if}
-
-			{#if form?.adjustAllowanceError}
-				<div class="error-message">{form.adjustAllowanceError}</div>
-			{/if}
+			<Alert type="success" message={form?.payrollSuccess ? `Paid ${form.paidCount} ${form.paidCount === 1 ? 'position' : 'positions'} for ${form.totalAmount.toFixed(2)} credits total` : null} />
+			<Alert type="error" message={form?.payrollError} />
+			<Alert type="success" message={form?.adjustAllowanceSuccess ? 'Allowance adjusted successfully' : null} />
+			<Alert type="error" message={form?.adjustAllowanceError} />
 
 			<div class="payroll-display card-border">
 				<div class="payroll-header">
@@ -525,7 +478,7 @@
 				</div>
 
 				{#if data.positions.length === 0}
-					<p class="empty-state">No positions created yet.</p>
+					<EmptyState message="No positions created yet." />
 				{:else}
 					<div class="positions-grid">
 						{#each data.positions as position}
@@ -623,15 +576,8 @@
 
 			{#if transferExpanded}
 
-			{#if form?.transferSuccess}
-				<div class="success-message">
-					Transferred {form.amount.toFixed(2)} credits to {form.recipient}
-				</div>
-			{/if}
-
-			{#if form?.transferError}
-				<div class="error-message">{form.transferError}</div>
-			{/if}
+			<Alert type="success" message={form?.transferSuccess ? `Transferred ${form.amount.toFixed(2)} credits to ${form.recipient}` : null} />
+			<Alert type="error" message={form?.transferError} />
 
 			<div class="transfer-card card-border">
 				<p class="transfer-description">
@@ -683,15 +629,8 @@
 					Send federation credits from the treasury to any principal
 				</p>
 
-				{#if form?.federationTransferSuccess}
-					<div class="success-message">
-						Submitted — {form.amount.toFixed(2)} fed credits to {form.toPrincipal}
-					</div>
-				{/if}
-
-				{#if form?.federationTransferError}
-					<div class="error-message">{form.federationTransferError}</div>
-				{/if}
+				<Alert type="success" message={form?.federationTransferSuccess ? `Submitted — ${form.amount.toFixed(2)} fed credits to ${form.toPrincipal}` : null} />
+				<Alert type="error" message={form?.federationTransferError} />
 
 				{#if hasPermission(data.permissions, 'treasury.transfer')}
 					<form method="POST" action="?/transferFederationCredits" use:enhance class="transfer-form">

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
+	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const post = $derived(data.post);
@@ -16,6 +17,10 @@
 			month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
 		});
 	}
+
+	function isExpiringSoon(expiresAt: string): boolean {
+		return new Date(expiresAt).getTime() - Date.now() < 24 * 60 * 60 * 1000;
+	}
 </script>
 
 <div class="page-container page-container--content">
@@ -24,6 +29,9 @@
 	</div>
 
 	<article class="thread-post card-border">
+		{#if isExpiringSoon(post.expires_at)}
+			<p class="expiry-warning">This post expires today</p>
+		{/if}
 		<div class="post-header">
 			<h1 class="post-title t-display">{post.title}</h1>
 			<div class="post-meta">
@@ -54,21 +62,7 @@
 				{/each}
 			</div>
 
-			{#if data.totalPages > 1}
-				<div class="pagination">
-					{#if data.page > 1}
-						<a href="?page={data.page - 1}" class="btn btn--secondary btn--small">Previous</a>
-					{:else}
-						<span class="btn btn--secondary btn--small btn--disabled">Previous</span>
-					{/if}
-					<span class="page-indicator">Page {data.page} of {data.totalPages}</span>
-					{#if data.page < data.totalPages}
-						<a href="?page={data.page + 1}" class="btn btn--secondary btn--small">Next</a>
-					{:else}
-						<span class="btn btn--secondary btn--small btn--disabled">Next</span>
-					{/if}
-				</div>
-			{/if}
+			<Pagination page={data.page} totalPages={data.totalPages} buildHref={(p) => `?page=${p}`} />
 		{:else}
 			<p class="no-replies">No comments yet. Be the first to reply.</p>
 		{/if}
@@ -92,6 +86,14 @@
 </div>
 
 <style>
+	.expiry-warning {
+		font-family: var(--font-label);
+		font-size: var(--text-xs);
+		letter-spacing: 0.08em;
+		color: var(--danger);
+		margin: 0 0 var(--space-4) 0;
+	}
+
 	.thread-nav {
 		margin-bottom: var(--space-5);
 	}
@@ -189,25 +191,6 @@
 		color: var(--ink-faint);
 		font-style: italic;
 		margin: 0;
-	}
-
-	.pagination {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: var(--space-4);
-	}
-
-	.page-indicator {
-		font-family: var(--font-label);
-		font-size: var(--text-sm);
-		color: var(--ink-mid);
-	}
-
-	.btn--disabled {
-		opacity: 0.4;
-		cursor: default;
-		pointer-events: none;
 	}
 
 	.reply-form-section {

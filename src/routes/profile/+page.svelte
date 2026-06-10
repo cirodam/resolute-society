@@ -4,6 +4,7 @@
 	import type { PageData } from './$types';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import TabNav from '$lib/components/TabNav.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data }: { data: PageData } = $props();
 	const person = $derived(data.person);
@@ -156,6 +157,8 @@
 					</div>
 				{/if}
 			</div>
+
+		<Pagination page={data.page} totalPages={data.totalPages} buildHref={(p) => `?page=${p}`} />
 		</div>
 	{/if}
 

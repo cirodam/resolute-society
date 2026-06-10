@@ -15,6 +15,10 @@
 			year: 'numeric'
 		});
 	}
+
+	function isExpiringSoon(expiresAt: string): boolean {
+		return new Date(expiresAt).getTime() - Date.now() < 24 * 60 * 60 * 1000;
+	}
 </script>
 
 <div class="page-container page-container--content">
@@ -82,6 +86,9 @@
 				{:else}
 					{#each data.posts as post}
 						<a href="/society/bulletin/{post.id}" class="post-card card-border">
+							{#if isExpiringSoon(post.expires_at)}
+								<p class="expiry-warning">Expires today</p>
+							{/if}
 							<div class="post-header">
 								<h3 class="post-title">{post.title}</h3>
 								<span class="post-date">{formatDate(post.created_at)}</span>
@@ -148,6 +155,15 @@
 		text-decoration: none;
 		color: inherit;
 		transition: border-color 0.15s, background 0.15s;
+		overflow: hidden;
+	}
+
+	.expiry-warning {
+		font-family: var(--font-label);
+		font-size: var(--text-xs);
+		letter-spacing: 0.08em;
+		color: var(--danger);
+		margin: 0 0 var(--space-3) 0;
 	}
 
 	.post-card:hover {

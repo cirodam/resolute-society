@@ -3,6 +3,7 @@
 	import type { PageData, ActionData } from './$types';
 	import Alert from '$lib/components/Alert.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -140,6 +141,8 @@
 					{/each}
 				</div>
 			{/if}
+
+			<Pagination page={data.page} totalPages={data.totalPages} buildHref={(p) => `?view=${data.view}&page=${p}`} />
 		</div>
 	</div>
 </div>

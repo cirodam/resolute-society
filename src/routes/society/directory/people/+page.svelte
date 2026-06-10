@@ -4,6 +4,7 @@
 	import { hasPermission } from '$lib/client/permissions';
 	import Alert from '$lib/components/Alert.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 </script>
@@ -68,23 +69,11 @@
 			{/each}
 		</div>
 
-		{#if data.totalPages > 1}
-			{@const prevParams = new URLSearchParams(data.personQuery ? { person_q: data.personQuery, page: String(data.page - 1) } : { page: String(data.page - 1) })}
-			{@const nextParams = new URLSearchParams(data.personQuery ? { person_q: data.personQuery, page: String(data.page + 1) } : { page: String(data.page + 1) })}
-			<div class="pagination">
-				{#if data.page > 1}
-					<a href="?{prevParams}" class="btn btn--secondary btn--small">Previous</a>
-				{:else}
-					<span class="btn btn--secondary btn--small btn--disabled">Previous</span>
-				{/if}
-				<span class="page-indicator">Page {data.page} of {data.totalPages}</span>
-				{#if data.page < data.totalPages}
-					<a href="?{nextParams}" class="btn btn--secondary btn--small">Next</a>
-				{:else}
-					<span class="btn btn--secondary btn--small btn--disabled">Next</span>
-				{/if}
-			</div>
-		{/if}
+		<Pagination
+			page={data.page}
+			totalPages={data.totalPages}
+			buildHref={(p) => `?${new URLSearchParams(data.personQuery ? { person_q: data.personQuery, page: String(p) } : { page: String(p) })}`}
+		/>
 	{/if}
 </section>
 
@@ -195,23 +184,4 @@
 		margin: 0;
 	}
 
-	.pagination {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: var(--space-4);
-		margin-top: var(--space-6);
-	}
-
-	.page-indicator {
-		font-family: var(--font-label);
-		font-size: var(--text-sm);
-		color: var(--ink-mid);
-	}
-
-	.btn--disabled {
-		opacity: 0.4;
-		cursor: default;
-		pointer-events: none;
-	}
 </style>

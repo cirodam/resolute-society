@@ -79,7 +79,7 @@ export interface AssociationSentMessageRow {
 export class MessageRepository {
 	constructor(private readonly sql: postgres.Sql) {}
 
-	async listInboxMessages(personId: string): Promise<InboxMessageRow[]> {
+	async listInboxMessages(personId: string, limit: number, offset: number): Promise<InboxMessageRow[]> {
 		return await this.sql<InboxMessageRow[]>`
 			SELECT
 				m.id, m.subject, m.body, m.created_at, m.read_at,
@@ -90,10 +90,16 @@ export class MessageRepository {
 			JOIN society_config s ON p.society_id = s.id
 			WHERE m.recipient_id = ${personId} AND m.archived_at IS NULL
 			ORDER BY m.created_at DESC
-			LIMIT 50`;
+			LIMIT ${limit} OFFSET ${offset}`;
 	}
 
-	async listSentMessages(personId: string): Promise<SentMessageRow[]> {
+	async countInboxMessages(personId: string): Promise<number> {
+		const [row] = await this.sql<[{ count: string }]>`
+			SELECT COUNT(*) AS count FROM message WHERE recipient_id = ${personId} AND archived_at IS NULL`;
+		return parseInt(row.count, 10);
+	}
+
+	async listSentMessages(personId: string, limit: number, offset: number): Promise<SentMessageRow[]> {
 		return await this.sql<SentMessageRow[]>`
 			SELECT
 				m.id, m.subject, m.body, m.created_at, m.read_at,
@@ -104,10 +110,16 @@ export class MessageRepository {
 			JOIN society_config s ON p.society_id = s.id
 			WHERE m.sender_id = ${personId} AND m.archived_at IS NULL
 			ORDER BY m.created_at DESC
-			LIMIT 50`;
+			LIMIT ${limit} OFFSET ${offset}`;
 	}
 
-	async listArchivedMessages(personId: string): Promise<ArchivedMessageRow[]> {
+	async countSentMessages(personId: string): Promise<number> {
+		const [row] = await this.sql<[{ count: string }]>`
+			SELECT COUNT(*) AS count FROM message WHERE sender_id = ${personId} AND archived_at IS NULL`;
+		return parseInt(row.count, 10);
+	}
+
+	async listArchivedMessages(personId: string, limit: number, offset: number): Promise<ArchivedMessageRow[]> {
 		return await this.sql<ArchivedMessageRow[]>`
 			SELECT
 				m.id, m.subject, m.body, m.created_at, m.read_at,
@@ -128,7 +140,14 @@ export class MessageRepository {
 			WHERE (m.sender_id = ${personId} OR m.recipient_id = ${personId})
 				AND m.archived_at IS NOT NULL
 			ORDER BY m.archived_at DESC
-			LIMIT 50`;
+			LIMIT ${limit} OFFSET ${offset}`;
+	}
+
+	async countArchivedMessages(personId: string): Promise<number> {
+		const [row] = await this.sql<[{ count: string }]>`
+			SELECT COUNT(*) AS count FROM message
+			WHERE (sender_id = ${personId} OR recipient_id = ${personId}) AND archived_at IS NOT NULL`;
+		return parseInt(row.count, 10);
 	}
 
 	async getUnreadCount(personId: string): Promise<number> {

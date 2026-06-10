@@ -12,6 +12,10 @@ export interface CalculateMoneySupplyResult {
 	totalSupply: number;
 }
 
+export interface TxnRowWithBalance extends TxnRow {
+	running_balance: number;
+}
+
 export interface TxnRow {
 	id: string;
 	from_type: string;
@@ -266,6 +270,69 @@ export class LedgerRepository {
 			WHERE (from_type = 'society' AND from_id = ${societyId})
 			   OR (to_type = 'society' AND to_id = ${societyId})
 			ORDER BY txn.created_at DESC`;
+	}
+
+	async listPersonTransactionsPaginated(personId: string, limit: number, offset: number): Promise<TxnRowWithBalance[]> {
+		return await this.sql<TxnRowWithBalance[]>`
+			WITH base AS (
+				SELECT
+					txn.id, txn.from_type, txn.from_id, txn.to_type, txn.to_id,
+					txn.amount, txn.note, txn.created_at,
+					COALESCE(
+						CASE WHEN txn.from_type = 'person' THEN TRIM(COALESCE(fp.given_name, '') || ' ' || COALESCE(fp.surname, '')) END,
+						fa.name, fs.name, 'System'
+					) AS from_name,
+					COALESCE(fp.handle, fa.handle, fs.handle, 'system') AS from_handle,
+					COALESCE(
+						CASE WHEN txn.to_type = 'person' THEN TRIM(COALESCE(tp.given_name, '') || ' ' || COALESCE(tp.surname, '')) END,
+						ta.name, ts.name, 'System'
+					) AS to_name,
+					COALESCE(tp.handle, ta.handle, ts.handle, 'system') AS to_handle,
+					SUM(
+						CASE
+							WHEN txn.to_type = 'person' AND txn.to_id = ${personId} THEN txn.amount
+							WHEN txn.from_type = 'person' AND txn.from_id = ${personId} THEN -txn.amount
+							ELSE 0
+						END
+					) OVER (ORDER BY txn.created_at ASC, txn.id ASC) AS running_balance
+				FROM txn
+				LEFT JOIN person fp ON txn.from_type = 'person' AND fp.id = txn.from_id
+				LEFT JOIN association fa ON txn.from_type = 'association' AND fa.id = txn.from_id
+				LEFT JOIN society_config fs ON txn.from_type = 'society' AND fs.id = txn.from_id
+				LEFT JOIN person tp ON txn.to_type = 'person' AND tp.id = txn.to_id
+				LEFT JOIN association ta ON txn.to_type = 'association' AND ta.id = txn.to_id
+				LEFT JOIN society_config ts ON txn.to_type = 'society' AND ts.id = txn.to_id
+				WHERE (txn.from_type = 'person' AND txn.from_id = ${personId})
+				   OR (txn.to_type = 'person' AND txn.to_id = ${personId})
+			)
+			SELECT * FROM base
+			ORDER BY created_at DESC, id DESC
+			LIMIT ${limit} OFFSET ${offset}`;
+	}
+
+	async countPersonTransactions(personId: string): Promise<number> {
+		const [row] = await this.sql<[{ count: string }]>`
+			SELECT COUNT(*) AS count FROM txn
+			WHERE (from_type = 'person' AND from_id = ${personId})
+			   OR (to_type = 'person' AND to_id = ${personId})`;
+		return parseInt(row.count, 10);
+	}
+
+	async listSocietyTransactionsPaginated(societyId: string, limit: number, offset: number): Promise<TxnRow[]> {
+		return await this.sql<TxnRow[]>`
+			${this.sql.unsafe(this.transactionSelect)}
+			WHERE (from_type = 'society' AND from_id = ${societyId})
+			   OR (to_type = 'society' AND to_id = ${societyId})
+			ORDER BY txn.created_at DESC, txn.id DESC
+			LIMIT ${limit} OFFSET ${offset}`;
+	}
+
+	async countSocietyTransactions(societyId: string): Promise<number> {
+		const [row] = await this.sql<[{ count: string }]>`
+			SELECT COUNT(*) AS count FROM txn
+			WHERE (from_type = 'society' AND from_id = ${societyId})
+			   OR (to_type = 'society' AND to_id = ${societyId})`;
+		return parseInt(row.count, 10);
 	}
 
 	async listForDate(date: string): Promise<TxnRow[]> {

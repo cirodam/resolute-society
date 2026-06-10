@@ -17,38 +17,40 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		throw redirect(303, '/login');
 	}
 
+	const PAGE_SIZE = 25;
 	const view = url.searchParams.get('view') || 'inbox';
+	const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+	const offset = (page - 1) * PAGE_SIZE;
 	const repositories = getRepositories();
+	const personId = locals.person.id;
 
 	let messages: MessageListItem[] = [];
+	let total = 0;
 
 	if (view === 'inbox') {
-		messages = (await repositories.messages.listInboxMessages(locals.person.id)).map((message) => ({
-			id: message.id,
-			subject: message.subject,
-			body: message.body,
-			created_at: message.created_at,
-			read_at: message.read_at,
-			address: `${message.handle}@${message.society_handle}`
-		}));
+		[messages, total] = await Promise.all([
+			repositories.messages.listInboxMessages(personId, PAGE_SIZE, offset).then(rows => rows.map(m => ({
+				id: m.id, subject: m.subject, body: m.body, created_at: m.created_at,
+				read_at: m.read_at, address: `${m.handle}@${m.society_handle}`
+			}))),
+			repositories.messages.countInboxMessages(personId)
+		]);
 	} else if (view === 'sent') {
-		messages = (await repositories.messages.listSentMessages(locals.person.id)).map((message) => ({
-			id: message.id,
-			subject: message.subject,
-			body: message.body,
-			created_at: message.created_at,
-			read_at: message.read_at,
-			address: `${message.handle}@${message.society_handle}`
-		}));
+		[messages, total] = await Promise.all([
+			repositories.messages.listSentMessages(personId, PAGE_SIZE, offset).then(rows => rows.map(m => ({
+				id: m.id, subject: m.subject, body: m.body, created_at: m.created_at,
+				read_at: m.read_at, address: `${m.handle}@${m.society_handle}`
+			}))),
+			repositories.messages.countSentMessages(personId)
+		]);
 	} else if (view === 'archive') {
-		messages = (await repositories.messages.listArchivedMessages(locals.person.id)).map((message) => ({
-			id: message.id,
-			subject: message.subject,
-			body: message.body,
-			created_at: message.created_at,
-			read_at: message.read_at,
-			address: message.other_person_address
-		}));
+		[messages, total] = await Promise.all([
+			repositories.messages.listArchivedMessages(personId, PAGE_SIZE, offset).then(rows => rows.map(m => ({
+				id: m.id, subject: m.subject, body: m.body, created_at: m.created_at,
+				read_at: m.read_at, address: m.other_person_address
+			}))),
+			repositories.messages.countArchivedMessages(personId)
+		]);
 	} else {
 		throw error(400, 'Invalid view');
 	}
@@ -56,7 +58,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		view,
 		messages,
-		unreadCount: await repositories.messages.getUnreadCount(locals.person.id)
+		page,
+		totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+		unreadCount: await repositories.messages.getUnreadCount(personId)
 	};
 };
 

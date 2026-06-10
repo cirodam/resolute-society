@@ -5,6 +5,7 @@
 	import type { PageData, ActionData } from './$types';
 	import Subnav from '$lib/components/Subnav.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const society = $derived(data.society);
@@ -166,6 +167,8 @@
 					</div>
 				</div>
 			{/if}
+
+			<Pagination page={data.page} totalPages={data.totalPages} buildHref={(p) => `?page=${p}`} />
 		</div>
 	</div>
 </div>

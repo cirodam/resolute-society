@@ -2,6 +2,7 @@
 	import { formatDateTime } from '$lib/client/datetime';
 	import type { PageData } from './$types';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -73,6 +74,8 @@
 		{/each}
 	</div>
 {/if}
+
+<Pagination page={data.page} totalPages={data.totalPages} buildHref={(p) => `?page=${p}`} />
 
 <style>
 	.audit-table {

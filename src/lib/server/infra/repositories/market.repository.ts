@@ -43,7 +43,7 @@ export class MarketRepository {
 		return row ?? null;
 	}
 
-	async listItemListings(societyId: string): Promise<ItemListingRow[]> {
+	async listItemListings(societyId: string, limit: number, offset: number): Promise<ItemListingRow[]> {
 		return await this.sql<ItemListingRow[]>`
 			SELECT il.id, il.type, il.category, il.title, il.description,
 			       il.society_credits_price, il.federation_credits_price, il.created_at,
@@ -51,10 +51,17 @@ export class MarketRepository {
 			FROM item_listing il
 			JOIN person p ON p.id = il.person_id
 			WHERE il.society_id = ${societyId} AND il.status = 'active'
-			ORDER BY il.created_at DESC`;
+			ORDER BY il.created_at DESC
+			LIMIT ${limit} OFFSET ${offset}`;
 	}
 
-	async listServiceListings(societyId: string): Promise<ServiceListingRow[]> {
+	async countItemListings(societyId: string): Promise<number> {
+		const [row] = await this.sql<[{ count: string }]>`
+			SELECT COUNT(*) AS count FROM item_listing WHERE society_id = ${societyId} AND status = 'active'`;
+		return parseInt(row.count, 10);
+	}
+
+	async listServiceListings(societyId: string, limit: number, offset: number): Promise<ServiceListingRow[]> {
 		return await this.sql<ServiceListingRow[]>`
 			SELECT sl.id, sl.category, sl.title, sl.description,
 			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit, sl.created_at,
@@ -62,7 +69,14 @@ export class MarketRepository {
 			FROM service_listing sl
 			JOIN person p ON p.id = sl.person_id
 			WHERE sl.society_id = ${societyId} AND sl.status = 'active'
-			ORDER BY sl.created_at DESC`;
+			ORDER BY sl.created_at DESC
+			LIMIT ${limit} OFFSET ${offset}`;
+	}
+
+	async countServiceListings(societyId: string): Promise<number> {
+		const [row] = await this.sql<[{ count: string }]>`
+			SELECT COUNT(*) AS count FROM service_listing WHERE society_id = ${societyId} AND status = 'active'`;
+		return parseInt(row.count, 10);
 	}
 
 	async findLocalPerson(societyId: string): Promise<{ id: string } | null> {

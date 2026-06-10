@@ -14,6 +14,7 @@ export interface PostRow {
 	title: string;
 	body: string;
 	created_at: string;
+	expires_at: string;
 	author_given_name: string;
 	author_surname: string;
 	author_handle: string;
@@ -29,6 +30,7 @@ export class PostRepository {
 				p.title,
 				p.body,
 				p.created_at,
+				p.expires_at,
 				person.given_name as author_given_name,
 				person.surname as author_surname,
 				person.handle as author_handle
@@ -37,6 +39,7 @@ export class PostRepository {
 			WHERE p.board_type = 'society'
 			  AND p.board_id = ${societyId}
 			  AND p.deleted_at IS NULL
+			  AND p.expires_at > NOW()
 			ORDER BY p.created_at DESC
 			LIMIT 10`;
 	}
@@ -48,6 +51,7 @@ export class PostRepository {
 				p.title,
 				p.body,
 				p.created_at,
+				p.expires_at,
 				person.given_name as author_given_name,
 				person.surname as author_surname,
 				person.handle as author_handle
@@ -101,9 +105,14 @@ export class PostRepository {
 		authorId: string;
 		title: string;
 		body: string;
+		expiresAt?: string;
 	}): Promise<void> {
+		const expiresAt = params.expiresAt ?? null;
 		await this.sql`
-			INSERT INTO post (id, board_type, board_id, author_id, title, body)
-			VALUES (${params.postId}, 'society', ${params.societyId}, ${params.authorId}, ${params.title}, ${params.body})`;
+			INSERT INTO post (id, board_type, board_id, author_id, title, body, expires_at)
+			VALUES (
+				${params.postId}, 'society', ${params.societyId}, ${params.authorId}, ${params.title}, ${params.body},
+				COALESCE(${expiresAt}::timestamptz, NOW() + INTERVAL '7 days')
+			)`;
 	}
 }

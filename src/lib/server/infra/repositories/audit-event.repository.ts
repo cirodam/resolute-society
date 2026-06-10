@@ -45,11 +45,17 @@ export class AuditEventRepository {
 			)`;
 	}
 
-	async listBySociety(societyId: string, limit = 100): Promise<AuditEventRow[]> {
+	async listBySociety(societyId: string, limit: number, offset: number): Promise<AuditEventRow[]> {
 		return await this.sql<AuditEventRow[]>`
 			SELECT * FROM audit_event
 			WHERE society_id = ${societyId}
 			ORDER BY occurred_at DESC
-			LIMIT ${limit}`;
+			LIMIT ${limit} OFFSET ${offset}`;
+	}
+
+	async countBySociety(societyId: string): Promise<number> {
+		const [row] = await this.sql<[{ count: string }]>`
+			SELECT COUNT(*) AS count FROM audit_event WHERE society_id = ${societyId}`;
+		return parseInt(row.count, 10);
 	}
 }

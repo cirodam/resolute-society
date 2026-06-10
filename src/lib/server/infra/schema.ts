@@ -155,6 +155,7 @@ CREATE TABLE IF NOT EXISTS post (
 	title      TEXT NOT NULL,
 	body       TEXT NOT NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
 	deleted_at TIMESTAMPTZ
 );
 

@@ -16,8 +16,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		throw error(404, 'Society not found');
 	}
 
-	const limit = 200;
-	const events = await repos.auditEvents.listBySociety(societyId, limit);
+	const PAGE_SIZE = 50;
+	const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+	const offset = (page - 1) * PAGE_SIZE;
 
-	return { society, events };
+	const [events, total] = await Promise.all([
+		repos.auditEvents.listBySociety(societyId, PAGE_SIZE, offset),
+		repos.auditEvents.countBySociety(societyId)
+	]);
+
+	return { society, events, page, totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
 };

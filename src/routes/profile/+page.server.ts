@@ -11,7 +11,9 @@ import { error, fail } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+const PAGE_SIZE = 25;
+
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.person) {
 		throw error(401, 'Not authenticated');
 	}
@@ -27,29 +29,19 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const principal = `${person.id}@${society.id}`;
 
-	const societyCredits = await repositories.ledger.calculateBalance('person', personId);
-	const [federationBalanceRead, federationHistoryRead] = await Promise.all([
+	const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+	const offset = (page - 1) * PAGE_SIZE;
+
+	const [societyCredits, totalTxns, societyTransactions, federationBalanceRead, federationHistoryRead] = await Promise.all([
+		repositories.ledger.calculateBalance('person', personId),
+		repositories.ledger.countPersonTransactions(personId),
+		repositories.ledger.listPersonTransactionsPaginated(personId, PAGE_SIZE, offset),
 		getFederationBalanceWithMeta(principal),
 		getFederationHistoryWithMeta(principal)
 	]);
+
 	const federationCredits = federationBalanceRead.balance;
 	const federationHistory = federationHistoryRead.history;
-
-	const localTxns = await repositories.ledger.listPersonTransactions(personId);
-
-	// Calculate running balance for passbook view
-	const societyTransactions = localTxns.map((t, index, arr) => {
-		let balance = 0;
-		for (let i = 0; i <= index; i++) {
-			const txn = arr[i];
-			if (txn.to_type === 'person' && txn.to_id === personId) {
-				balance += txn.amount;
-			} else if (txn.from_type === 'person' && txn.from_id === personId) {
-				balance -= txn.amount;
-			}
-		}
-		return { ...t, running_balance: balance };
-	});
 
 	// Build federation passbook with running balance
 	const federationTransactions = federationHistory.map((t, index, arr) => {
@@ -84,7 +76,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		hasKeypair: !!(await repositories.keypair.get()),
 		isAdmitted: await repositories.federationMessageQueue.isAdmitted(society.handle),
 		societyTransactions,
-		federationTransactions
+		federationTransactions,
+		page,
+		totalPages: Math.max(1, Math.ceil(totalTxns / PAGE_SIZE))
 	};
 };
 

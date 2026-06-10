@@ -7,7 +7,9 @@ import { performCloseDay } from './close-day';
 import { withCriticalAction } from '$lib/server/http/critical-action';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
+const PAGE_SIZE = 50;
+
+export const load: PageServerLoad = async ({ url }) => {
 	const repos = getRepositories();
 	const societyId = resolveSocietyId(undefined);
 	const society = await repos.societies.findById(societyId);
@@ -17,14 +19,26 @@ export const load: PageServerLoad = async () => {
 	}
 
 	const today = new Date().toISOString().slice(0, 10);
+	const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+	const offset = (page - 1) * PAGE_SIZE;
+
+	const [todayRecord, recentDays, transactions, totalTxns, members] = await Promise.all([
+		repos.ledgerDays.findByDate(societyId, today),
+		repos.ledgerDays.listRecent(societyId, 30),
+		repos.ledger.listSocietyTransactionsPaginated(societyId, PAGE_SIZE, offset),
+		repos.ledger.countSocietyTransactions(societyId),
+		repos.treasury.listSocietyMembers(societyId)
+	]);
 
 	return {
 		society,
 		today,
-		todayRecord: await repos.ledgerDays.findByDate(societyId, today),
-		recentDays: await repos.ledgerDays.listRecent(societyId, 30),
-		transactions: await repos.ledger.listSocietyTransactions(societyId),
-		members: await repos.treasury.listSocietyMembers(societyId)
+		todayRecord,
+		recentDays,
+		transactions,
+		members,
+		page,
+		totalPages: Math.max(1, Math.ceil(totalTxns / PAGE_SIZE))
 	};
 };
 

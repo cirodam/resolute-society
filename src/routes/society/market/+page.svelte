@@ -5,6 +5,7 @@
 	import { economyTabs } from '$lib/client/navigation';
 	import Subnav from '$lib/components/Subnav.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -170,6 +171,13 @@
 			{/if}
 		</section>
 
+		<Pagination
+			page={data.itemPage}
+			totalPages={data.itemTotalPages}
+			buildHref={(p) => `?itemPage=${p}&servicePage=${data.servicePage}`}
+			label="Items page"
+		/>
+
 		<section class="market-section">
 			<div class="section-header">
 				<h2 class="section-title">Services</h2>
@@ -240,6 +248,13 @@
 				</div>
 			{/if}
 		</section>
+
+		<Pagination
+			page={data.servicePage}
+			totalPages={data.serviceTotalPages}
+			buildHref={(p) => `?itemPage=${data.itemPage}&servicePage=${p}`}
+			label="Services page"
+		/>
 	</div>
 </div>
 

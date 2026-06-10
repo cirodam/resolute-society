@@ -31,6 +31,10 @@ export const nutritionTabs: NavTab[] = [
 ];
 
 export const settingsTabs: NavTab[] = [
-	{ label: 'Profile', href: '/profile/settings/profile' },
-	{ label: 'Schedule', href: '/profile/settings/schedule' }
+	{ label: 'Profile', href: '/profile/settings/profile' }
+];
+
+export const societySettingsTabs: NavTab[] = [
+	{ label: 'Society', href: '/society/settings' },
+	{ label: 'Schedule', href: '/society/settings/schedule' }
 ];

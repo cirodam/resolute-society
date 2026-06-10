@@ -23,6 +23,9 @@ services:
       PORT: 3000
       ORIGIN: https://${DOMAIN}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/resolute_society
+      DATA_DIR: /app/data
+    volumes:
+      - app-data:/app/data
     networks:
       - app-network
     restart: unless-stopped
@@ -56,6 +59,7 @@ services:
 
 volumes:
   postgres-data:
+  app-data:
   caddy-data:
   caddy-config:
 

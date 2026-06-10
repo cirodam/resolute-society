@@ -3,6 +3,7 @@ import { getRepositories } from '$lib/server/infra/repositories';
 import { reconcileEndowmentMint } from '$lib/server/economy/reconciliation';
 
 const ENDOWMENT_RECONCILE_JOB = 'endowment_reconcile_daily_0800';
+const LEDGER_PRUNE_JOB = 'ledger_prune_daily_0800';
 const LOCK_LEASE_SECONDS = 5 * 60;
 const TICK_MS = 60_000;
 
@@ -100,20 +101,28 @@ async function runEndowmentReconcileJob(): Promise<void> {
 	}
 }
 
+async function runLedgerPruneJob(): Promise<void> {
+	await getRepositories().ledger.pruneLedger();
+}
+
+const JOBS: Array<{ name: string; run: () => Promise<void> }> = [
+	{ name: ENDOWMENT_RECONCILE_JOB, run: runEndowmentReconcileJob },
+	{ name: LEDGER_PRUNE_JOB, run: runLedgerPruneJob },
+];
+
 async function runDueJobs(): Promise<void> {
 	const now = new Date();
-	const jobName = ENDOWMENT_RECONCILE_JOB;
-
-	if (!(await isJobDue(jobName, now))) return;
-	if (!(await acquireLease(jobName, now))) return;
-
-	try {
-		await runEndowmentReconcileJob();
-		await markSuccess(jobName);
-	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Unknown scheduler error';
-		await markFailure(jobName, message);
-		console.warn(`[scheduler] ${jobName} failed: ${message}`);
+	for (const job of JOBS) {
+		if (!(await isJobDue(job.name, now))) continue;
+		if (!(await acquireLease(job.name, now))) continue;
+		try {
+			await job.run();
+			await markSuccess(job.name);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : 'Unknown scheduler error';
+			await markFailure(job.name, message);
+			console.warn(`[scheduler] ${job.name} failed: ${message}`);
+		}
 	}
 }
 

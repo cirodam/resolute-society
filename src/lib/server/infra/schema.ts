@@ -416,6 +416,12 @@ CREATE TABLE IF NOT EXISTS balance_checkpoint (
 CREATE INDEX IF NOT EXISTS idx_balance_checkpoint_lookup
 	ON balance_checkpoint(entity_type, entity_id, as_of_date DESC);
 
+CREATE TABLE IF NOT EXISTS ledger_prune_cursor (
+    id                INTEGER PRIMARY KEY CHECK (id = 1),
+    pruned_before     TEXT    NOT NULL,
+    chain_anchor_hash TEXT    NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS scheduled_job_state (
 	job_name           TEXT PRIMARY KEY,
 	last_started_at    TIMESTAMPTZ,

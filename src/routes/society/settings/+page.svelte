@@ -6,112 +6,106 @@
 	const society = $derived(data.society);
 </script>
 
-<div class="page-container page-container--content">
-	<div class="page-header">
-		<h1 class="t-display">Society Settings</h1>
-		<p class="page-header-description">Manage {society.name} details</p>
-	</div>
+{#if form?.success}
+	<div class="success-message">Settings saved.</div>
+{/if}
 
-	{#if form?.success}
-		<div class="success-message">Settings saved.</div>
-	{/if}
+{#if form?.error}
+	<div class="error-message">{form.error}</div>
+{/if}
 
-	{#if form?.error}
-		<div class="error-message">{form.error}</div>
-	{/if}
+<div class="settings-card card-border">
+	<form method="POST" action="?/updateSociety" use:enhance class="settings-form">
+		<div class="form-section">
+			<h2>Society</h2>
 
-	<div class="settings-card card-border">
-		<form method="POST" action="?/updateSociety" use:enhance class="settings-form">
-			<div class="form-section">
-				<h2>Society</h2>
+			<div class="form-group">
+				<label for="id">ID</label>
+				<input id="id" type="text" value={society.id} readonly />
+			</div>
 
+			<div class="form-group">
+				<label for="name">Name</label>
+				<input id="name" name="name" type="text" value={society.name} required />
+			</div>
+
+			<div class="form-group">
+				<label for="handle">Handle</label>
+				<input
+					id="handle"
+					name="handle"
+					type="text"
+					value={society.handle}
+					required
+					pattern="[a-z0-9-]+"
+					title="Lowercase letters, numbers, and hyphens only"
+				/>
+				<span class="input-hint">Used in member addresses (e.g., name@{society.handle}). Lowercase letters, numbers, and hyphens only.</span>
+			</div>
+
+			<div class="form-group">
+				<label for="address">Address</label>
+				<input id="address" name="address" type="text" value={society.address || ''} />
+				<span class="input-hint">Physical address or location description</span>
+			</div>
+		</div>
+
+		<div class="form-section">
+			<h2>Location</h2>
+			<p class="section-note">Optional coordinates for mapping features.</p>
+
+			<div class="form-row">
 				<div class="form-group">
-					<label for="id">ID</label>
-					<input id="id" type="text" value={society.id} readonly />
-				</div>
-
-				<div class="form-group">
-					<label for="name">Name</label>
-					<input id="name" name="name" type="text" value={society.name} required />
-				</div>
-
-				<div class="form-group">
-					<label for="handle">Handle</label>
+					<label for="lat">Latitude</label>
 					<input
-						id="handle"
-						name="handle"
-						type="text"
-						value={society.handle}
-						required
-						pattern="[a-z0-9-]+"
-						title="Lowercase letters, numbers, and hyphens only"
+						id="lat"
+						name="lat"
+						type="number"
+						step="0.000001"
+						min="-90"
+						max="90"
+						value={society.lat || ''}
+						placeholder="40.7128"
 					/>
-					<span class="input-hint">Used in member addresses (e.g., name@{society.handle}). Lowercase letters, numbers, and hyphens only.</span>
 				</div>
-
 				<div class="form-group">
-					<label for="address">Address</label>
-					<input id="address" name="address" type="text" value={society.address || ''} />
-					<span class="input-hint">Physical address or location description</span>
-				</div>
-			</div>
-
-			<div class="form-section">
-				<h2>Location</h2>
-				<p class="section-note">Optional coordinates for mapping features.</p>
-
-				<div class="form-row">
-					<div class="form-group">
-						<label for="lat">Latitude</label>
-						<input
-							id="lat"
-							name="lat"
-							type="number"
-							step="0.000001"
-							min="-90"
-							max="90"
-							value={society.lat || ''}
-							placeholder="40.7128"
-						/>
-					</div>
-					<div class="form-group">
-						<label for="lng">Longitude</label>
-						<input
-							id="lng"
-							name="lng"
-							type="number"
-							step="0.000001"
-							min="-180"
-							max="180"
-							value={society.lng || ''}
-							placeholder="-74.0060"
-						/>
-					</div>
-				</div>
-			</div>
-
-			<div class="form-section">
-				<h2>Federation</h2>
-				<p class="section-note">Connection details for the federation network.</p>
-
-				<div class="form-group">
-					<label for="federation_ip_address">Federation IP Address</label>
+					<label for="lng">Longitude</label>
 					<input
-						id="federation_ip_address"
-						name="federation_ip_address"
-						type="text"
-						value={society.federation_ip_address || ''}
-						placeholder="192.0.2.1"
+						id="lng"
+						name="lng"
+						type="number"
+						step="0.000001"
+						min="-180"
+						max="180"
+						value={society.lng || ''}
+						placeholder="-74.0060"
 					/>
 				</div>
 			</div>
+		</div>
 
-			<div class="form-actions">
-				<button type="submit" class="btn btn--primary">Save Changes</button>
+		<div class="form-section">
+			<h2>Federation</h2>
+			<p class="section-note">Connection details for the federation network.</p>
+
+			<div class="form-group">
+				<label for="federation_ip_address">Federation IP Address</label>
+				<input
+					id="federation_ip_address"
+					name="federation_ip_address"
+					type="text"
+					value={society.federation_ip_address || ''}
+					placeholder="192.0.2.1"
+				/>
 			</div>
-		</form>
-	</div>
+		</div>
+
+		<div class="form-actions">
+			<button type="submit" class="btn btn--primary">Save Changes</button>
+		</div>
+	</form>
 </div>
+
 
 <style>
 	.settings-card {

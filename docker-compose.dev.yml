@@ -25,6 +25,7 @@ services:
       PORT: 3000
       ORIGIN: http://localhost:3000
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/resolute_society
+      DATA_DIR: /app/data
     volumes:
       - app-data:/app/data
     restart: unless-stopped

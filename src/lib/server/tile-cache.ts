@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-export const CACHE_ROOT = join(process.cwd(), 'tile-cache');
+export const CACHE_ROOT = join(process.env.DATA_DIR ?? process.cwd(), 'tile-cache');
 const OSM_SUBDOMAINS = ['a', 'b', 'c'];
 
 export async function getCachedTile(z: string, x: string, y: string): Promise<Buffer | null> {

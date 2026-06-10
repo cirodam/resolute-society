@@ -41,6 +41,30 @@ export class EventRepository {
 			ORDER BY e.starts_at DESC`;
 	}
 
+	async listByMonth(societyId: string, year: number, month: number): Promise<EventRow[]> {
+		const start = new Date(year, month - 1, 1).toISOString().slice(0, 10);
+		const end = new Date(year, month, 1).toISOString().slice(0, 10);
+		return await this.sql<EventRow[]>`
+			SELECT
+				e.id,
+				e.title,
+				e.description,
+				e.location,
+				e.starts_at,
+				e.ends_at,
+				e.created_at,
+				p.given_name as creator_given_name,
+				p.surname as creator_surname,
+				a.name as association_name
+			FROM event e
+			LEFT JOIN person p ON e.created_by = p.id
+			LEFT JOIN association a ON e.association_id = a.id
+			WHERE e.society_id = ${societyId}
+			  AND e.starts_at >= ${start}
+			  AND e.starts_at < ${end}
+			ORDER BY e.starts_at ASC`;
+	}
+
 	async listAssociations(societyId: string): Promise<EventAssociationRow[]> {
 		return await this.sql<EventAssociationRow[]>`
 			SELECT id, name FROM association WHERE society_id = ${societyId} ORDER BY name`;

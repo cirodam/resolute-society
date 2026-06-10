@@ -1178,7 +1178,7 @@
 	}
 
 	.holder-allowance {
-		font-family: var(--font-numeric);
+		font-family: var(--font-mono);
 		font-size: var(--text-sm);
 		color: var(--ink-mid);
 		margin: 0;
@@ -1221,7 +1221,7 @@
 	}
 
 	.form-value {
-		font-family: var(--font-numeric);
+		font-family: var(--font-mono);
 		font-size: var(--text-sm);
 		color: var(--ink-mid);
 		margin: 0;

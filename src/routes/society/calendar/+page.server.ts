@@ -5,19 +5,25 @@ import { getRepositories } from '$lib/server/infra/repositories';
 import { audit } from '$lib/server/services/audit.service';
 import type { PageServerLoad, Actions } from './$types';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ url }) => {
 	const repositories = getRepositories();
-	const society = await repositories.societies.findById(resolveSocietyId(undefined));
+	const societyId = resolveSocietyId(undefined);
+	const society = await repositories.societies.findById(societyId);
 
 	if (!society) {
 		throw error(404, 'Society not found');
 	}
 
-	return {
-		society,
-		events: await repositories.events.listBySociety(resolveSocietyId(undefined)),
-		associations: await repositories.events.listAssociations(resolveSocietyId(undefined))
-	};
+	const now = new Date();
+	const year = parseInt(url.searchParams.get('year') ?? String(now.getFullYear()), 10);
+	const month = parseInt(url.searchParams.get('month') ?? String(now.getMonth() + 1), 10);
+
+	const [events, associations] = await Promise.all([
+		repositories.events.listByMonth(societyId, year, month),
+		repositories.events.listAssociations(societyId)
+	]);
+
+	return { society, events, associations, year, month };
 };
 
 export const actions: Actions = {

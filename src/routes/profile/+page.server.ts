@@ -1,8 +1,12 @@
 import { getRepositories } from '$lib/server/infra/repositories';
-import { getFederationBalance, getFederationHistory } from '$lib/server/federation/client';
+import {
+	getFederationBalanceWithMeta,
+	getFederationHistoryWithMeta
+} from '$lib/server/federation/client';
 import { canonicalTransferData, signData } from '$lib/server/federation/crypto';
 import { enqueueFederationMessage } from '$lib/server/federation/client';
 import { resolveLocalEntityById } from '$lib/server/utils/local-entity.util';
+import { withCriticalAction } from '$lib/server/http/critical-action';
 import { error, fail } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import type { Actions, PageServerLoad } from './$types';
@@ -24,10 +28,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const principal = `${person.id}@${society.id}`;
 
 	const societyCredits = await repositories.ledger.calculateBalance('person', personId);
-	const [federationCredits, federationHistory] = await Promise.all([
-		getFederationBalance(principal),
-		getFederationHistory(principal)
+	const [federationBalanceRead, federationHistoryRead] = await Promise.all([
+		getFederationBalanceWithMeta(principal),
+		getFederationHistoryWithMeta(principal)
 	]);
+	const federationCredits = federationBalanceRead.balance;
+	const federationHistory = federationHistoryRead.history;
 
 	const localTxns = await repositories.ledger.listPersonTransactions(personId);
 
@@ -67,6 +73,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 		},
 		principal,
 		societyHandle: society.handle,
+		federationRead: {
+			balanceDegraded: federationBalanceRead.degraded,
+			balanceReason: federationBalanceRead.reason,
+			balanceStatus: federationBalanceRead.status,
+			historyDegraded: federationHistoryRead.degraded,
+			historyReason: federationHistoryRead.reason,
+			historyStatus: federationHistoryRead.status
+		},
 		hasKeypair: !!(await repositories.keypair.get()),
 		isAdmitted: await repositories.federationMessageQueue.isAdmitted(society.handle),
 		societyTransactions,
@@ -75,7 +89,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	send: async ({ request, locals }) => {
+	send: withCriticalAction(async ({ request, locals }) => {
 		if (!locals.person) return fail(401, { sendError: 'Not authenticated' });
 
 		const data = await request.formData();
@@ -140,5 +154,9 @@ export const actions: Actions = {
 		enqueueFederationMessage('transfer_requested', society.handle, { ...transfer, signature });
 
 		return { sent: true, settled: 'federation' as const };
-	}
+	}, {
+		legacyKey: 'sendError',
+		fallbackCode: 'PROFILE_SEND_FAILED',
+		fallbackMessage: 'Unable to complete send action'
+	})
 };

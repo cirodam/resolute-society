@@ -2,6 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { enqueueFederationMessage } from '$lib/server/federation/client';
+import { withCriticalAction } from '$lib/server/http/critical-action';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -21,7 +22,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions = {
-	updateSociety: async ({ request }) => {
+	updateSociety: withCriticalAction(async ({ request }) => {
 		const data = await request.formData();
 		const handle = data.get('handle')?.toString().trim().toLowerCase();
 		const name = data.get('name')?.toString().trim();
@@ -78,5 +79,9 @@ export const actions = {
 		}
 
 		return { success: true };
-	}
+	}, {
+		legacyKey: 'error',
+		fallbackCode: 'SETTINGS_UPDATE_SOCIETY_FAILED',
+		fallbackMessage: 'Unable to update society settings'
+	})
 } satisfies Actions;

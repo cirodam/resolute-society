@@ -92,6 +92,11 @@ Warning triage (2026-06-09):
 Detailed execution guide:
 - `docs/phase-1-critical-path-correctness-plan.md`
 
+Phase 1 execution status (2026-06-09):
+- Completed: all Phase 1 work packages (WP1-WP6) merged.
+- Completed: critical action error contracts standardized for send, treasury, and ledger actions.
+- Current baseline: `npm test` and `npm run check` passing (warnings remain triaged separately).
+
 Objectives:
 - Harden money movement, auth checks, and permission-sensitive writes.
 
@@ -106,6 +111,32 @@ Acceptance criteria:
 - Tests cover both happy paths and fault paths.
 
 ## Phase 2: Fault Boundaries and Degraded Modes (Week 2-3)
+
+Detailed execution guide:
+- `docs/phase-2-fault-boundaries-and-degraded-modes-plan.md`
+
+Phase 2 execution status (2026-06-09):
+- Completed: shared external fetch policy with timeout/retry classification (`src/lib/server/http/external-fetch.ts`).
+- Completed: federation read degraded-mode metadata surfaced in profile/association route loads.
+- Completed: federation queue backoff/cooldown semantics with persisted retry metadata (`next_attempted_at`, `last_error_message`).
+- Completed: tile warm-cache bounded concurrency with deterministic aggregation (`warmTileBatch`).
+- Completed: infrastructure error envelopes standardized on remaining external-dependency actions (profile send, settings updateSociety, map warmCache).
+- Verification baseline: `npm test` and `npm run check` passing (warnings unchanged).
+
+Phase 2 verification commands:
+1. `npm test`
+2. `npm run check`
+3. Optional focused test runs:
+   - `tsx --test src/lib/server/http/external-fetch.test.ts`
+   - `tsx --test src/lib/server/federation/client.test.ts`
+   - `tsx --test src/lib/server/tile-cache.test.ts`
+
+Runbook notes: repeated federation delivery failures
+1. Symptom: recurring logs like `[federation] dispatch failed (...) attempt=<n> next=<timestamp>`.
+2. Confirm queue backlog and retry metadata in `federation_message` (`attempt_count`, `next_attempted_at`, `last_error_message`, `delivered_at`).
+3. Validate federation endpoint reachability and configured `federation_ip_address` in `society_config`.
+4. If failures are persistent, treat as degraded federation mode: local operations continue; federation reads may return degraded metadata.
+5. After upstream recovery, verify pending messages drain via sweeps and `delivered_at` transitions from null to timestamp.
 
 Objectives:
 - Prevent external or subsystem failures from propagating system-wide.
@@ -215,11 +246,11 @@ Definition of done for reliability tasks:
 
 ## Immediate Next Actions
 
-1. Fix current type-check blocker in tile API response typing.
-2. Create a critical-path inventory (auth, ledger, permission writes).
-3. Add first reliability tests for one money-moving workflow.
-4. Add basic request correlation ID in logs.
-5. Draft backup and restore drill checklist.
+1. Start Phase 3 WP1: add request correlation IDs and structured logging fields.
+2. Define service indicators and alert thresholds for critical operation failure rate.
+3. Add health/readiness checks tied to deployment orchestration.
+4. Draft incident query playbook for federation and ledger critical paths.
+5. Schedule Phase 4 restore drill planning kickoff.
 
 ## Document Maintenance
 

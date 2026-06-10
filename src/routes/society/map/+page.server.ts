@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { warmLocalTiles } from '$lib/server/tile-cache';
+import { withCriticalAction } from '$lib/server/http/critical-action';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -22,7 +23,7 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-	warmCache: async () => {
+	warmCache: withCriticalAction(async () => {
 		const repos = getRepositories();
 		const society = await repos.societies.findDetailById(resolveSocietyId(undefined));
 
@@ -38,7 +39,12 @@ export const actions: Actions = {
 			warmSuccess: true,
 			fetched: result.fetched,
 			alreadyCached: result.alreadyCached,
-			failed: result.failed
+			failed: result.failed,
+			concurrency: 8
 		};
-	}
+	}, {
+		legacyKey: 'warmError',
+		fallbackCode: 'MAP_WARM_CACHE_FAILED',
+		fallbackMessage: 'Unable to warm tile cache'
+	})
 };

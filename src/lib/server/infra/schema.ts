@@ -297,12 +297,18 @@ CREATE TABLE IF NOT EXISTS federation_message (
 	payload           TEXT    NOT NULL,
 	created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	last_attempted_at TIMESTAMPTZ,
+	next_attempted_at TIMESTAMPTZ,
 	attempt_count     INTEGER NOT NULL DEFAULT 0,
+	last_error_message TEXT,
 	delivered_at      TIMESTAMPTZ
 );
 
 CREATE INDEX IF NOT EXISTS idx_federation_message_pending
 	ON federation_message(delivered_at, last_attempted_at)
+	WHERE delivered_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_federation_message_next_attempt
+	ON federation_message(delivered_at, next_attempted_at)
 	WHERE delivered_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS dependant (
@@ -457,4 +463,20 @@ CREATE INDEX IF NOT EXISTS idx_road_edge_society ON road_edge(society_id);
 
 export async function migrate(): Promise<void> {
 	await db().unsafe(SCHEMA);
+
+	await db().unsafe(`
+		ALTER TABLE federation_message
+		ADD COLUMN IF NOT EXISTS next_attempted_at TIMESTAMPTZ;
+	`);
+
+	await db().unsafe(`
+		ALTER TABLE federation_message
+		ADD COLUMN IF NOT EXISTS last_error_message TEXT;
+	`);
+
+	await db().unsafe(`
+		CREATE INDEX IF NOT EXISTS idx_federation_message_next_attempt
+		ON federation_message(delivered_at, next_attempted_at)
+		WHERE delivered_at IS NULL;
+	`);
 }

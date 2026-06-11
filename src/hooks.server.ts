@@ -52,8 +52,9 @@ let lastEventSweep = 0;
 
 export const handle: Handle = async ({ event, resolve }) => {
 	await ready;
-	// If the app is not yet configured, redirect everything except /setup to the setup page.
+	// If the app is not yet configured, redirect everything except /setup and /restore to the setup page.
 	const isSetupRoute = event.url.pathname.startsWith('/setup');
+	const isRestoreRoute = event.url.pathname.startsWith('/restore');
 	const isWelcomeRoute = event.url.pathname.startsWith('/welcome');
 	const isLogoutRoute = event.url.pathname.startsWith('/logout');
 	const societies = await getRepositories().societies.listAll();
@@ -61,11 +62,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Ensure the society ID cache is warm so resolveSocietyId() works synchronously in routes.
 	if (isConfigured) await resolveSocietyIdAsync(undefined);
 
-	if (!isConfigured && !isSetupRoute) {
+	if (!isConfigured && !isSetupRoute && !isRestoreRoute) {
 		return new Response(null, { status: 302, headers: { location: '/setup' } });
 	}
 
-	if (isConfigured && isSetupRoute) {
+	if (isConfigured && (isSetupRoute || isRestoreRoute)) {
 		return new Response(null, { status: 302, headers: { location: '/login' } });
 	}
 

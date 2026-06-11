@@ -42,5 +42,6 @@ export const settingsTabs: NavTab[] = [
 export const societySettingsTabs: NavTab[] = [
 	{ label: 'Society', href: '/society/settings' },
 	{ label: 'Schedule', href: '/society/settings/schedule' },
-	{ label: 'Audit Log', href: '/society/settings/audit-log' }
+	{ label: 'Audit Log', href: '/society/settings/audit-log' },
+	{ label: 'Backup', href: '/society/settings/backup' }
 ];

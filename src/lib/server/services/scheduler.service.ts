@@ -4,6 +4,7 @@ import { reconcileEndowmentMint } from '$lib/server/economy/reconciliation';
 
 const ENDOWMENT_RECONCILE_JOB = 'endowment_reconcile_daily_0800';
 const LEDGER_PRUNE_JOB = 'ledger_prune_daily_0800';
+const BACKUP_JOB = 'backup_daily_0800';
 const LOCK_LEASE_SECONDS = 5 * 60;
 const TICK_MS = 60_000;
 
@@ -105,9 +106,15 @@ async function runLedgerPruneJob(): Promise<void> {
 	await getRepositories().ledger.pruneLedger();
 }
 
+async function runBackupJob(): Promise<void> {
+	const { createBackup } = await import('$lib/server/backup/backup.service');
+	await createBackup();
+}
+
 const JOBS: Array<{ name: string; run: () => Promise<void> }> = [
 	{ name: ENDOWMENT_RECONCILE_JOB, run: runEndowmentReconcileJob },
 	{ name: LEDGER_PRUNE_JOB, run: runLedgerPruneJob },
+	{ name: BACKUP_JOB, run: runBackupJob },
 ];
 
 async function runDueJobs(): Promise<void> {

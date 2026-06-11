@@ -2,21 +2,14 @@ import { db } from './db';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS society_config (
-	id                    TEXT PRIMARY KEY,
-	handle                TEXT NOT NULL UNIQUE,
-	name                  TEXT NOT NULL,
-	address               TEXT,
-	lat                   REAL,
-	lng                   REAL,
-	federation_ip_address  TEXT,
-	federation_public_key  TEXT,
-	founder_person_id     TEXT,
-	created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	key        TEXT PRIMARY KEY,
+	value      TEXT NOT NULL,
+	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS location_category (
 	id         TEXT PRIMARY KEY,
-	society_id TEXT NOT NULL REFERENCES society_config(id),
+	society_id TEXT NOT NULL,
 	name       TEXT NOT NULL,
 	color      TEXT NOT NULL DEFAULT '#7a5c1a',
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -27,7 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_location_category_society ON location_category(so
 
 CREATE TABLE IF NOT EXISTS location (
 	id          TEXT PRIMARY KEY,
-	society_id  TEXT NOT NULL REFERENCES society_config(id),
+	society_id  TEXT NOT NULL,
 	name        TEXT NOT NULL,
 	category_id TEXT REFERENCES location_category(id),
 	address     TEXT,
@@ -41,7 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_location_society ON location(society_id);
 
 CREATE TABLE IF NOT EXISTS person (
 	id                TEXT PRIMARY KEY,
-	society_id        TEXT NOT NULL REFERENCES society_config(id),
+	society_id        TEXT NOT NULL,
 	handle            TEXT NOT NULL UNIQUE,
 	given_name        TEXT NOT NULL,
 	surname           TEXT NOT NULL,
@@ -59,7 +52,7 @@ CREATE TABLE IF NOT EXISTS person (
 
 CREATE TABLE IF NOT EXISTS association (
 	id           TEXT PRIMARY KEY,
-	society_id   TEXT NOT NULL REFERENCES society_config(id),
+	society_id   TEXT NOT NULL,
 	handle       TEXT NOT NULL UNIQUE,
 	name         TEXT NOT NULL,
 	type         TEXT,
@@ -77,7 +70,7 @@ CREATE TABLE IF NOT EXISTS association_member (
 
 CREATE TABLE IF NOT EXISTS general_assembly (
 	id          TEXT PRIMARY KEY,
-	society_id  TEXT NOT NULL REFERENCES society_config(id),
+	society_id  TEXT NOT NULL,
 	term_number INTEGER NOT NULL,
 	term_start  TEXT NOT NULL,
 	term_end    TEXT NOT NULL,
@@ -97,7 +90,7 @@ CREATE TABLE IF NOT EXISTS general_assembly_member (
 
 CREATE TABLE IF NOT EXISTS position (
 	id                            TEXT PRIMARY KEY,
-	society_id                    TEXT NOT NULL REFERENCES society_config(id),
+	society_id                    TEXT NOT NULL,
 	parent_position_id            TEXT REFERENCES position(id),
 	type                          TEXT NOT NULL CHECK (type IN ('officer', 'section_chief', 'line_worker')),
 	name                          TEXT NOT NULL,
@@ -136,7 +129,7 @@ CREATE INDEX IF NOT EXISTS idx_txn_created_at             ON txn(created_at DESC
 
 CREATE TABLE IF NOT EXISTS event (
 	id             TEXT PRIMARY KEY,
-	society_id     TEXT NOT NULL REFERENCES society_config(id),
+	society_id     TEXT NOT NULL,
 	association_id TEXT REFERENCES association(id),
 	title          TEXT NOT NULL,
 	description    TEXT,
@@ -170,7 +163,7 @@ CREATE TABLE IF NOT EXISTS post_reply (
 
 CREATE TABLE IF NOT EXISTS allowance_group (
 	id         TEXT PRIMARY KEY,
-	society_id TEXT NOT NULL REFERENCES society_config(id),
+	society_id TEXT NOT NULL,
 	name       TEXT NOT NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE (society_id, name)
@@ -202,7 +195,7 @@ CREATE INDEX IF NOT EXISTS idx_message_sender    ON message(sender_id, archived_
 
 CREATE TABLE IF NOT EXISTS item_listing (
 	id                       TEXT PRIMARY KEY,
-	society_id               TEXT NOT NULL REFERENCES society_config(id),
+	society_id               TEXT NOT NULL,
 	person_id                TEXT NOT NULL REFERENCES person(id),
 	type                     TEXT NOT NULL CHECK (type IN ('offer', 'wanted')),
 	category                 TEXT,
@@ -220,7 +213,7 @@ CREATE INDEX IF NOT EXISTS idx_item_listing_society ON item_listing(society_id, 
 
 CREATE TABLE IF NOT EXISTS service_listing (
 	id                      TEXT PRIMARY KEY,
-	society_id              TEXT NOT NULL REFERENCES society_config(id),
+	society_id              TEXT NOT NULL,
 	person_id               TEXT NOT NULL REFERENCES person(id),
 	category                TEXT,
 	title                   TEXT NOT NULL,
@@ -237,7 +230,7 @@ CREATE INDEX IF NOT EXISTS idx_service_listing_society ON service_listing(societ
 
 CREATE TABLE IF NOT EXISTS course (
 	id                TEXT PRIMARY KEY,
-	society_id        TEXT NOT NULL REFERENCES society_config(id),
+	society_id        TEXT NOT NULL,
 	instructor_id     TEXT NOT NULL REFERENCES person(id),
 	title             TEXT NOT NULL,
 	description       TEXT NOT NULL,
@@ -314,7 +307,7 @@ CREATE INDEX IF NOT EXISTS idx_federation_message_next_attempt
 
 CREATE TABLE IF NOT EXISTS dependant (
 	id         TEXT PRIMARY KEY,
-	society_id TEXT NOT NULL REFERENCES society_config(id),
+	society_id TEXT NOT NULL,
 	dob        TEXT NOT NULL,
 	sex        TEXT CHECK (sex IN ('male', 'female', 'other')),
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -340,7 +333,7 @@ CREATE TABLE IF NOT EXISTS federation_keypair (
 
 CREATE TABLE IF NOT EXISTS nutrient (
 	id         TEXT PRIMARY KEY,
-	society_id TEXT NOT NULL REFERENCES society_config(id),
+	society_id TEXT NOT NULL,
 	name       TEXT NOT NULL,
 	unit       TEXT NOT NULL,
 	sort_order INTEGER NOT NULL DEFAULT 0,
@@ -352,7 +345,7 @@ CREATE INDEX IF NOT EXISTS idx_nutrient_society ON nutrient(society_id, sort_ord
 
 CREATE TABLE IF NOT EXISTS dri_profile (
 	id         TEXT PRIMARY KEY,
-	society_id TEXT NOT NULL REFERENCES society_config(id),
+	society_id TEXT NOT NULL,
 	label      TEXT NOT NULL,
 	age_min    INTEGER NOT NULL,
 	age_max    INTEGER NOT NULL,
@@ -372,7 +365,7 @@ CREATE TABLE IF NOT EXISTS dri_value (
 
 CREATE TABLE IF NOT EXISTS food (
 	id         TEXT PRIMARY KEY,
-	society_id TEXT NOT NULL REFERENCES society_config(id),
+	society_id TEXT NOT NULL,
 	name       TEXT NOT NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	UNIQUE (society_id, name)
@@ -389,7 +382,7 @@ CREATE TABLE IF NOT EXISTS food_nutrient (
 
 CREATE TABLE IF NOT EXISTS ledger_day (
 	id                TEXT PRIMARY KEY,
-	society_id        TEXT NOT NULL REFERENCES society_config(id),
+	society_id        TEXT NOT NULL,
 	date              TEXT NOT NULL,
 	page_number       INTEGER NOT NULL,
 	opening_balance   REAL NOT NULL DEFAULT 0,
@@ -411,7 +404,7 @@ CREATE INDEX IF NOT EXISTS idx_ledger_day_society ON ledger_day(society_id, date
 
 CREATE TABLE IF NOT EXISTS balance_checkpoint (
 	id          TEXT PRIMARY KEY,
-	society_id  TEXT NOT NULL REFERENCES society_config(id),
+	society_id  TEXT NOT NULL,
 	entity_type TEXT NOT NULL,
 	entity_id   TEXT NOT NULL,
 	balance     REAL NOT NULL,
@@ -441,7 +434,7 @@ CREATE TABLE IF NOT EXISTS scheduled_job_state (
 
 CREATE TABLE IF NOT EXISTS road_node (
 	id         TEXT PRIMARY KEY,
-	society_id TEXT NOT NULL REFERENCES society_config(id),
+	society_id TEXT NOT NULL,
 	lat        REAL NOT NULL,
 	lng        REAL NOT NULL,
 	label      TEXT,
@@ -452,7 +445,7 @@ CREATE INDEX IF NOT EXISTS idx_road_node_society ON road_node(society_id);
 
 CREATE TABLE IF NOT EXISTS road_edge (
 	id          TEXT PRIMARY KEY,
-	society_id  TEXT NOT NULL REFERENCES society_config(id),
+	society_id  TEXT NOT NULL,
 	node_a_id   TEXT NOT NULL REFERENCES road_node(id) ON DELETE CASCADE,
 	node_b_id   TEXT NOT NULL REFERENCES road_node(id) ON DELETE CASCADE,
 	distance_km REAL NOT NULL,
@@ -463,7 +456,7 @@ CREATE INDEX IF NOT EXISTS idx_road_edge_society ON road_edge(society_id);
 
 CREATE TABLE IF NOT EXISTS audit_event (
 	id              TEXT PRIMARY KEY,
-	society_id      TEXT NOT NULL REFERENCES society_config(id),
+	society_id      TEXT NOT NULL,
 	actor_person_id TEXT REFERENCES person(id),
 	actor_display   TEXT NOT NULL,
 	event_type      TEXT NOT NULL,
@@ -478,6 +471,7 @@ CREATE TABLE IF NOT EXISTS audit_event (
 CREATE INDEX IF NOT EXISTS idx_audit_event_society_time ON audit_event(society_id, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_event_type_time    ON audit_event(event_type, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_event_target       ON audit_event(target_type, target_id, occurred_at DESC);
+
 `;
 
 export async function migrate(): Promise<void> {

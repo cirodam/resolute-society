@@ -127,6 +127,11 @@
 
 			<button type="submit" class="btn btn--primary setup-submit">Set Up Society</button>
 		</form>
+
+		<div class="restore-link">
+			<span>Already have a backup?</span>
+			<a href="/restore">Restore from backup →</a>
+		</div>
 	</div>
 </div>
 
@@ -200,5 +205,19 @@
 	.setup-submit {
 		width: 100%;
 		margin-top: var(--space-2);
+	}
+
+	.restore-link {
+		margin-top: var(--space-6);
+		padding-top: var(--space-5);
+		border-top: 1px solid var(--border-faint);
+		text-align: center;
+		font-family: var(--font-prose);
+		font-size: var(--text-sm);
+		color: var(--ink-mid);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-2);
 	}
 </style>

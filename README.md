@@ -78,6 +78,41 @@ npm run build
 npm run preview
 ```
 
+## Backup and Restore
+
+Resolute Society includes a built-in backup and restore system designed to work without external services or cloud infrastructure.
+
+### How it works
+
+The application takes a daily `pg_dump` snapshot of the database and stores it as a compressed `.dump` file on the server. Backups are retained for the most recent 10 runs (configurable). Officers can also trigger a manual backup at any time from **Society Settings → Backup**.
+
+From that same page, any backup file can be downloaded to a local machine, USB drive, or other offline storage. This is the recommended way to protect against hardware failure.
+
+### Restoring from a backup
+
+If the server is lost and needs to be rebuilt:
+
+1. Install the app on a new machine (see deployment instructions above).
+2. Before completing setup, navigate to `/setup`.
+3. Click **Restore from backup** at the bottom of the setup page.
+4. Upload the `.dump` file and confirm.
+
+The app will restore all society data and redirect to the login page. Credentials from the backup will work immediately.
+
+### Requirements
+
+`pg_dump` and `pg_restore` must be available in PATH on the machine running the app. On Linux these are included with any PostgreSQL installation:
+
+```sh
+sudo apt install postgresql-client   # Debian/Ubuntu
+```
+
+On Windows they ship with the PostgreSQL installer but must be added to PATH manually (`C:\Program Files\PostgreSQL\<version>\bin`).
+
+### Settings
+
+Backup directory and retention count are configurable from **Society Settings → Backup** and stored in the database. The defaults are `./backups` (relative to the app's working directory) and 10 files retained.
+
 ## Encyclopedia Content
 
 The society encyclopedia is file-based and rendered from Markdown.

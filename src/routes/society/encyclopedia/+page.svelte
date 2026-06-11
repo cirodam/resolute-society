@@ -4,6 +4,24 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	let groupByCategory = $state(false);
+
+	const sorted = $derived(
+		[...data.entries].sort((a, b) => a.title.localeCompare(b.title))
+	);
+
+	const grouped = $derived(() => {
+		const map = new Map<string, typeof sorted>();
+		for (const entry of sorted) {
+			const bucket = map.get(entry.category) ?? [];
+			bucket.push(entry);
+			map.set(entry.category, bucket);
+		}
+		return [...map.entries()]
+			.sort(([a], [b]) => a.localeCompare(b))
+			.map(([category, entries]) => ({ category, entries }));
+	});
 </script>
 
 <div class="page-container page-container--content">
@@ -16,80 +34,108 @@
 
 	<Subnav tabs={knowledgeTabs} />
 
-	<div class="page-content">
-		{#if data.entries.length === 0}
-			<section class="empty card-border">
-				<p>No encyclopedia entries yet. Add Markdown files to src/lib/content/encyclopedia.</p>
-			</section>
-		{:else}
-			{#each data.entryGroups as group}
+	{#if data.entries.length === 0}
+		<div class="empty card-border card-body">
+			<p>No encyclopedia entries yet. Add Markdown files to src/lib/content/encyclopedia.</p>
+		</div>
+	{:else}
+		<div class="list-controls">
+			<button
+				class="btn btn--small"
+				class:btn--primary={groupByCategory}
+				onclick={() => (groupByCategory = !groupByCategory)}
+			>
+				{groupByCategory ? 'A–Z' : 'By Category'}
+			</button>
+		</div>
+
+		{#if groupByCategory}
+			{#each grouped() as group}
 				<section class="category-section">
-					<h2 class="category-title">{group.category}</h2>
-					<div class="entries-grid">
+					<h2 class="category-heading">{group.category}</h2>
+					<div class="entries-list card-border">
 						{#each group.entries as entry}
-							<a class="entry-card card-border" href="/society/encyclopedia/{entry.slug}">
-								<h3>{entry.title}</h3>
-								<p>{entry.summary}</p>
+							<a class="entry-card" href="/society/encyclopedia/{entry.slug}">
+								<span class="entry-title">{entry.title}</span>
+								<span class="entry-summary">{entry.summary}</span>
 							</a>
 						{/each}
 					</div>
 				</section>
 			{/each}
+		{:else}
+			<div class="entries-list card-border">
+				{#each sorted as entry}
+					<a class="entry-card" href="/society/encyclopedia/{entry.slug}">
+						<span class="entry-title">{entry.title}</span>
+						<span class="entry-summary">{entry.summary}</span>
+					</a>
+				{/each}
+			</div>
 		{/if}
-	</div>
+	{/if}
 </div>
 
 <style>
-	.empty {
-		padding: var(--space-4);
+	.list-controls {
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: var(--space-4);
 	}
 
 	.category-section {
 		margin-bottom: var(--space-7);
 	}
 
-	.category-title {
+	.category-heading {
+		font-family: var(--font-label);
+		font-size: var(--text-sm);
+		letter-spacing: 0.18em;
+		color: var(--ink-mid);
 		margin: 0 0 var(--space-3) 0;
-		font-family: var(--font-prose);
-		font-size: var(--text-xl);
-		font-weight: 600;
-		color: var(--ink);
+		padding-bottom: var(--space-2);
+		border-bottom: 1px solid var(--border-subtle);
 	}
 
-	.entries-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-		gap: var(--space-4);
+	.entries-list {
+		display: flex;
+		flex-direction: column;
 	}
 
 	.entry-card {
-		display: block;
-		padding: var(--space-4);
+		display: flex;
+		align-items: baseline;
+		gap: var(--space-4);
+		padding: var(--space-3) var(--space-4);
+		min-height: 3.5rem;
 		text-decoration: none;
 		color: inherit;
-		background: var(--surface);
-		transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+		border-bottom: 1px solid var(--border-subtle);
+		transition: background 0.12s;
 	}
 
-	.entry-card:hover,
-	.entry-card:focus-visible {
-		transform: translateY(-2px);
-		border-color: var(--ink-mid);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	.entry-card:last-child {
+		border-bottom: none;
 	}
 
-	.entry-card h3 {
-		margin: 0 0 var(--space-2) 0;
+	.entry-card:hover {
+		background: var(--tint-gold);
+	}
+
+	.entry-title {
 		font-family: var(--font-prose);
-		font-size: var(--text-lg);
+		font-size: var(--text-base);
+		font-weight: 600;
 		color: var(--ink);
+		min-width: 13rem;
+		max-width: 16rem;
+		flex-shrink: 0;
 	}
 
-	.entry-card p {
-		margin: 0;
+	.entry-summary {
 		font-family: var(--font-prose);
 		font-size: var(--text-sm);
-		line-height: 1.6;
 		color: var(--ink-mid);
+		line-height: 1.5;
 	}
 </style>

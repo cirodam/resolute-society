@@ -4,9 +4,13 @@
 	import type { LocationRow, LocationCategoryRow } from '$lib/server/infra/repositories';
 	import Alert from '$lib/components/Alert.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Subnav from '$lib/components/Subnav.svelte';
+
+	const locationsTabs = [{ label: 'Locations' }, { label: 'Categories' }];
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
+	let activeTab = $state<'locations' | 'categories'>('locations');
 	let showLocationForm = $state(data.prefilledLat !== null);
 	let editingLocation = $state<LocationRow | null>(null);
 	let editingCategory = $state<LocationCategoryRow | null>(null);
@@ -24,7 +28,7 @@
 	});
 </script>
 
-<div class="page-container">
+<div class="page-container page-container--content">
 	<div class="page-header">
 		<div class="section-header">
 			<div>
@@ -35,173 +39,180 @@
 		</div>
 	</div>
 
-	<!-- ── CATEGORIES ── -->
-	<div class="section-card card-border">
-		<div class="card-header">
-			<h2>Categories</h2>
-			{#if !showCategoryForm && !editingCategory}
-				<button class="btn" onclick={() => (showCategoryForm = true)}>Add Category</button>
+	<Subnav
+		tabs={locationsTabs}
+		activeTab={activeTab === 'locations' ? 'Locations' : 'Categories'}
+		onTabClick={(label) => (activeTab = label === 'Locations' ? 'locations' : 'categories')}
+	/>
+
+	<!-- ── LOCATIONS TAB ── -->
+	{#if activeTab === 'locations'}
+		<div class="toolbar">
+			{#if !showLocationForm && !editingLocation}
+				<button class="btn btn--primary" onclick={() => (showLocationForm = true)}>Add Location</button>
 			{/if}
 		</div>
 
-		{#if showCategoryForm || editingCategory}
-			<form
-				method="POST"
-				action={editingCategory ? '?/updateCategory' : '?/createCategory'}
-				use:enhance
-				class="category-form"
-			>
-				{#if editingCategory}<input type="hidden" name="id" value={editingCategory.id} />{/if}
-				<input
-					name="name"
-					type="text"
-					value={editingCategory?.name ?? ''}
-					placeholder="Category name"
-					required
-				/>
-				<div class="color-field">
-					<input name="color" type="color" value={editingCategory?.color ?? '#7a5c1a'} />
+		<Alert type="error" message={form?.createError ?? form?.updateError} />
+
+		{#if showLocationForm || editingLocation}
+			<div class="form-card card-border">
+				<div class="card-header">
+					<h2>{editingLocation ? 'Edit Location' : 'New Location'}</h2>
 				</div>
-				<button type="submit" class="btn btn--primary">{editingCategory ? 'Save' : 'Add'}</button>
-				<button type="button" class="btn" onclick={() => { showCategoryForm = false; editingCategory = null; }}>Cancel</button>
-			</form>
+				<form
+					method="POST"
+					action={editingLocation ? '?/update' : '?/create'}
+					use:enhance
+					class="location-form"
+				>
+					{#if editingLocation}<input type="hidden" name="id" value={editingLocation.id} />{/if}
+
+					<div class="form-row">
+						<div class="form-group">
+							<label for="loc-name">Name</label>
+							<input id="loc-name" name="name" type="text" value={editingLocation?.name ?? ''} required placeholder="West Philly Tool Library" />
+						</div>
+						<div class="form-group">
+							<label for="loc-category">Category</label>
+							<select id="loc-category" name="category_id">
+								<option value="">— none —</option>
+								{#each data.categories as cat}
+									<option
+										value={cat.id}
+										selected={editingLocation?.category?.id === cat.id}
+									>{cat.name}</option>
+								{/each}
+							</select>
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="loc-address">Address</label>
+						<input id="loc-address" name="address" type="text" value={editingLocation?.address ?? ''} placeholder="4928 Baltimore Ave, Philadelphia, PA" />
+					</div>
+
+					<div class="form-row">
+						<div class="form-group">
+							<label for="loc-lat">Latitude</label>
+							<input id="loc-lat" name="lat" type="number" step="0.000001" value={editingLocation?.lat ?? data.prefilledLat ?? ''} placeholder="39.94524" required />
+						</div>
+						<div class="form-group">
+							<label for="loc-lng">Longitude</label>
+							<input id="loc-lng" name="lng" type="number" step="0.000001" value={editingLocation?.lng ?? data.prefilledLng ?? ''} placeholder="-75.22018" required />
+						</div>
+					</div>
+
+					<div class="form-group">
+						<label for="loc-notes">Notes</label>
+						<textarea id="loc-notes" name="notes" rows="3" placeholder="Open Saturdays 10am–2pm">{editingLocation?.notes ?? ''}</textarea>
+					</div>
+
+					<div class="form-actions">
+						<button type="button" class="btn" onclick={() => { showLocationForm = false; editingLocation = null; }}>Cancel</button>
+						<button type="submit" class="btn btn--primary">{editingLocation ? 'Save Changes' : 'Add Location'}</button>
+					</div>
+				</form>
+			</div>
 		{/if}
 
-		{#if data.categories.length === 0 && !showCategoryForm}
-			<p class="empty-inline">No categories yet.</p>
-		{:else if data.categories.length > 0}
-			<div class="category-list">
-				{#each data.categories as cat}
-					<div class="category-row">
-						<span class="color-swatch" style="background: {cat.color}"></span>
-						<span class="category-name t-label">{cat.name}</span>
-						<div class="category-actions">
-							<button class="btn btn--xs" onclick={() => (editingCategory = cat)}>Edit</button>
-							<form method="POST" action="?/deleteCategory" use:enhance style="display:inline">
-								<input type="hidden" name="id" value={cat.id} />
-								<button type="submit" class="btn btn--xs btn--danger">Delete</button>
-							</form>
+		{#if data.locations.length === 0}
+			<EmptyState message="No locations yet. Add places relevant to your society — meeting halls, tool libraries, gardens, hubs." card />
+		{:else}
+			<div class="locations-list">
+				{#each data.locations as loc}
+					<div class="location-card card-border">
+						<div class="card-header">
+							<div class="location-title">
+								{#if loc.category}
+									<span class="color-swatch" style="background: {loc.category.color}"></span>
+								{/if}
+								<h2>{loc.name}</h2>
+								{#if loc.category}
+									<span class="category-tag t-label">{loc.category.name}</span>
+								{/if}
+							</div>
+							<div class="location-actions">
+								<button class="btn btn--xs" onclick={() => (editingLocation = loc)}>Edit</button>
+								<form method="POST" action="?/delete" use:enhance style="display:inline">
+									<input type="hidden" name="id" value={loc.id} />
+									<button type="submit" class="btn btn--xs btn--danger">Delete</button>
+								</form>
+							</div>
+						</div>
+						<div class="location-body">
+							{#if loc.address}
+								<p class="location-address">{loc.address}</p>
+							{/if}
+							<p class="location-coords t-label">{loc.lat.toFixed(5)}, {loc.lng.toFixed(5)}</p>
+							{#if loc.notes}
+								<p class="location-notes">{loc.notes}</p>
+							{/if}
 						</div>
 					</div>
 				{/each}
 			</div>
 		{/if}
-	</div>
-
-	<!-- ── LOCATIONS ── -->
-	<div class="toolbar">
-		{#if !showLocationForm && !editingLocation}
-			<button class="btn btn--primary" onclick={() => (showLocationForm = true)}>Add Location</button>
-		{/if}
-	</div>
-
-	<Alert type="error" message={form?.createError ?? form?.updateError} />
-
-	{#if showLocationForm || editingLocation}
-		<div class="form-card card-border">
-			<div class="card-header">
-				<h2>{editingLocation ? 'Edit Location' : 'New Location'}</h2>
-			</div>
-			<form
-				method="POST"
-				action={editingLocation ? '?/update' : '?/create'}
-				use:enhance
-				class="location-form"
-			>
-				{#if editingLocation}<input type="hidden" name="id" value={editingLocation.id} />{/if}
-
-				<div class="form-row">
-					<div class="form-group">
-						<label for="loc-name">Name</label>
-						<input id="loc-name" name="name" type="text" value={editingLocation?.name ?? ''} required placeholder="West Philly Tool Library" />
-					</div>
-					<div class="form-group">
-						<label for="loc-category">Category</label>
-						<select id="loc-category" name="category_id">
-							<option value="">— none —</option>
-							{#each data.categories as cat}
-								<option
-									value={cat.id}
-									selected={editingLocation?.category?.id === cat.id}
-								>{cat.name}</option>
-							{/each}
-						</select>
-					</div>
-				</div>
-
-				<div class="form-group">
-					<label for="loc-address">Address</label>
-					<input id="loc-address" name="address" type="text" value={editingLocation?.address ?? ''} placeholder="4928 Baltimore Ave, Philadelphia, PA" />
-				</div>
-
-				<div class="form-row">
-					<div class="form-group">
-						<label for="loc-lat">Latitude</label>
-						<input id="loc-lat" name="lat" type="number" step="0.000001" value={editingLocation?.lat ?? data.prefilledLat ?? ''} placeholder="39.94524" required />
-					</div>
-					<div class="form-group">
-						<label for="loc-lng">Longitude</label>
-						<input id="loc-lng" name="lng" type="number" step="0.000001" value={editingLocation?.lng ?? data.prefilledLng ?? ''} placeholder="-75.22018" required />
-					</div>
-				</div>
-
-				<div class="form-group">
-					<label for="loc-notes">Notes</label>
-					<textarea id="loc-notes" name="notes" rows="3" placeholder="Open Saturdays 10am–2pm">{editingLocation?.notes ?? ''}</textarea>
-				</div>
-
-				<div class="form-actions">
-					<button type="button" class="btn" onclick={() => { showLocationForm = false; editingLocation = null; }}>Cancel</button>
-					<button type="submit" class="btn btn--primary">{editingLocation ? 'Save Changes' : 'Add Location'}</button>
-				</div>
-			</form>
-		</div>
 	{/if}
 
-	{#if data.locations.length === 0}
-		<EmptyState message="No locations yet. Add places relevant to your society — meeting halls, tool libraries, gardens, hubs." card />
-	{:else}
-		<div class="locations-list">
-			{#each data.locations as loc}
-				<div class="location-card card-border">
-					<div class="card-header">
-						<div class="location-title">
-							{#if loc.category}
-								<span class="color-swatch" style="background: {loc.category.color}"></span>
-							{/if}
-							<h2>{loc.name}</h2>
-							{#if loc.category}
-								<span class="category-tag t-label">{loc.category.name}</span>
-							{/if}
-						</div>
-						<div class="location-actions">
-							<button class="btn btn--xs" onclick={() => (editingLocation = loc)}>Edit</button>
-							<form method="POST" action="?/delete" use:enhance style="display:inline">
-								<input type="hidden" name="id" value={loc.id} />
-								<button type="submit" class="btn btn--xs btn--danger">Delete</button>
-							</form>
-						</div>
+	<!-- ── CATEGORIES TAB ── -->
+	{#if activeTab === 'categories'}
+		<div class="section-card card-border">
+			<div class="card-header">
+				<h2>Categories</h2>
+				{#if !showCategoryForm && !editingCategory}
+					<button class="btn" onclick={() => (showCategoryForm = true)}>Add Category</button>
+				{/if}
+			</div>
+
+			{#if showCategoryForm || editingCategory}
+				<form
+					method="POST"
+					action={editingCategory ? '?/updateCategory' : '?/createCategory'}
+					use:enhance
+					class="category-form"
+				>
+					{#if editingCategory}<input type="hidden" name="id" value={editingCategory.id} />{/if}
+					<input
+						name="name"
+						type="text"
+						value={editingCategory?.name ?? ''}
+						placeholder="Category name"
+						required
+					/>
+					<div class="color-field">
+						<input name="color" type="color" value={editingCategory?.color ?? '#7a5c1a'} />
 					</div>
-					<div class="location-body">
-						{#if loc.address}
-							<p class="location-address">{loc.address}</p>
-						{/if}
-						<p class="location-coords t-label">{loc.lat.toFixed(5)}, {loc.lng.toFixed(5)}</p>
-						{#if loc.notes}
-							<p class="location-notes">{loc.notes}</p>
-						{/if}
-					</div>
+					<button type="submit" class="btn btn--primary">{editingCategory ? 'Save' : 'Add'}</button>
+					<button type="button" class="btn" onclick={() => { showCategoryForm = false; editingCategory = null; }}>Cancel</button>
+				</form>
+			{/if}
+
+			{#if data.categories.length === 0 && !showCategoryForm}
+				<p class="empty-inline">No categories yet.</p>
+			{:else if data.categories.length > 0}
+				<div class="category-list">
+					{#each data.categories as cat}
+						<div class="category-row">
+							<span class="color-swatch" style="background: {cat.color}"></span>
+							<span class="category-name t-label">{cat.name}</span>
+							<div class="category-actions">
+								<button class="btn btn--xs" onclick={() => (editingCategory = cat)}>Edit</button>
+								<form method="POST" action="?/deleteCategory" use:enhance style="display:inline">
+									<input type="hidden" name="id" value={cat.id} />
+									<button type="submit" class="btn btn--xs btn--danger">Delete</button>
+								</form>
+							</div>
+						</div>
+					{/each}
 				</div>
-			{/each}
+			{/if}
 		</div>
 	{/if}
 </div>
 
 <style>
 	.page-container {
-		max-width: 800px;
-		margin: 0 auto;
-		padding: var(--space-6);
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;
@@ -335,5 +346,4 @@
 		margin: 0.25rem 0 0;
 		white-space: pre-wrap;
 	}
-
 </style>

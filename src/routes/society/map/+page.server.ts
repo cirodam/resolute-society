@@ -1,8 +1,10 @@
 import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { getRepositories } from '$lib/server/infra/repositories';
+import { setConfig } from '$lib/server/infra/config';
 import { warmLocalTiles } from '$lib/server/tile-cache';
 import { withCriticalAction } from '$lib/server/http/critical-action';
+import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -23,6 +25,21 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
+	centerSociety: async ({ request, locals }) => {
+		const data = await request.formData();
+		const lat = parseFloat(data.get('lat')?.toString() || '');
+		const lng = parseFloat(data.get('lng')?.toString() || '');
+
+		if (isNaN(lat) || isNaN(lng)) return fail(400, { centerError: 'Invalid coordinates' });
+
+		const societyId = resolveSocietyId(undefined);
+		await setConfig('society.lat', String(lat));
+		await setConfig('society.lng', String(lng));
+		await audit({ actor: locals.person, societyId, eventType: 'SOCIETY_UPDATED', targetType: 'society', targetId: societyId, summary: `Society coordinates set to ${lat.toFixed(6)}, ${lng.toFixed(6)}` });
+
+		return { centered: true };
+	},
+
 	warmCache: withCriticalAction(async () => {
 		const repos = getRepositories();
 		const society = await repos.societies.findDetailById(resolveSocietyId(undefined));

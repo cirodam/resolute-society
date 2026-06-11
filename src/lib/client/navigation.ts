@@ -1,6 +1,6 @@
 export interface NavTab {
 	label: string;
-	href: string;
+	href?: string;
 	exact?: boolean;
 }
 
@@ -9,15 +9,15 @@ export const activitiesTabs: NavTab[] = [
 	{ label: 'Courses', href: '/society/courses' }
 ];
 
-export const economyTabs: NavTab[] = [
-	{ label: 'Market', href: '/society/market' },
-	{ label: 'Treasury', href: '/society/treasury' },
-	{ label: 'Master Ledger', href: '/society/ledger' }
+export const marketTabs: NavTab[] = [
+	{ label: 'Market', href: '/society/market' }
 ];
 
 export const governanceTabs: NavTab[] = [
 	{ label: 'Assembly', href: '/society/assembly' },
-	{ label: 'Officers', href: '/society/officers' }
+	{ label: 'Officers', href: '/society/officers' },
+	{ label: 'Treasury', href: '/society/treasury' },
+	{ label: 'Master Ledger', href: '/society/ledger' }
 ];
 
 export const directoryTabs: NavTab[] = [

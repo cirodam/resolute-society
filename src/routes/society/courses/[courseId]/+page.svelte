@@ -128,11 +128,6 @@
 </div>
 
 <style>
-	.page-container {
-		max-width: 1100px;
-		margin: 0 auto;
-		padding: var(--space-6);
-	}
 
 	.breadcrumbs {
 		margin-bottom: var(--space-4);

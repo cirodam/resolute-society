@@ -364,7 +364,9 @@ code, .code {
 	border-bottom: 1px solid var(--border);
 }
 
-.card-header .section-title {
+.card-header .section-title,
+.card-header h2,
+.card-header h3 {
 	margin: 0;
 }
 

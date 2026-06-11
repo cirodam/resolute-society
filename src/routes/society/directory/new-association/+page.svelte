@@ -6,7 +6,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 </script>
 
-<div class="page-container">
+<div class="page-container page-container--content">
 	<div class="page-header">
 		<h1 class="t-display">Create Association</h1>
 		<p class="page-header-description">
@@ -100,11 +100,6 @@
 </div>
 
 <style>
-	.page-container {
-		max-width: 700px;
-		margin: 0 auto;
-		padding: var(--space-6);
-	}
 
 	.form-container {
 		padding: var(--space-6);

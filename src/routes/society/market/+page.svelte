@@ -2,8 +2,6 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { formatShortDate } from '$lib/client/datetime';
-	import { economyTabs } from '$lib/client/navigation';
-	import Subnav from '$lib/components/Subnav.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 
@@ -41,8 +39,6 @@
 			Marketplace for {data.society.name}
 		</p>
 	</div>
-
-	<Subnav tabs={economyTabs} />
 
 	<div class="page-content">
 		<section class="market-section">

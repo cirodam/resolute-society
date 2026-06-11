@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { formatDateTime, formatLongDate } from '$lib/client/datetime';
-	import { economyTabs } from '$lib/client/navigation';
+	import { governanceTabs } from '$lib/client/navigation';
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import Subnav from '$lib/components/Subnav.svelte';
@@ -15,7 +15,7 @@
 	const members = $derived(data.members);
 </script>
 
-<div class="page-container page-container--wide">
+<div class="page-container">
 	<div class="page-header">
 		<h1 class="t-display">Master Ledger</h1>
 		<p class="page-header-description">
@@ -23,7 +23,7 @@
 		</p>
 	</div>
 
-	<Subnav tabs={economyTabs} />
+	<Subnav tabs={governanceTabs} />
 
 	<div class="page-content">
 

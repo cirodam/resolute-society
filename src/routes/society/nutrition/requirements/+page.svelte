@@ -66,11 +66,6 @@
 </div>
 
 <style>
-	.page-container {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: var(--space-6, 2rem);
-	}
 
 	.page-header {
 		margin-bottom: var(--space-8, 3rem);

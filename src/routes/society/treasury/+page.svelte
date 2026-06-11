@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { economyTabs } from '$lib/client/navigation';
+	import { governanceTabs } from '$lib/client/navigation';
 	import { hasPermission } from '$lib/client/permissions';
 	import type { PageData, ActionData } from './$types';
 	import Subnav from '$lib/components/Subnav.svelte';
@@ -37,7 +37,7 @@
 		</p>
 	</div>
 
-	<Subnav tabs={economyTabs} />
+	<Subnav tabs={governanceTabs} />
 
 	<div class="page-content">
 		<div class="balances-grid">

@@ -49,7 +49,7 @@
 	const groupedAvailable = $derived(groupByCategory(getAvailablePermissions()));
 </script>
 
-<div class="page-container">
+<div class="page-container page-container--content">
 	<div class="page-header">
 		<div class="breadcrumb">
 			<a href="/society/officers" class="breadcrumb-link">Officer Corps</a>
@@ -264,11 +264,6 @@
 </div>
 
 <style>
-	.page-container {
-		max-width: 900px;
-		margin: 0 auto;
-		padding: var(--space-6);
-	}
 
 	.breadcrumb {
 		display: flex;

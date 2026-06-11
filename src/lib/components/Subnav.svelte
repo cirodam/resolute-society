@@ -2,20 +2,41 @@
 	import { page } from '$app/stores';
 	import type { NavTab } from '$lib/client/navigation';
 
-	let { tabs }: { tabs: NavTab[] } = $props();
+	interface Props {
+		tabs: NavTab[];
+		activeTab?: string;
+		onTabClick?: (label: string) => void;
+	}
+
+	let { tabs, activeTab, onTabClick }: Props = $props();
 
 	const currentPath = $derived($page.url.pathname);
+
+	function isActive(tab: NavTab): boolean {
+		if (activeTab !== undefined) return tab.label === activeTab;
+		return currentPath === tab.href || (!tab.exact && tab.href != null && currentPath.startsWith(tab.href + '/'));
+	}
 </script>
 
 <nav class="subnav">
 	{#each tabs as tab}
-		<a
-			href={tab.href}
-			class="subnav__link"
-			class:subnav__link--active={currentPath === tab.href || (!tab.exact && currentPath.startsWith(tab.href + '/'))}
-		>
-			{tab.label}
-		</a>
+		{#if onTabClick}
+			<button
+				class="subnav__link"
+				class:subnav__link--active={isActive(tab)}
+				onclick={() => onTabClick(tab.label)}
+			>
+				{tab.label}
+			</button>
+		{:else}
+			<a
+				href={tab.href}
+				class="subnav__link"
+				class:subnav__link--active={isActive(tab)}
+			>
+				{tab.label}
+			</a>
+		{/if}
 	{/each}
 </nav>
 
@@ -30,8 +51,12 @@
 	.subnav__link {
 		padding: var(--space-3, 0.75rem) var(--space-4, 1.25rem);
 		text-decoration: none;
+		background: none;
+		border: none;
 		border-bottom: 2px solid transparent;
 		color: var(--ink-mid);
+		cursor: pointer;
+		font: inherit;
 		transition: border-color 0.15s, color 0.15s;
 	}
 

@@ -35,7 +35,7 @@
 				Activities
 			</a>
 			<a href="/society/market" class="sidebar-link">
-				Economy
+				Market
 			</a>
 			<a href="/society/nutrition" class="sidebar-link">
 				Nutrition

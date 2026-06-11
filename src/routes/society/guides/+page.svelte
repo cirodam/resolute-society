@@ -65,6 +65,7 @@
 	.guide-card {
 		display: block;
 		padding: var(--space-4);
+		min-height: 7rem;
 		text-decoration: none;
 		color: inherit;
 		background: var(--surface);

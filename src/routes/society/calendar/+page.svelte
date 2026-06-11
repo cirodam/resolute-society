@@ -28,7 +28,7 @@
 	}
 </script>
 
-<div class="page-container page-container--content">
+<div class="page-container">
 	<div class="page-header">
 		<div class="section-header">
 			<div>

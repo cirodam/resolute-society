@@ -321,6 +321,13 @@
 			</div>
 			{#if clickedLat !== null && clickedLng !== null}
 				<div class="coord-actions">
+					{#if !society.lat || !society.lng}
+						<form method="POST" action="?/centerSociety" use:enhance>
+							<input type="hidden" name="lat" value={clickedLat.toFixed(6)} />
+							<input type="hidden" name="lng" value={clickedLng.toFixed(6)} />
+							<button type="submit" class="btn btn--primary">Center Society Here</button>
+						</form>
+					{/if}
 					<a href="/society/locations?lat={clickedLat.toFixed(6)}&lng={clickedLng.toFixed(6)}" class="btn btn--primary">
 						New Location Here
 					</a>
@@ -435,16 +442,11 @@
 	</div>
 
 	{#if !society.lat || !society.lng}
-		<p class="no-coords">No coordinates set — add them in <a href="/society/settings">Settings</a> to enable tile caching.</p>
+		<p class="no-coords">No coordinates set — click the map and use <em>Center Society Here</em>, or add them in <a href="/society/settings">Settings</a>.</p>
 	{/if}
 </div>
 
 <style>
-	.page-container {
-		max-width: 1100px;
-		margin: 0 auto;
-		padding: var(--space-6);
-	}
 
 	.page-header { margin-bottom: var(--space-6); }
 

@@ -12,7 +12,7 @@
 		<a
 			href={tab.href}
 			class="subnav__link"
-			class:subnav__link--active={currentPath === tab.href || currentPath.startsWith(tab.href + '/')}
+			class:subnav__link--active={currentPath === tab.href || (!tab.exact && currentPath.startsWith(tab.href + '/'))}
 		>
 			{tab.label}
 		</a>

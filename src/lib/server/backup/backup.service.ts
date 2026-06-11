@@ -11,6 +11,8 @@ const execFileAsync = promisify(execFile);
 
 export const BACKUP_DIR_DEFAULT = './backups';
 export const BACKUP_KEEP_DEFAULT = '10';
+export const PG_DUMP_BIN_DEFAULT = 'pg_dump';
+export const PG_RESTORE_BIN_DEFAULT = 'pg_restore';
 
 async function backupDir(): Promise<string> {
 	return getConfig('backup_dir', BACKUP_DIR_DEFAULT);
@@ -18,6 +20,14 @@ async function backupDir(): Promise<string> {
 
 async function keepBackups(): Promise<number> {
 	return parseInt(await getConfig('backup_keep', BACKUP_KEEP_DEFAULT), 10);
+}
+
+async function pgDumpBin(): Promise<string> {
+	return getConfig('pg_dump_bin', PG_DUMP_BIN_DEFAULT);
+}
+
+async function pgRestoreBin(): Promise<string> {
+	return getConfig('pg_restore_bin', PG_RESTORE_BIN_DEFAULT);
 }
 
 export type BackupEntry = {
@@ -40,7 +50,21 @@ function parseDbUrl() {
 }
 
 function pgEnv(): NodeJS.ProcessEnv {
-	return { ...process.env, PGPASSWORD: parseDbUrl().password };
+	// Augment PATH with common PostgreSQL bin locations so pg_dump/pg_restore are
+	// found even when only the server package is installed (not postgresql-client).
+	const extraPaths = [
+		'/usr/lib/postgresql/17/bin',
+		'/usr/lib/postgresql/16/bin',
+		'/usr/lib/postgresql/15/bin',
+		'/usr/lib/postgresql/14/bin',
+		'/opt/homebrew/bin',
+		'/opt/homebrew/opt/libpq/bin'
+	].join(':');
+	return {
+		...process.env,
+		PATH: `${process.env.PATH ?? ''}:${extraPaths}`,
+		PGPASSWORD: parseDbUrl().password
+	};
 }
 
 export async function createBackup(): Promise<BackupEntry> {
@@ -55,7 +79,7 @@ export async function createBackup(): Promise<BackupEntry> {
 	const { host, port, user, database } = parseDbUrl();
 
 	await execFileAsync(
-		'pg_dump',
+		await pgDumpBin(),
 		['--format=custom', '--compress=6', `--file=${filePath}`, '-h', host, '-p', port, '-U', user, database],
 		{ env: pgEnv() }
 	);
@@ -109,7 +133,7 @@ async function restoreFromFile(filePath: string): Promise<void> {
 	const { host, port, user, database } = parseDbUrl();
 
 	await execFileAsync(
-		'pg_restore',
+		await pgRestoreBin(),
 		['--clean', '--if-exists', '--no-owner', '--no-acl', '-h', host, '-p', port, '-U', user, '-d', database, filePath],
 		{ env: pgEnv() }
 	);

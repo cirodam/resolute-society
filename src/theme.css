@@ -1,7 +1,7 @@
 /* Governance App Theme Overrides */
 
 /* Import fonts */
-@import url('https://fonts.googleapis.com/css2?family=IM+Fell+English&family=IM+Fell+English+SC&family=Libre+Baskerville&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IM+Fell+English&family=IM+Fell+English+SC&family=Libre+Baskerville&family=Inconsolata:wght@400&display=swap');
 
 /* Background - Subtle sage/library green for classical institutional feel */
 html {
@@ -22,9 +22,6 @@ body {
 
 /* Governance-specific color variables */
 :root {
-	--divider-strong: rgba(0, 0, 0, 0.15);
-	--divider:        rgba(0, 0, 0, 0.08);
-	
 	/* Font families */
 	--font-display:   'Libre Baskerville', Georgia, serif;
 	--font-label:     'IM Fell English SC', serif;
@@ -37,7 +34,7 @@ body {
 
 	/* Green palette - primary institutional colors */
 	--accent:       #2d5a4f;
-	--accent-hover: #3d6b5e;
+	--accent-hover: #224438;
 	--accent-mid:   #4a8070;
 	--accent-lt:    #e8f0ee;
 	
@@ -57,7 +54,6 @@ body {
 	/* Surface colors */
 	--paper:      #fafaf7;  /* Primary surface, cards */
 	--surface-dk: #f2f2ef;  /* Secondary surface */
-	--disc-bg:    #f2f4f3;  /* Discussion background */
 	
 	/* Border colors - standardized opacities */
 	--border-strong:  rgba(45, 90, 79, 0.3);  /* Emphasis borders, focus states */
@@ -98,6 +94,7 @@ body {
 	--space-4:  1.25rem;
 	--space-5:  1.5rem;
 	--space-6:  2rem;
+	--space-7:  2.5rem;
 	--space-8:  3rem;
 	--space-10: 4rem;
 
@@ -179,12 +176,15 @@ body {
 
 /* Button styling */
 .btn {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
 	font-family: var(--font-label) !important;
 	font-size: var(--text-base) !important;
 	letter-spacing: 0.16em !important;
 	line-height: 1 !important;
 	padding: 0.75rem 1.5rem !important;
-	border: 1px solid var(--divider-strong) !important;
+	border: 1px solid var(--border) !important;
 	background: transparent !important;
 	color: var(--ink-mid) !important;
 	cursor: pointer !important;
@@ -204,8 +204,8 @@ body {
 }
 
 .btn--primary:hover:not(:disabled) {
-	background: #224438 !important;
-	border-color: #224438 !important;
+	background: var(--accent-hover) !important;
+	border-color: var(--accent-hover) !important;
 	color: #fff !important;
 }
 
@@ -570,7 +570,7 @@ h3, .heading-subsection {
 	background: rgba(255, 255, 255, 0.3) !important;
 	color: #1e2926 !important;
 	font-size: 11px !important;
-	font-weight: var(--weight-bold) !important;
+	font-weight: 700 !important;
 }
 
 /* Future governance theme overrides can go here */
@@ -674,79 +674,8 @@ h3, .heading-subsection {
 
 /* ── BUTTON ADDITIONS ── */
 
-/* Ghost — transparent with border */
-.btn--ghost,
-.btn-ghost {
-	font-family: var(--font-label) !important;
-	font-size: var(--text-base) !important;
-	letter-spacing: 0.16em !important;
-	line-height: 1 !important;
-	padding: 0.75rem 1.5rem !important;
-	border: 1px solid var(--border) !important;
-	background: transparent !important;
-	color: var(--ink-mid) !important;
-	cursor: pointer !important;
-	border-radius: 0 !important;
-	transition: color 0.15s, background 0.15s, border-color 0.15s !important;
-}
-
-.btn--ghost:hover:not(:disabled),
-.btn-ghost:hover:not(:disabled) {
-	border-color: var(--ink-mid) !important;
-	color: var(--ink) !important;
-}
-
-/* Primary alias */
-.btn-primary {
-	font-family: var(--font-label) !important;
-	font-size: var(--text-base) !important;
-	letter-spacing: 0.16em !important;
-	line-height: 1 !important;
-	padding: 0.75rem 1.5rem !important;
-	border: 1px solid var(--accent) !important;
-	background: var(--accent) !important;
-	color: #fff !important;
-	cursor: pointer !important;
-	border-radius: 0 !important;
-	transition: color 0.15s, background 0.15s, border-color 0.15s !important;
-}
-
-.btn-primary:hover:not(:disabled) {
-	background: #224438 !important;
-	border-color: #224438 !important;
-	color: #fff !important;
-}
-
-.btn-primary:disabled {
-	opacity: 0.45 !important;
-	cursor: not-allowed !important;
-}
-
-/* Secondary alias */
-.btn-secondary {
-	font-family: var(--font-label) !important;
-	font-size: var(--text-base) !important;
-	letter-spacing: 0.16em !important;
-	line-height: 1 !important;
-	padding: 0.75rem 1.5rem !important;
-	border: 1px solid var(--ink) !important;
-	background: var(--ink) !important;
-	color: var(--paper) !important;
-	cursor: pointer !important;
-	border-radius: 0 !important;
-	transition: color 0.15s, background 0.15s, border-color 0.15s !important;
-}
-
-.btn-secondary:hover:not(:disabled) {
-	background: var(--ink-mid) !important;
-	border-color: var(--ink-mid) !important;
-	color: var(--paper) !important;
-}
-
-.btn-secondary:disabled {
-	opacity: 0.45 !important;
-	cursor: not-allowed !important;
-}
+/* Ghost — .btn is transparent by default; .btn--ghost is an explicit alias */
+.btn--ghost { /* same as .btn base — no extra declarations needed */ }
 
 /* Size modifiers */
 .btn--small,

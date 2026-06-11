@@ -20,6 +20,8 @@
 	let savingSettings = $state(false);
 	let backupDir = $state(data.backupDir);
 	let backupKeep = $state(data.backupKeep);
+	let pgDumpBin = $state(data.pgDumpBin);
+	let pgRestoreBin = $state(data.pgRestoreBin);
 </script>
 
 <div class="page-content">
@@ -79,6 +81,28 @@
 					max="100"
 					class="input input--narrow"
 					bind:value={backupKeep}
+				/>
+			</div>
+			<div class="settings-row">
+				<label class="settings-label" for="pg_dump_bin">pg_dump path</label>
+				<input
+					id="pg_dump_bin"
+					name="pg_dump_bin"
+					type="text"
+					class="input"
+					bind:value={pgDumpBin}
+					placeholder="pg_dump"
+				/>
+			</div>
+			<div class="settings-row">
+				<label class="settings-label" for="pg_restore_bin">pg_restore path</label>
+				<input
+					id="pg_restore_bin"
+					name="pg_restore_bin"
+					type="text"
+					class="input"
+					bind:value={pgRestoreBin}
+					placeholder="pg_restore"
 				/>
 			</div>
 			<div class="settings-actions">

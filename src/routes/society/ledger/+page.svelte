@@ -58,7 +58,7 @@
 							<option value={m.id}>{m.given_name} {m.surname}</option>
 						{/each}
 					</select>
-					<button type="submit" class="btn-primary">Close Today's Ledger</button>
+					<button type="submit" class="btn btn--primary">Close Today's Ledger</button>
 				</form>
 			{:else if todayRecord.status === 'closed'}
 				<div class="closed-day-info">
@@ -68,13 +68,13 @@
 					{/if}
 					</p>
 					<div class="closed-day-actions">
-						<a href="/society/ledger/day/{todayRecord.date}" class="btn-secondary">
+						<a href="/society/ledger/day/{todayRecord.date}" class="btn btn--secondary">
 							View &amp; Print Page {todayRecord.page_number}
 						</a>
 						{#if !todayRecord.printed_at}
 							<form method="POST" action="?/markPrinted" use:enhance style="display:inline">
 								<input type="hidden" name="day_id" value={todayRecord.id} />
-								<button type="submit" class="btn-ghost">Mark as Printed</button>
+								<button type="submit" class="btn btn--ghost">Mark as Printed</button>
 							</form>
 						{:else}
 							<span class="printed-badge">Printed</span>

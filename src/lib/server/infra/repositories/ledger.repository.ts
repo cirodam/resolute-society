@@ -165,7 +165,7 @@ export class LedgerRepository {
 		if (affected.length === 0) return;
 
 		// Single-society app: one society_config row for all checkpoint writes
-		const [society] = await this.sql<Array<{ id: string }>>`SELECT id FROM society_config LIMIT 1`;
+		const [society] = await this.sql<Array<{ id: string }>>`SELECT value AS id FROM society_config WHERE key = 'society.id'`;
 		if (!society) {
 			console.warn('[ledger] prune skipped: no society configured');
 			return;
@@ -231,29 +231,35 @@ export class LedgerRepository {
 			COALESCE(
 				CASE WHEN txn.from_type = 'person' THEN TRIM(COALESCE(fp.given_name, '') || ' ' || COALESCE(fp.surname, '')) END,
 				fa.name,
-				fs.name,
+				CASE WHEN txn.from_type = 'society' THEN (SELECT value FROM society_config WHERE key = 'society.name') END,
 				'System'
 			) AS from_name,
-			COALESCE(fp.handle, fa.handle, fs.handle, 'system') AS from_handle,
+			COALESCE(
+				fp.handle, fa.handle,
+				CASE WHEN txn.from_type = 'society' THEN (SELECT value FROM society_config WHERE key = 'society.handle') END,
+				'system'
+			) AS from_handle,
 			txn.to_type,
 			txn.to_id,
 			COALESCE(
 				CASE WHEN txn.to_type = 'person' THEN TRIM(COALESCE(tp.given_name, '') || ' ' || COALESCE(tp.surname, '')) END,
 				ta.name,
-				ts.name,
+				CASE WHEN txn.to_type = 'society' THEN (SELECT value FROM society_config WHERE key = 'society.name') END,
 				'System'
 			) AS to_name,
-			COALESCE(tp.handle, ta.handle, ts.handle, 'system') AS to_handle,
+			COALESCE(
+				tp.handle, ta.handle,
+				CASE WHEN txn.to_type = 'society' THEN (SELECT value FROM society_config WHERE key = 'society.handle') END,
+				'system'
+			) AS to_handle,
 			txn.amount,
 			txn.note,
 			txn.created_at
 		FROM txn
 		LEFT JOIN person fp ON txn.from_type = 'person' AND fp.id = txn.from_id
 		LEFT JOIN association fa ON txn.from_type = 'association' AND fa.id = txn.from_id
-		LEFT JOIN society_config fs ON txn.from_type = 'society' AND fs.id = txn.from_id
 		LEFT JOIN person tp ON txn.to_type = 'person' AND tp.id = txn.to_id
 		LEFT JOIN association ta ON txn.to_type = 'association' AND ta.id = txn.to_id
-		LEFT JOIN society_config ts ON txn.to_type = 'society' AND ts.id = txn.to_id
 	`;
 
 	async listPersonTransactions(personId: string): Promise<TxnRow[]> {
@@ -280,14 +286,26 @@ export class LedgerRepository {
 					txn.amount, txn.note, txn.created_at,
 					COALESCE(
 						CASE WHEN txn.from_type = 'person' THEN TRIM(COALESCE(fp.given_name, '') || ' ' || COALESCE(fp.surname, '')) END,
-						fa.name, fs.name, 'System'
+						fa.name,
+						CASE WHEN txn.from_type = 'society' THEN (SELECT value FROM society_config WHERE key = 'society.name') END,
+						'System'
 					) AS from_name,
-					COALESCE(fp.handle, fa.handle, fs.handle, 'system') AS from_handle,
+					COALESCE(
+						fp.handle, fa.handle,
+						CASE WHEN txn.from_type = 'society' THEN (SELECT value FROM society_config WHERE key = 'society.handle') END,
+						'system'
+					) AS from_handle,
 					COALESCE(
 						CASE WHEN txn.to_type = 'person' THEN TRIM(COALESCE(tp.given_name, '') || ' ' || COALESCE(tp.surname, '')) END,
-						ta.name, ts.name, 'System'
+						ta.name,
+						CASE WHEN txn.to_type = 'society' THEN (SELECT value FROM society_config WHERE key = 'society.name') END,
+						'System'
 					) AS to_name,
-					COALESCE(tp.handle, ta.handle, ts.handle, 'system') AS to_handle,
+					COALESCE(
+						tp.handle, ta.handle,
+						CASE WHEN txn.to_type = 'society' THEN (SELECT value FROM society_config WHERE key = 'society.handle') END,
+						'system'
+					) AS to_handle,
 					SUM(
 						CASE
 							WHEN txn.to_type = 'person' AND txn.to_id = ${personId} THEN txn.amount
@@ -298,10 +316,8 @@ export class LedgerRepository {
 				FROM txn
 				LEFT JOIN person fp ON txn.from_type = 'person' AND fp.id = txn.from_id
 				LEFT JOIN association fa ON txn.from_type = 'association' AND fa.id = txn.from_id
-				LEFT JOIN society_config fs ON txn.from_type = 'society' AND fs.id = txn.from_id
 				LEFT JOIN person tp ON txn.to_type = 'person' AND tp.id = txn.to_id
 				LEFT JOIN association ta ON txn.to_type = 'association' AND ta.id = txn.to_id
-				LEFT JOIN society_config ts ON txn.to_type = 'society' AND ts.id = txn.to_id
 				WHERE (txn.from_type = 'person' AND txn.from_id = ${personId})
 				   OR (txn.to_type = 'person' AND txn.to_id = ${personId})
 			)

@@ -180,18 +180,22 @@ CREATE TABLE IF NOT EXISTS allowance_group_member (
 CREATE INDEX IF NOT EXISTS idx_allowance_group_member_person ON allowance_group_member(person_id);
 
 CREATE TABLE IF NOT EXISTS message (
-	id           TEXT PRIMARY KEY,
-	sender_id    TEXT NOT NULL REFERENCES person(id),
-	recipient_id TEXT NOT NULL REFERENCES person(id),
-	subject      TEXT NOT NULL,
-	body         TEXT NOT NULL,
-	read_at      TIMESTAMPTZ,
-	archived_at  TIMESTAMPTZ,
-	created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	id                       TEXT PRIMARY KEY,
+	sender_id                TEXT NOT NULL REFERENCES person(id),
+	sender_association_id    TEXT REFERENCES association(id),
+	recipient_id             TEXT REFERENCES person(id),
+	recipient_association_id TEXT REFERENCES association(id),
+	subject                  TEXT NOT NULL,
+	body                     TEXT NOT NULL,
+	read_at                  TIMESTAMPTZ,
+	archived_at              TIMESTAMPTZ,
+	created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_message_recipient ON message(recipient_id, archived_at, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_message_sender    ON message(sender_id, archived_at, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_message_recipient_assoc ON message(recipient_association_id, archived_at, created_at DESC) WHERE recipient_association_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_message_sender_assoc    ON message(sender_association_id, archived_at, created_at DESC) WHERE sender_association_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS item_listing (
 	id                       TEXT PRIMARY KEY,
@@ -476,47 +480,4 @@ CREATE INDEX IF NOT EXISTS idx_audit_event_target       ON audit_event(target_ty
 
 export async function migrate(): Promise<void> {
 	await db().unsafe(SCHEMA);
-
-	await db().unsafe(`
-		ALTER TABLE federation_message
-		ADD COLUMN IF NOT EXISTS next_attempted_at TIMESTAMPTZ;
-	`);
-
-	await db().unsafe(`
-		ALTER TABLE federation_message
-		ADD COLUMN IF NOT EXISTS last_error_message TEXT;
-	`);
-
-	await db().unsafe(`
-		CREATE INDEX IF NOT EXISTS idx_federation_message_next_attempt
-		ON federation_message(delivered_at, next_attempted_at)
-		WHERE delivered_at IS NULL;
-	`);
-
-	await db().unsafe(`
-		ALTER TABLE message
-		ADD COLUMN IF NOT EXISTS sender_association_id TEXT REFERENCES association(id);
-	`);
-
-	await db().unsafe(`
-		ALTER TABLE message
-		ALTER COLUMN recipient_id DROP NOT NULL;
-	`);
-
-	await db().unsafe(`
-		ALTER TABLE message
-		ADD COLUMN IF NOT EXISTS recipient_association_id TEXT REFERENCES association(id);
-	`);
-
-	await db().unsafe(`
-		CREATE INDEX IF NOT EXISTS idx_message_recipient_assoc
-		ON message(recipient_association_id, archived_at, created_at DESC)
-		WHERE recipient_association_id IS NOT NULL;
-	`);
-
-	await db().unsafe(`
-		CREATE INDEX IF NOT EXISTS idx_message_sender_assoc
-		ON message(sender_association_id, archived_at, created_at DESC)
-		WHERE sender_association_id IS NOT NULL;
-	`);
 }

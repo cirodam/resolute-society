@@ -419,7 +419,7 @@
 						Find Route
 					</button>
 					{#if routeResult || routeNoPath}
-						<button class="btn-ghost" onclick={clearRoute}>Clear</button>
+						<button class="btn btn--ghost" onclick={clearRoute}>Clear</button>
 					{/if}
 				</div>
 				{#if routeResult}

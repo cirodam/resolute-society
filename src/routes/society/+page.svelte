@@ -2,7 +2,6 @@
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import Alert from '$lib/components/Alert.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const society = $derived(data.society);
 	let showForm = $state(false);
@@ -82,7 +81,9 @@
 
 			<div class="posts-list">
 				{#if data.posts.length === 0}
-					<EmptyState message="No posts yet. Be the first to post!" />
+					<div class="board-empty">
+						<p class="board-empty-message">No posts yet. Be the first to post.</p>
+					</div>
 				{:else}
 					{#each data.posts as post}
 						<a href="/society/bulletin/{post.id}" class="post-card card-border">
@@ -147,6 +148,21 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
+	}
+
+	.board-empty {
+		border: 1.5px dashed var(--border);
+		border-radius: 4px;
+		padding: var(--space-10) var(--space-6);
+		text-align: center;
+		background: var(--tint-green-mid);
+	}
+
+	.board-empty-message {
+		font-family: var(--font-prose);
+		font-size: var(--text-sm);
+		color: var(--ink-faint);
+		margin: 0;
 	}
 
 	.post-card {

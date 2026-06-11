@@ -68,10 +68,10 @@ export class PermissionRepository {
 		societyId: string;
 		permissionCode: string;
 	}): Promise<boolean> {
-		const [society] = await this.sql<Array<{ founder_person_id: string | null }>>`
-			SELECT founder_person_id FROM society_config WHERE id = ${check.societyId}`;
+		const [founder] = await this.sql<Array<{ value: string }>>`
+			SELECT value FROM society_config WHERE key = 'society.founder_person_id'`;
 
-		if (society?.founder_person_id === check.personId) {
+		if (founder?.value === check.personId) {
 			return true;
 		}
 

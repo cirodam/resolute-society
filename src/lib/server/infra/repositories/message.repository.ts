@@ -84,10 +84,10 @@ export class MessageRepository {
 			SELECT
 				m.id, m.subject, m.body, m.created_at, m.read_at,
 				p.id as sender_id, p.given_name, p.surname, p.handle,
-				s.name as society_name, s.handle as society_handle
+				(SELECT value FROM society_config WHERE key = 'society.name') as society_name,
+				(SELECT value FROM society_config WHERE key = 'society.handle') as society_handle
 			FROM message m
 			JOIN person p ON m.sender_id = p.id
-			JOIN society_config s ON p.society_id = s.id
 			WHERE m.recipient_id = ${personId} AND m.archived_at IS NULL
 			ORDER BY m.created_at DESC
 			LIMIT ${limit} OFFSET ${offset}`;
@@ -104,10 +104,10 @@ export class MessageRepository {
 			SELECT
 				m.id, m.subject, m.body, m.created_at, m.read_at,
 				p.id as recipient_id, p.given_name, p.surname, p.handle,
-				s.name as society_name, s.handle as society_handle
+				(SELECT value FROM society_config WHERE key = 'society.name') as society_name,
+				(SELECT value FROM society_config WHERE key = 'society.handle') as society_handle
 			FROM message m
 			JOIN person p ON m.recipient_id = p.id
-			JOIN society_config s ON p.society_id = s.id
 			WHERE m.sender_id = ${personId} AND m.archived_at IS NULL
 			ORDER BY m.created_at DESC
 			LIMIT ${limit} OFFSET ${offset}`;
@@ -125,8 +125,8 @@ export class MessageRepository {
 				m.id, m.subject, m.body, m.created_at, m.read_at,
 				m.sender_id, m.recipient_id,
 				CASE
-					WHEN m.sender_id = ${personId} THEN p_recipient.handle || '@' || s_recipient.handle
-					ELSE p_sender.handle || '@' || s_sender.handle
+					WHEN m.sender_id = ${personId} THEN p_recipient.handle || '@' || (SELECT value FROM society_config WHERE key = 'society.handle')
+					ELSE p_sender.handle || '@' || (SELECT value FROM society_config WHERE key = 'society.handle')
 				END as other_person_address,
 				CASE
 					WHEN m.sender_id = ${personId} THEN 'sent'
@@ -134,9 +134,7 @@ export class MessageRepository {
 				END as direction
 			FROM message m
 			LEFT JOIN person p_sender ON m.sender_id = p_sender.id
-			LEFT JOIN society_config s_sender ON p_sender.society_id = s_sender.id
 			LEFT JOIN person p_recipient ON m.recipient_id = p_recipient.id
-			LEFT JOIN society_config s_recipient ON p_recipient.society_id = s_recipient.id
 			WHERE (m.sender_id = ${personId} OR m.recipient_id = ${personId})
 				AND m.archived_at IS NOT NULL
 			ORDER BY m.archived_at DESC
@@ -159,14 +157,14 @@ export class MessageRepository {
 	async findMessageRecipient(handle: string, societyHandle: string): Promise<MessageRecipient | null> {
 		const [person] = await this.sql<Array<{ id: string }>>`
 			SELECT p.id FROM person p
-			JOIN society_config s ON p.society_id = s.id
-			WHERE p.handle = ${handle} AND s.handle = ${societyHandle}`;
+			WHERE p.handle = ${handle}
+			  AND (SELECT value FROM society_config WHERE key = 'society.handle') = ${societyHandle}`;
 		if (person) return { type: 'person', id: person.id };
 
 		const [assoc] = await this.sql<Array<{ id: string }>>`
 			SELECT a.id FROM association a
-			JOIN society_config s ON a.society_id = s.id
-			WHERE a.handle = ${handle} AND s.handle = ${societyHandle}`;
+			WHERE a.handle = ${handle}
+			  AND (SELECT value FROM society_config WHERE key = 'society.handle') = ${societyHandle}`;
 		if (assoc) return { type: 'association', id: assoc.id };
 
 		return null;

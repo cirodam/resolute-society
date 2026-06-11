@@ -41,7 +41,12 @@ export class TreasuryRepository {
 	}
 
 	async findSocietyById(societyId: string): Promise<TreasurySocietyRow | null> {
-		const [row] = await this.sql<TreasurySocietyRow[]>`SELECT id, handle, name FROM society_config WHERE id = ${societyId}`;
+		const [row] = await this.sql<TreasurySocietyRow[]>`
+			SELECT s_id.value AS id, s_handle.value AS handle, s_name.value AS name
+			FROM society_config s_id
+			JOIN society_config s_handle ON s_handle.key = 'society.handle'
+			JOIN society_config s_name ON s_name.key = 'society.name'
+			WHERE s_id.key = 'society.id' AND s_id.value = ${societyId}`;
 		return row ?? null;
 	}
 

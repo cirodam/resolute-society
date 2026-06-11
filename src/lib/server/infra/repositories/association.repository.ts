@@ -56,9 +56,9 @@ const DETAIL_SELECT = `
 		l.lat     AS location_lat,
 		l.lng     AS location_lng,
 		l.address AS location_address,
-		s.name AS society_name, s.id AS society_id
+		(SELECT value FROM society_config WHERE key = 'society.name') AS society_name,
+		a.society_id
 	FROM association a
-	JOIN society_config s ON a.society_id = s.id
 	LEFT JOIN location l ON a.location_id = l.id
 `;
 

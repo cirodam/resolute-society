@@ -71,7 +71,11 @@ export class CourseRepository {
 	constructor(private readonly sql: postgres.Sql) {}
 
 	async findSociety(societyId: string): Promise<SocietyRow | null> {
-		const [row] = await this.sql<SocietyRow[]>`SELECT id, name FROM society_config WHERE id = ${societyId}`;
+		const [row] = await this.sql<SocietyRow[]>`
+			SELECT s_id.value AS id, s_name.value AS name
+			FROM society_config s_id
+			JOIN society_config s_name ON s_name.key = 'society.name'
+			WHERE s_id.key = 'society.id' AND s_id.value = ${societyId}`;
 		return row ?? null;
 	}
 

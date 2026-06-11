@@ -150,7 +150,7 @@
 						<a href="/society/nutrition/food/{food.id}" class="catalog-name">{food.name}</a>
 						<form method="POST" action="?/deleteFood" use:enhance class="delete-form">
 							<input type="hidden" name="food_id" value={food.id} />
-							<button type="submit" class="btn-ghost btn-sm">Remove</button>
+							<button type="submit" class="btn btn--ghost btn--small">Remove</button>
 						</form>
 					</div>
 				{/each}
@@ -177,7 +177,7 @@
 							class="field-input"
 							bind:value={addFoodName}
 						/>
-						<button type="submit" class="btn-secondary">Add Food</button>
+						<button type="submit" class="btn btn--secondary">Add Food</button>
 					</form>
 				</div>
 			</div>

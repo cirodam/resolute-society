@@ -96,7 +96,11 @@ export class PositionRepository {
 	constructor(private readonly sql: postgres.Sql) {}
 
 	async findSociety(societyId: string): Promise<{ id: string; name: string } | null> {
-		const [row] = await this.sql<Array<{ id: string; name: string }>>`SELECT id, name FROM society_config WHERE id = ${societyId}`;
+		const [row] = await this.sql<Array<{ id: string; name: string }>>`
+			SELECT s_id.value AS id, s_name.value AS name
+			FROM society_config s_id
+			JOIN society_config s_name ON s_name.key = 'society.name'
+			WHERE s_id.key = 'society.id' AND s_id.value = ${societyId}`;
 		return row ?? null;
 	}
 

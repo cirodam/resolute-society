@@ -127,9 +127,9 @@ export class PersonRepository {
 				p.id, p.handle, p.given_name, p.surname, p.dob, p.sex,
 				p.location_id, l.name AS location_name,
 				p.bio, p.sortition_number, p.membership_status,
-				s.name AS society_name, s.id AS society_id
+				(SELECT value FROM society_config WHERE key = 'society.name') AS society_name,
+				p.society_id
 			FROM person p
-			JOIN society_config s ON p.society_id = s.id
 			LEFT JOIN location l ON p.location_id = l.id
 			WHERE p.id = ${personId}`;
 		return row ?? null;
@@ -152,9 +152,9 @@ export class PersonRepository {
 				p.id, p.handle, p.given_name, p.surname, p.dob, p.sex,
 				p.location_id, l.name AS location_name,
 				p.bio, p.sortition_number, p.membership_status,
-				s.name AS society_name, s.id AS society_id
+				(SELECT value FROM society_config WHERE key = 'society.name') AS society_name,
+				p.society_id
 			FROM person p
-			JOIN society_config s ON p.society_id = s.id
 			LEFT JOIN location l ON p.location_id = l.id
 			WHERE p.id = ${personId}`;
 		return row ?? null;

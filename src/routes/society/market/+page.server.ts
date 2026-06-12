@@ -7,7 +7,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 const PAGE_SIZE = 25;
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
 	const repositories = getRepositories();
 	const societyId = resolveSocietyId(undefined);
 	const society = await repositories.market.findSociety(societyId);
@@ -19,12 +19,19 @@ export const load: PageServerLoad = async ({ url }) => {
 	const itemPage = Math.max(1, parseInt(url.searchParams.get('itemPage') ?? '1', 10));
 	const servicePage = Math.max(1, parseInt(url.searchParams.get('servicePage') ?? '1', 10));
 
-	const [itemListings, totalItems, serviceListings, totalServices] = await Promise.all([
-		repositories.market.listItemListings(societyId, PAGE_SIZE, (itemPage - 1) * PAGE_SIZE),
-		repositories.market.countItemListings(societyId),
-		repositories.market.listServiceListings(societyId, PAGE_SIZE, (servicePage - 1) * PAGE_SIZE),
-		repositories.market.countServiceListings(societyId)
-	]);
+	const [itemListings, totalItems, serviceListings, totalServices, myItemListings, myServiceListings] =
+		await Promise.all([
+			repositories.market.listItemListings(societyId, PAGE_SIZE, (itemPage - 1) * PAGE_SIZE),
+			repositories.market.countItemListings(societyId),
+			repositories.market.listServiceListings(societyId, PAGE_SIZE, (servicePage - 1) * PAGE_SIZE),
+			repositories.market.countServiceListings(societyId),
+			locals.person
+				? repositories.market.listItemListingsByPerson(societyId, locals.person.id)
+				: Promise.resolve([]),
+			locals.person
+				? repositories.market.listServiceListingsByPerson(societyId, locals.person.id)
+				: Promise.resolve([])
+		]);
 
 	return {
 		society,
@@ -33,7 +40,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		itemTotalPages: Math.max(1, Math.ceil(totalItems / PAGE_SIZE)),
 		serviceListings,
 		servicePage,
-		serviceTotalPages: Math.max(1, Math.ceil(totalServices / PAGE_SIZE))
+		serviceTotalPages: Math.max(1, Math.ceil(totalServices / PAGE_SIZE)),
+		myItemListings,
+		myServiceListings
 	};
 };
 

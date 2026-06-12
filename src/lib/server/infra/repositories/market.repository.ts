@@ -83,6 +83,28 @@ export class MarketRepository {
 		return parseInt(row.count, 10);
 	}
 
+	async listItemListingsByPerson(societyId: string, personId: string): Promise<ItemListingRow[]> {
+		return await this.sql<ItemListingRow[]>`
+			SELECT il.id, il.type, il.category, il.title, il.description,
+			       il.society_credits_price, il.federation_credits_price, il.created_at,
+			       p.id as person_id, p.given_name, p.surname, p.handle
+			FROM item_listing il
+			JOIN person p ON p.id = il.person_id
+			WHERE il.society_id = ${societyId} AND il.person_id = ${personId} AND il.status = 'active'
+			ORDER BY il.created_at DESC`;
+	}
+
+	async listServiceListingsByPerson(societyId: string, personId: string): Promise<ServiceListingRow[]> {
+		return await this.sql<ServiceListingRow[]>`
+			SELECT sl.id, sl.category, sl.title, sl.description,
+			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit, sl.created_at,
+			       p.id as person_id, p.given_name, p.surname, p.handle
+			FROM service_listing sl
+			JOIN person p ON p.id = sl.person_id
+			WHERE sl.society_id = ${societyId} AND sl.person_id = ${personId} AND sl.status = 'active'
+			ORDER BY sl.created_at DESC`;
+	}
+
 	async findLocalPerson(societyId: string): Promise<{ id: string } | null> {
 		const [row] = await this.sql<Array<{ id: string }>>`SELECT id FROM person WHERE society_id = ${societyId} LIMIT 1`;
 		return row ?? null;

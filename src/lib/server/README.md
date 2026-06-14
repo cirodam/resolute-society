@@ -29,7 +29,8 @@ Use this layer to coordinate domain and repositories.
 Persistence and wiring:
 
 - `db.ts`: SQLite connection
-- `schema.ts`: schema and additive migrations
+- `schema.ts`: migration entrypoint that composes modular schema sections
+- `schema/`: split SQL schema sections by domain
 - `repositories/`: SQL-backed repositories
 
 ## Rule of Thumb

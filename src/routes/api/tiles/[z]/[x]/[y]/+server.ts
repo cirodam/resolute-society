@@ -1,4 +1,4 @@
-import { getCachedTile, fetchAndCacheTile } from '$lib/server/tile-cache';
+import { getCachedTile, fetchAndCacheTile } from '$lib/server/infra/tile-cache';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params }) => {

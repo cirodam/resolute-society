@@ -2,7 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { setConfig } from '$lib/server/infra/config';
-import { warmLocalTiles } from '$lib/server/tile-cache';
+import { warmLocalTiles } from '$lib/server/infra/tile-cache';
 import { withCriticalAction } from '$lib/server/http/critical-action';
 import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';

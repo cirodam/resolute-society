@@ -15,7 +15,7 @@
 		<div class="header-actions">
 			<a href="/society/directory/people/print" class="btn btn--secondary btn--small">Print Roster</a>
 			{#if hasPermission(data.permissions, 'membership.create_member')}
-				<a href="/society/directory/new" class="btn btn--secondary btn--small">Add Member</a>
+				<a href="/society/directory/people/new" class="btn btn--secondary btn--small">Add Member</a>
 				<form method="POST" action="?/seedRandomPerson" use:enhance style="display: inline;">
 					<button type="submit" class="btn btn--secondary btn--small">Seed Random Person</button>
 				</form>

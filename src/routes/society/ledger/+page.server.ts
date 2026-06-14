@@ -3,7 +3,7 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { calculateBalance } from '$lib/server/services/ledger.service';
 import { getRepositories } from '$lib/server/infra/repositories';
-import { performCloseDay } from './close-day';
+import { performCloseDay } from '$lib/server/economy/close-day';
 import { withCriticalAction } from '$lib/server/http/critical-action';
 import type { Actions, PageServerLoad } from './$types';
 

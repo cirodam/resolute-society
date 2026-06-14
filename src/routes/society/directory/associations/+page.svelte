@@ -10,7 +10,7 @@
 	<div class="section-header">
 		<h2 class="section-title">Associations ({data.associations.length})</h2>
 		{#if hasPermission(data.permissions, 'membership.create_association')}
-			<a href="/society/directory/new-association" class="btn btn--secondary btn--small">Add Association</a>
+			<a href="/society/directory/associations/new" class="btn btn--secondary btn--small">Add Association</a>
 		{/if}
 	</div>
 

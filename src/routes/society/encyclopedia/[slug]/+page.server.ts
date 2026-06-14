@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { getEncyclopediaEntry } from '$lib/server/encyclopedia';
+import { getEncyclopediaEntry } from '$lib/server/content/encyclopedia';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {

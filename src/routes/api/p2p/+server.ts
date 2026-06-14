@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { canonicalTransferData, verifyJoinMessage } from '$lib/server/federation/crypto';
+import { parseAddress } from '$lib/server/economy/addressing';
 import type { RequestHandler } from './$types';
 
 const REPLAY_WINDOW_MS = 5 * 60 * 1000;
@@ -41,6 +42,12 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	const { id, fromPrincipal, toPrincipal, amount, timestamp, signature } = body;
+
+	// Validate address format before doing any DB work.
+	const parsedFrom = parseAddress(fromPrincipal);
+	const parsedTo = parseAddress(toPrincipal);
+	if (parsedFrom.form === 'invalid') throw error(400, 'Invalid fromPrincipal format');
+	if (parsedTo.form === 'invalid') throw error(400, 'Invalid toPrincipal format');
 
 	const repos = getRepositories();
 

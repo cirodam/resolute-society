@@ -256,13 +256,6 @@ export class PositionRepository {
 			WHERE position_id = ${positionId} AND permission_id = ${permissionId}`;
 	}
 
-	async listForPerson(personId: string): Promise<Array<{ id: string; name: string; type: string; current_allowance: number }>> {
-		return await this.sql<Array<{ id: string; name: string; type: string; current_allowance: number }>>`
-			SELECT id, name, type, current_allowance
-			FROM position WHERE current_person_id = ${personId}
-			ORDER BY type, name`;
-	}
-
 	async findPositionSociety(positionId: string): Promise<{ society_id: string } | null> {
 		const [row] = await this.sql<Array<{ society_id: string }>>`SELECT society_id FROM position WHERE id = ${positionId}`;
 		return row ?? null;

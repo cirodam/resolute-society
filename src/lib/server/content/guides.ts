@@ -12,8 +12,6 @@ const modules = import.meta.glob('/src/lib/content/guides/*.md', {
 
 const loader = createContentLoader(modules, 'Read this guide.', '/src/lib/content/guides/');
 
-export const listGuides = loader.list;
-
 export function listGuideGroups(): GuideGroup[] {
 	return loader.listGroups().map(({ category, items }) => ({ category, guides: items }));
 }

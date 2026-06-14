@@ -79,13 +79,6 @@ CREATE TABLE IF NOT EXISTS fed_mint_event (
 	created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS fed_burn_event (
-	id              TEXT PRIMARY KEY,
-	mandate_ref     TEXT NOT NULL,
-	amount          REAL NOT NULL CHECK (amount > 0),
-	executed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS peer_society (
 	id           TEXT PRIMARY KEY,
 	handle       TEXT NOT NULL UNIQUE,

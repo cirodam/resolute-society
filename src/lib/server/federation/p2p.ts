@@ -5,6 +5,18 @@ import { executeExternalFetch } from '$lib/server/http/external-fetch';
 
 const P2P_TIMEOUT_MS = 5000;
 
+export function parseSocietyHandle(principal: string): string | null {
+	const atIndex = principal.lastIndexOf('@');
+	if (atIndex <= 0 || atIndex === principal.length - 1) return null;
+	return principal.slice(atIndex + 1);
+}
+
+export function isSameSocietyTransfer(fromPrincipal: string, toPrincipal: string): boolean {
+	const fromHandle = parseSocietyHandle(fromPrincipal);
+	const toHandle = parseSocietyHandle(toPrincipal);
+	return !!fromHandle && !!toHandle && fromHandle === toHandle;
+}
+
 export async function sendFedTransfer(params: {
 	fromPrincipal: string;
 	toPrincipal: string;
@@ -18,7 +30,7 @@ export async function sendFedTransfer(params: {
 
 	const txn = (await repos.outboundFedTxns.findById(id))!;
 	try {
-		await deliverOutboundFedTxn(txn);
+		await processOutboundFedTxn(txn);
 		return { id, settled: true };
 	} catch {
 		return { id, settled: false };
@@ -27,7 +39,16 @@ export async function sendFedTransfer(params: {
 
 export async function sweepOutboundFedTxns(): Promise<void> {
 	const pending = await getRepositories().outboundFedTxns.listPending();
-	await Promise.allSettled(pending.map(deliverOutboundFedTxn));
+	await Promise.allSettled(pending.map(processOutboundFedTxn));
+}
+
+async function processOutboundFedTxn(txn: OutboundFedTxnRow): Promise<void> {
+	if (isSameSocietyTransfer(txn.from_principal, txn.to_principal)) {
+		await settleLocalFedTxn(txn);
+		return;
+	}
+
+	await deliverOutboundFedTxn(txn);
 }
 
 async function deliverOutboundFedTxn(txn: OutboundFedTxnRow): Promise<void> {
@@ -83,4 +104,16 @@ async function deliverOutboundFedTxn(txn: OutboundFedTxnRow): Promise<void> {
 
 	await repos.outboundFedTxns.markSettled(txn.id);
 	console.log(`[p2p] settled ${txn.id}: ${txn.from_principal} → ${txn.to_principal} (${txn.amount})`);
+}
+
+async function settleLocalFedTxn(txn: OutboundFedTxnRow): Promise<void> {
+	const repos = getRepositories();
+	await repos.inboundFedTxns.create({
+		id: txn.id,
+		fromPrincipal: txn.from_principal,
+		toPrincipal: txn.to_principal,
+		amount: txn.amount
+	});
+	await repos.outboundFedTxns.markSettled(txn.id);
+	console.log(`[p2p] locally settled ${txn.id}: ${txn.from_principal} → ${txn.to_principal} (${txn.amount})`);
 }

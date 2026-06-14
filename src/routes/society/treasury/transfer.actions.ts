@@ -2,19 +2,23 @@ import { fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requireSocietyTreasuryPermission } from '$lib/server/economy/policy';
 import { sendFedTransfer } from '$lib/server/federation/p2p';
-import { resolveSocietyMemberByHandle } from '$lib/server/economy/addressing';
+import { resolveAddress, parseAddress } from '$lib/server/economy/addressing';
 import { disburseToResolvedPrincipal, hasSufficientBalance, isValidPositiveAmount } from '$lib/server/economy/disbursement';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { withCriticalAction } from '$lib/server/http/critical-action';
 
+const RESOLVE_ERROR_MESSAGES = {
+	malformed: 'Invalid address format',
+	unknown: 'No person or association found with that address',
+	ambiguous: 'That address matches more than one principal',
+	'out-of-scope': 'Cross-society transfers require a federation transfer'
+} as const;
+
 export const transferActions = {
 	transfer: withCriticalAction(async (event) => {
 		const { request } = event;
-		requireSocietyTreasuryPermission({
-			event,
-			societyId: resolveSocietyId(undefined),
-			permissionCode: 'treasury.transfer'
-		});
+		const societyId = resolveSocietyId(undefined);
+		requireSocietyTreasuryPermission({ event, societyId, permissionCode: 'treasury.transfer' });
 
 		const data = await request.formData();
 		const handle = data.get('handle')?.toString();
@@ -23,24 +27,26 @@ export const transferActions = {
 		if (!handle || !isValidPositiveAmount(amount))
 			return fail(400, { transferError: 'Please enter a valid handle and amount' });
 
-		const societyId = resolveSocietyId(undefined);
+		const repos = getRepositories();
+		const society = await repos.societies.findDetailById(societyId);
+		if (!society) return fail(500, { transferError: 'Society not found' });
 
 		if (!(await hasSufficientBalance('society', societyId, amount)))
 			return fail(400, { transferError: 'Insufficient treasury balance' });
 
-		const recipient = await resolveSocietyMemberByHandle(handle, societyId);
-		if (!recipient)
-			return fail(400, { transferError: 'Person or association not found with that handle' });
+		const resolved = await resolveAddress(handle, { societyId, societyHandle: society.handle });
+		if (!resolved.ok)
+			return fail(400, { transferError: RESOLVE_ERROR_MESSAGES[resolved.error] });
 
 		await disburseToResolvedPrincipal({
 			fromType: 'society',
 			fromId: societyId,
 			amount,
-			recipient,
+			recipient: resolved.principal,
 			note: `Treasury transfer to ${handle}`
 		});
 
-		return { transferSuccess: true, recipient: recipient.label, amount };
+		return { transferSuccess: true, recipient: resolved.principal.label, amount };
 	}, {
 		legacyKey: 'transferError',
 		fallbackCode: 'TREASURY_TRANSFER_FAILED',
@@ -62,9 +68,19 @@ export const transferActions = {
 		if (!toPrincipal) return fail(400, { federationTransferError: 'Recipient principal is required' });
 		if (!isValidPositiveAmount(amount)) return fail(400, { federationTransferError: 'Please enter a valid amount' });
 
+		const parsedTo = parseAddress(toPrincipal);
+		if (parsedTo.form !== 'handle' || parsedTo.kind !== 'qualified')
+			return fail(400, { federationTransferError: 'Recipient must be in handle@society format (e.g. alice@athensga)' });
+
 		const repos = getRepositories();
 		const society = await repos.societies.findDetailById(resolveSocietyId(undefined));
 		if (!society) return fail(404, { federationTransferError: 'Society not found' });
+
+		const targetSocietyHandle = parsedTo.society;
+		const isLocalSociety = targetSocietyHandle === society.handle;
+		const peer = isLocalSociety ? null : await repos.peerSocieties.findByHandle(targetSocietyHandle);
+		if (!isLocalSociety && !peer)
+			return fail(400, { federationTransferError: `Unknown society: ${targetSocietyHandle}` });
 
 		await sendFedTransfer({ fromPrincipal: `treasury@${society.handle}`, toPrincipal, amount });
 

@@ -17,12 +17,3 @@ export function requireSocietyTreasuryPermission(params: {
 	checkPermission(params.event, params.permissionCode, params.societyId);
 }
 
-export function requireFederationEconomyPermission(params: {
-	event: RequestEvent;
-	permissionCode: string;
-	checkPermission?: PermissionChecker;
-}): void {
-	const checkPermission = params.checkPermission ?? requirePermission;
-	const societyId = params.event.locals.person?.society_id;
-	checkPermission(params.event, params.permissionCode, societyId);
-}

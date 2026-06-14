@@ -19,6 +19,17 @@ export async function getFedBalance(principal: string): Promise<number> {
 	return Number(row?.balance ?? 0);
 }
 
+export async function getTotalFedSupplyForSociety(societyHandle: string): Promise<number> {
+	const pattern = `%@${societyHandle}`;
+	const [row] = await db()<{ total: number }[]>`
+		SELECT
+			COALESCE((SELECT SUM(amount) FROM inbound_fed_txn  WHERE to_principal   LIKE ${pattern}), 0)
+		  - COALESCE((SELECT SUM(amount) FROM outbound_fed_txn WHERE from_principal LIKE ${pattern} AND status = 'settled'), 0)
+		  AS total
+	`;
+	return Number(row?.total ?? 0);
+}
+
 export async function getFedHistory(principal: string, limit = 50): Promise<FedTxnEntry[]> {
 	return db()<FedTxnEntry[]>`
 		SELECT id, from_principal, to_principal, amount,

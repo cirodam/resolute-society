@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { calculateBalance } from '$lib/server/services/ledger.service';
 import {
@@ -6,6 +7,7 @@ import {
 	runInRepositoryTransaction
 } from '$lib/server/economy/transactions';
 import { calculateExpectedSupply, planProportionalBurn } from './endowment';
+import { getTotalFedSupplyForSociety } from './fed-balance';
 
 export type SupplySnapshot = {
 	totalSupply: number;
@@ -57,6 +59,35 @@ export async function reconcileEndowmentMint(societyId: string): Promise<{
 		expectedSupply: snapshot.expectedSupply,
 		totalSupply: snapshot.totalSupply + snapshot.supplyShortfall
 	};
+}
+
+export async function reconcileFedMint(societyId: string): Promise<{
+	minted: number;
+	expectedSupply: number;
+	totalFedSupply: number;
+}> {
+	const repositories = getRepositories();
+	const society = await repositories.societies.findDetailById(societyId);
+	if (!society) throw new Error(`Society not found: ${societyId}`);
+
+	const expectedSupply = calculateExpectedSupply(
+		await repositories.people.listEndowmentMembers(societyId)
+	);
+	const totalFedSupply = await getTotalFedSupplyForSociety(society.handle);
+	const shortfall = Math.max(0, expectedSupply - totalFedSupply);
+
+	if (shortfall <= 0) {
+		return { minted: 0, expectedSupply, totalFedSupply };
+	}
+
+	await repositories.inboundFedTxns.create({
+		id: randomUUID(),
+		fromPrincipal: 'mint@federation',
+		toPrincipal: `treasury@${society.handle}`,
+		amount: shortfall
+	});
+
+	return { minted: shortfall, expectedSupply, totalFedSupply };
 }
 
 export async function runSupplyReconciliationDemurrage(societyId: string): Promise<{

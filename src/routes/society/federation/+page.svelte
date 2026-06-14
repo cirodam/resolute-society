@@ -3,12 +3,20 @@
 	import type { PageData, ActionData } from './$types';
 	import Alert from '$lib/components/Alert.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import Subnav from '$lib/components/Subnav.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const society = $derived(data.society);
 	const messages = $derived(data.messages);
 	const summary = $derived(data.summary);
 	const peerSocieties = $derived(data.peerSocieties);
+
+	let activeTab = $state('Messages');
+
+	const tabs = [
+		{ label: 'Messages' },
+		{ label: 'Peer Societies' }
+	];
 
 	function formatTimestamp(ts: string | null | Date): string {
 		if (!ts) return '—';
@@ -30,8 +38,8 @@
 
 <div class="page-container">
 	<div class="page-header">
-		<h1 class="t-display">Federation Messages</h1>
-		<p class="page-header-description">Outbound message queue for {society.name}</p>
+		<h1 class="t-display">Federation</h1>
+		<p class="page-header-description">{society.name}</p>
 	</div>
 
 	<div class="identity-section card-border">
@@ -63,9 +71,66 @@
 		</form>
 	</div>
 
-	<div class="peers-section">
+	<Subnav {tabs} {activeTab} onTabClick={(label) => (activeTab = label)} />
+
+	{#if activeTab === 'Messages'}
+		<div class="summary-grid">
+			<div class="summary-card card-border">
+				<div class="summary-label t-label">Total</div>
+				<div class="summary-value t-numeric">{summary.total}</div>
+			</div>
+			<div class="summary-card card-border status-delivered">
+				<div class="summary-label t-label">Delivered</div>
+				<div class="summary-value t-numeric">{summary.delivered}</div>
+			</div>
+			<div class="summary-card card-border status-pending">
+				<div class="summary-label t-label">Pending</div>
+				<div class="summary-value t-numeric">{summary.pending}</div>
+			</div>
+			<div class="summary-card card-border status-stalled">
+				<div class="summary-label t-label">Stalled</div>
+				<div class="summary-value t-numeric">{summary.stalled}</div>
+			</div>
+		</div>
+
+		{#if messages.length === 0}
+			<EmptyState message="No federation messages yet." />
+		{:else}
+			<div class="table-wrapper card-border">
+				<table class="data-table">
+					<thead>
+						<tr>
+							<th>Type</th>
+							<th>Details</th>
+							<th>Status</th>
+							<th>Attempts</th>
+							<th>Created</th>
+							<th>Last Attempted</th>
+							<th>Delivered</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each messages as message}
+							<tr>
+								<td><span class="type-badge">{message.type}</span></td>
+								<td class="col-details">{payloadSummary(message.type, message.payload)}</td>
+								<td>
+									<span class="status-badge status-badge--{message.status}">{message.status}</span>
+								</td>
+								<td class="col-numeric t-numeric">{message.attemptCount}</td>
+								<td class="col-time">{formatTimestamp(message.createdAt)}</td>
+								<td class="col-time">{formatTimestamp(message.lastAttemptedAt)}</td>
+								<td class="col-time">{formatTimestamp(message.deliveredAt)}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+	{/if}
+
+	{#if activeTab === 'Peer Societies'}
 		<div class="peers-header">
-			<h2 class="t-label peers-title">Member Societies</h2>
 			<form method="POST" action="?/syncPeers" use:enhance class="sync-form">
 				<Alert type="success" message={form?.syncedCount != null ? `Synced ${form.syncedCount} societies from federation.` : null} />
 				<Alert type="error" message={form?.syncError} />
@@ -76,8 +141,8 @@
 		{#if peerSocieties.length === 0}
 			<EmptyState message="No peer societies synced yet. Use Sync Now to fetch them from the federation." />
 		{:else}
-			<div class="peers-table-wrapper card-border">
-				<table class="peers-table">
+			<div class="table-wrapper card-border">
+				<table class="data-table">
 					<thead>
 						<tr>
 							<th>Handle</th>
@@ -94,8 +159,8 @@
 								<td class="col-handle">@{peer.handle}</td>
 								<td class="col-name">{peer.name}</td>
 								<td class="col-address">{peer.address ?? '—'}</td>
-								<td class="col-members t-numeric">{peer.member_count}</td>
-								<td class="col-standing">
+								<td class="col-numeric t-numeric">{peer.member_count}</td>
+								<td>
 									<span class="standing-badge standing-badge--{peer.standing}">
 										{STANDING_LABEL[peer.standing] ?? peer.standing}
 									</span>
@@ -107,171 +172,10 @@
 				</table>
 			</div>
 		{/if}
-	</div>
-
-	<div class="summary-grid">
-		<div class="summary-card card-border">
-			<div class="summary-label t-label">Total</div>
-			<div class="summary-value t-numeric">{summary.total}</div>
-		</div>
-		<div class="summary-card card-border status-delivered">
-			<div class="summary-label t-label">Delivered</div>
-			<div class="summary-value t-numeric">{summary.delivered}</div>
-		</div>
-		<div class="summary-card card-border status-pending">
-			<div class="summary-label t-label">Pending</div>
-			<div class="summary-value t-numeric">{summary.pending}</div>
-		</div>
-		<div class="summary-card card-border status-stalled">
-			<div class="summary-label t-label">Stalled</div>
-			<div class="summary-value t-numeric">{summary.stalled}</div>
-		</div>
-	</div>
-
-	{#if messages.length === 0}
-		<EmptyState message="No federation messages yet." />
-	{:else}
-		<div class="messages-table-wrapper card-border">
-			<table class="messages-table">
-				<thead>
-					<tr>
-						<th>Type</th>
-						<th>Details</th>
-						<th>Status</th>
-						<th>Attempts</th>
-						<th>Created</th>
-						<th>Last Attempted</th>
-						<th>Delivered</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each messages as message}
-						<tr>
-							<td class="col-type"><span class="type-badge">{message.type}</span></td>
-							<td class="col-details">{payloadSummary(message.type, message.payload)}</td>
-							<td class="col-status">
-								<span class="status-badge status-badge--{message.status}">{message.status}</span>
-							</td>
-							<td class="col-attempts t-numeric">{message.attemptCount}</td>
-							<td class="col-time">{formatTimestamp(message.createdAt)}</td>
-							<td class="col-time">{formatTimestamp(message.lastAttemptedAt)}</td>
-							<td class="col-time">{formatTimestamp(message.deliveredAt)}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
 	{/if}
 </div>
 
 <style>
-	.summary-grid {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		gap: var(--space-4);
-		margin-bottom: var(--space-8);
-	}
-
-	.summary-card {
-		padding: var(--space-5);
-		text-align: center;
-	}
-
-	.summary-label {
-		font-size: var(--text-sm);
-		color: var(--ink-mid);
-		margin-bottom: var(--space-2);
-		text-transform: lowercase;
-	}
-
-	.summary-value {
-		font-size: var(--text-3xl);
-		color: var(--ink);
-	}
-
-	.status-delivered .summary-value { color: var(--accent); }
-	.status-pending .summary-value   { color: var(--gold); }
-	.status-stalled .summary-value   { color: var(--danger); }
-
-	.messages-table-wrapper {
-		overflow-x: auto;
-	}
-
-	.messages-table {
-		width: 100%;
-		border-collapse: collapse;
-		font-family: var(--font-prose);
-		font-size: var(--text-sm);
-	}
-
-	.messages-table th {
-		padding: var(--space-3) var(--space-4);
-		text-align: left;
-		font-family: var(--font-label);
-		font-size: var(--text-xs);
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--ink-mid);
-		border-bottom: 1px solid var(--border);
-		white-space: nowrap;
-	}
-
-	.messages-table td {
-		padding: var(--space-3) var(--space-4);
-		border-bottom: 1px solid var(--border-faint);
-		vertical-align: middle;
-	}
-
-	.messages-table tr:last-child td {
-		border-bottom: none;
-	}
-
-	.type-badge {
-		font-family: var(--font-label);
-		font-size: var(--text-xs);
-		letter-spacing: 0.05em;
-		color: var(--ink-mid);
-	}
-
-	.col-details {
-		color: var(--ink);
-	}
-
-	.col-attempts {
-		text-align: right;
-		color: var(--ink-mid);
-	}
-
-	.col-time {
-		color: var(--ink-faint);
-		white-space: nowrap;
-		font-size: var(--text-xs);
-	}
-
-	.status-badge {
-		display: inline-block;
-		padding: var(--space-1) var(--space-2);
-		font-family: var(--font-label);
-		font-size: var(--text-xs);
-		letter-spacing: 0.05em;
-		text-transform: uppercase;
-	}
-
-	.status-badge--delivered {
-		background: var(--accent-lt);
-		color: var(--accent);
-	}
-
-	.status-badge--pending {
-		background: var(--tint-gold);
-		color: var(--gold);
-	}
-
-	.status-badge--stalled {
-		background: var(--danger-lt);
-		color: var(--danger);
-	}
-
 	.identity-section {
 		padding: var(--space-5);
 		margin-bottom: var(--space-8);
@@ -328,20 +232,40 @@
 		border-color: var(--border-strong);
 	}
 
-	.peers-section {
+	/* Messages tab */
+	.summary-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: var(--space-4);
 		margin-bottom: var(--space-8);
 	}
 
-	.peers-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: var(--space-4);
+	.summary-card {
+		padding: var(--space-5);
+		text-align: center;
 	}
 
-	.peers-title {
-		font-size: var(--text-base);
+	.summary-label {
+		font-size: var(--text-sm);
+		color: var(--ink-mid);
+		margin-bottom: var(--space-2);
+		text-transform: lowercase;
+	}
+
+	.summary-value {
+		font-size: var(--text-3xl);
 		color: var(--ink);
+	}
+
+	.status-delivered .summary-value { color: var(--accent); }
+	.status-pending .summary-value   { color: var(--gold); }
+	.status-stalled .summary-value   { color: var(--danger); }
+
+	/* Peer societies tab */
+	.peers-header {
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: var(--space-4);
 	}
 
 	.sync-form {
@@ -350,18 +274,19 @@
 		gap: var(--space-4);
 	}
 
-	.peers-table-wrapper {
+	/* Shared table styles */
+	.table-wrapper {
 		overflow-x: auto;
 	}
 
-	.peers-table {
+	.data-table {
 		width: 100%;
 		border-collapse: collapse;
 		font-family: var(--font-prose);
 		font-size: var(--text-sm);
 	}
 
-	.peers-table th {
+	.data-table th {
 		padding: var(--space-3) var(--space-4);
 		text-align: left;
 		font-family: var(--font-label);
@@ -373,13 +298,13 @@
 		white-space: nowrap;
 	}
 
-	.peers-table td {
+	.data-table td {
 		padding: var(--space-3) var(--space-4);
 		border-bottom: 1px solid var(--border-faint);
 		vertical-align: middle;
 	}
 
-	.peers-table tr:last-child td {
+	.data-table tr:last-child td {
 		border-bottom: none;
 	}
 
@@ -399,9 +324,50 @@
 		color: var(--ink-mid);
 	}
 
-	.col-members {
+	.col-numeric {
 		text-align: right;
 		color: var(--ink-mid);
+	}
+
+	.col-details {
+		color: var(--ink);
+	}
+
+	.col-time {
+		color: var(--ink-faint);
+		white-space: nowrap;
+		font-size: var(--text-xs);
+	}
+
+	.type-badge {
+		font-family: var(--font-label);
+		font-size: var(--text-xs);
+		letter-spacing: 0.05em;
+		color: var(--ink-mid);
+	}
+
+	.status-badge {
+		display: inline-block;
+		padding: var(--space-1) var(--space-2);
+		font-family: var(--font-label);
+		font-size: var(--text-xs);
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+
+	.status-badge--delivered {
+		background: var(--accent-lt);
+		color: var(--accent);
+	}
+
+	.status-badge--pending {
+		background: var(--tint-gold);
+		color: var(--gold);
+	}
+
+	.status-badge--stalled {
+		background: var(--danger-lt);
+		color: var(--danger);
 	}
 
 	.standing-badge {
@@ -432,5 +398,4 @@
 		background: var(--border-faint);
 		color: var(--ink-faint);
 	}
-
 </style>

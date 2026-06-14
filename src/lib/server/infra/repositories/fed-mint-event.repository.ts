@@ -23,15 +23,4 @@ export class FedMintEventRepository {
 		`;
 	}
 
-	async existsByPersonId(personId: string): Promise<boolean> {
-		const [row] = await this.sql`SELECT 1 FROM fed_mint_event WHERE person_id = ${personId}`;
-		return !!row;
-	}
-
-	async findByPersonId(personId: string): Promise<FedMintEventRow | null> {
-		const [row] = await this.sql<FedMintEventRow[]>`
-			SELECT * FROM fed_mint_event WHERE person_id = ${personId}
-		`;
-		return row ?? null;
-	}
 }

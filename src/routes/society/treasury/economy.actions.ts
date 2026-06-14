@@ -2,7 +2,7 @@ import { fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requireSocietyTreasuryPermission } from '$lib/server/economy/policy';
 import { collectDemurrage, type DemurrageMode } from '$lib/server/economy/demurrage';
-import { reconcileEndowmentMint, runSupplyReconciliationDemurrage } from '$lib/server/economy/reconciliation';
+import { reconcileEndowmentMint, reconcileFedMint, runSupplyReconciliationDemurrage } from '$lib/server/economy/reconciliation';
 import { LedgerTransactionValidationError, LEDGER_TRANSACTION_ERROR } from '$lib/server/services/ledger.service';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { withCriticalAction } from '$lib/server/http/critical-action';
@@ -81,6 +81,25 @@ export const economyActions = {
 		legacyKey: 'error',
 		fallbackCode: 'TREASURY_ENDOWMENT_MINT_FAILED',
 		fallbackMessage: 'Endowment reconciliation mint failed'
+	}),
+
+	reconcileFedMint: withCriticalAction(async (event) => {
+		requireSocietyTreasuryPermission({
+			event,
+			societyId: resolveSocietyId(undefined),
+			permissionCode: 'treasury.run_demurrage'
+		});
+		const result = await reconcileFedMint(resolveSocietyId(undefined));
+		return {
+			fedMintSuccess: true,
+			minted: result.minted,
+			expectedSupply: result.expectedSupply,
+			totalFedSupply: result.totalFedSupply
+		};
+	}, {
+		legacyKey: 'error',
+		fallbackCode: 'TREASURY_FED_MINT_FAILED',
+		fallbackMessage: 'Federation endowment reconciliation mint failed'
 	}),
 
 	runSupplyReconciliationDemurrage: withCriticalAction(async (event) => {

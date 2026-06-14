@@ -262,22 +262,6 @@ export class LedgerRepository {
 		LEFT JOIN association ta ON txn.to_type = 'association' AND ta.id = txn.to_id
 	`;
 
-	async listPersonTransactions(personId: string): Promise<TxnRow[]> {
-		return await this.sql<TxnRow[]>`
-			${this.sql.unsafe(this.transactionSelect)}
-			WHERE (from_type = 'person' AND from_id = ${personId})
-			   OR (to_type = 'person' AND to_id = ${personId})
-			ORDER BY txn.created_at DESC`;
-	}
-
-	async listSocietyTransactions(societyId: string): Promise<TxnRow[]> {
-		return await this.sql<TxnRow[]>`
-			${this.sql.unsafe(this.transactionSelect)}
-			WHERE (from_type = 'society' AND from_id = ${societyId})
-			   OR (to_type = 'society' AND to_id = ${societyId})
-			ORDER BY txn.created_at DESC`;
-	}
-
 	async listPersonTransactionsPaginated(personId: string, limit: number, offset: number): Promise<TxnRowWithBalance[]> {
 		return await this.sql<TxnRowWithBalance[]>`
 			WITH base AS (

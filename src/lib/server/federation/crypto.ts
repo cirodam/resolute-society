@@ -85,24 +85,3 @@ export function signSocietyRequest(
 	return { timestamp, signature };
 }
 
-export function verifyFederationRequest(
-	body: string,
-	timestamp: string,
-	signature: string,
-	federationPublicKeyB64: string
-): boolean {
-	const ts = new Date(timestamp).getTime();
-	if (isNaN(ts) || Math.abs(Date.now() - ts) > 5 * 60 * 1000) return false;
-
-	try {
-		const canonical = `${body}\n${timestamp}`;
-		return verify(
-			null,
-			Buffer.from(canonical),
-			{ key: Buffer.from(federationPublicKeyB64, 'base64'), format: 'der', type: 'spki' },
-			Buffer.from(signature, 'base64')
-		);
-	} catch {
-		return false;
-	}
-}

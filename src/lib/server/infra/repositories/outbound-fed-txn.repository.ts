@@ -1,6 +1,6 @@
 import type postgres from 'postgres';
 
-export type OutboundFedTxnStatus = 'pending' | 'settled' | 'escrowed';
+export type OutboundFedTxnStatus = 'pending' | 'settled';
 
 export interface OutboundFedTxnRow {
 	id: string;
@@ -32,12 +32,6 @@ export class OutboundFedTxnRepository {
 			UPDATE outbound_fed_txn
 			SET status = 'settled', settled_at = NOW()
 			WHERE id = ${id}
-		`;
-	}
-
-	async markEscrowed(id: string): Promise<void> {
-		await this.sql`
-			UPDATE outbound_fed_txn SET status = 'escrowed' WHERE id = ${id}
 		`;
 	}
 

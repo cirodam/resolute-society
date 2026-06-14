@@ -17,7 +17,7 @@
 	<Subnav tabs={knowledgeTabs} />
 
 	<div class="page-content">
-		{#if data.guides.length === 0}
+		{#if data.guideGroups.length === 0}
 			<section class="empty card-border">
 				<p>No guides yet. Add Markdown files to src/lib/content/guides.</p>
 			</section>

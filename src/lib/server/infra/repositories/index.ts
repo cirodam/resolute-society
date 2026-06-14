@@ -27,26 +27,8 @@ import { PeerSocietyRepository } from './peer-society.repository';
 import { OutboundFedTxnRepository } from './outbound-fed-txn.repository';
 import { InboundFedTxnRepository } from './inbound-fed-txn.repository';
 import { FedMintEventRepository } from './fed-mint-event.repository';
-import { FedBurnEventRepository } from './fed-burn-event.repository';
 
 export type { EntityType } from './ledger.repository';
-
-export interface SocietyRepositories {
-	people: PersonRepository;
-	associations: AssociationRepository;
-	assembly: AssemblyRepository;
-	courses: CourseRepository;
-	messages: MessageRepository;
-	market: MarketRepository;
-	events: EventRepository;
-	posts: PostRepository;
-	positions: PositionRepository;
-	treasury: TreasuryRepository;
-	allowanceGroups: AllowanceGroupRepository;
-	permissions: PermissionRepository;
-	societies: SocietyRepository;
-	ledger: LedgerRepository;
-}
 
 export interface Repositories {
 	people: PersonRepository;
@@ -76,90 +58,40 @@ export interface Repositories {
 	outboundFedTxns: OutboundFedTxnRepository;
 	inboundFedTxns: InboundFedTxnRepository;
 	fedMintEvents: FedMintEventRepository;
-	fedBurnEvents: FedBurnEventRepository;
-	society: SocietyRepositories;
 }
 
 let repositories: Repositories | null = null;
 
 export function createRepositories(sql: postgres.Sql | postgres.TransactionSql = db()): Repositories {
 	const s = sql as postgres.Sql;
-	const ledger = new LedgerRepository(s);
-	const permissions = new PermissionRepository(s);
-	const societies = new SocietyRepository(s);
-	const people = new PersonRepository(s);
-	const associations = new AssociationRepository(s);
-	const assembly = new AssemblyRepository(s);
-	const courses = new CourseRepository(s);
-	const messages = new MessageRepository(s);
-	const market = new MarketRepository(s);
-	const events = new EventRepository(s);
-	const posts = new PostRepository(s);
-	const positions = new PositionRepository(s);
-	const treasury = new TreasuryRepository(s);
-	const allowanceGroups = new AllowanceGroupRepository(s);
-	const federationMessageQueue = new FederationMessageQueueRepository(s);
-	const keypair = new FederationKeypairRepository(s);
-	const locations = new LocationRepository(s);
-	const locationCategories = new LocationCategoryRepository(s);
-	const dependants = new DependantRepository(s);
-	const ledgerDays = new LedgerDayRepository(s);
-	const nutrition = new NutritionRepository(s);
-	const roadGraph = new RoadGraphRepository(s);
-	const auditEvents = new AuditEventRepository(s);
-	const peerSocieties = new PeerSocietyRepository(s);
-	const outboundFedTxns = new OutboundFedTxnRepository(s);
-	const inboundFedTxns = new InboundFedTxnRepository(s);
-	const fedMintEvents = new FedMintEventRepository(s);
-	const fedBurnEvents = new FedBurnEventRepository(s);
-
-	const society: SocietyRepositories = {
-		people,
-		associations,
-		assembly,
-		courses,
-		messages,
-		market,
-		events,
-		posts,
-		positions,
-		treasury,
-		allowanceGroups,
-		permissions,
-		societies,
-		ledger
-	};
-
 	return {
-		people,
-		associations,
-		assembly,
-		courses,
-		messages,
-		market,
-		events,
-		posts,
-		permissions,
-		positions,
-		treasury,
-		allowanceGroups,
-		societies,
-		ledger,
-		ledgerDays,
-		nutrition,
-		roadGraph,
-		federationMessageQueue,
-		keypair,
-		locations,
-		locationCategories,
-		dependants,
-		auditEvents,
-		peerSocieties,
-		outboundFedTxns,
-		inboundFedTxns,
-		fedMintEvents,
-		fedBurnEvents,
-		society
+		ledger: new LedgerRepository(s),
+		permissions: new PermissionRepository(s),
+		societies: new SocietyRepository(s),
+		people: new PersonRepository(s),
+		associations: new AssociationRepository(s),
+		assembly: new AssemblyRepository(s),
+		courses: new CourseRepository(s),
+		messages: new MessageRepository(s),
+		market: new MarketRepository(s),
+		events: new EventRepository(s),
+		posts: new PostRepository(s),
+		positions: new PositionRepository(s),
+		treasury: new TreasuryRepository(s),
+		allowanceGroups: new AllowanceGroupRepository(s),
+		federationMessageQueue: new FederationMessageQueueRepository(s),
+		keypair: new FederationKeypairRepository(s),
+		locations: new LocationRepository(s),
+		locationCategories: new LocationCategoryRepository(s),
+		dependants: new DependantRepository(s),
+		ledgerDays: new LedgerDayRepository(s),
+		nutrition: new NutritionRepository(s),
+		roadGraph: new RoadGraphRepository(s),
+		auditEvents: new AuditEventRepository(s),
+		peerSocieties: new PeerSocietyRepository(s),
+		outboundFedTxns: new OutboundFedTxnRepository(s),
+		inboundFedTxns: new InboundFedTxnRepository(s),
+		fedMintEvents: new FedMintEventRepository(s)
 	};
 }
 
@@ -178,7 +110,6 @@ export type {
 	CourseDetailRow,
 	CourseSummaryRow,
 	CourseSocietyRow,
-	CourseApprovalRow,
 	CourseCreateParams
 } from './course.repository';
 export { MessageRepository } from './message.repository';
@@ -237,5 +168,3 @@ export { InboundFedTxnRepository } from './inbound-fed-txn.repository';
 export type { InboundFedTxnRow } from './inbound-fed-txn.repository';
 export { FedMintEventRepository } from './fed-mint-event.repository';
 export type { FedMintEventRow } from './fed-mint-event.repository';
-export { FedBurnEventRepository } from './fed-burn-event.repository';
-export type { FedBurnEventRow } from './fed-burn-event.repository';

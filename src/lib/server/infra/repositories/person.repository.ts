@@ -189,30 +189,6 @@ export class PersonRepository {
 		await this.sql`UPDATE person SET welcome_seen_at = NOW() WHERE id = ${personId}`;
 	}
 
-	async findPublicKeyByHandle(handle: string, societyId: string): Promise<string | null> {
-		const [row] = await this.sql<Array<{ public_key: string | null }>>`
-			SELECT public_key FROM person WHERE handle = ${handle} AND society_id = ${societyId}`;
-		return row?.public_key ?? null;
-	}
-
-	async findPrivateKeyByHandle(handle: string, societyId: string): Promise<string | null> {
-		const [row] = await this.sql<Array<{ private_key: string | null }>>`
-			SELECT private_key FROM person WHERE handle = ${handle} AND society_id = ${societyId}`;
-		return row?.private_key ?? null;
-	}
-
-	async findPrivateKeyById(personId: string): Promise<string | null> {
-		const [row] = await this.sql<Array<{ private_key: string | null }>>`
-			SELECT private_key FROM person WHERE id = ${personId}`;
-		return row?.private_key ?? null;
-	}
-
-	async findPublicKeyById(personId: string): Promise<string | null> {
-		const [row] = await this.sql<Array<{ public_key: string | null }>>`
-			SELECT public_key FROM person WHERE id = ${personId}`;
-		return row?.public_key ?? null;
-	}
-
 	async listWithoutKeypair(societyId: string): Promise<Array<{ id: string }>> {
 		return await this.sql<Array<{ id: string }>>`
 			SELECT id FROM person WHERE society_id = ${societyId} AND public_key IS NULL`;
@@ -242,11 +218,6 @@ export class PersonRepository {
 
 	async updateMembershipStatus(personId: string, status: string): Promise<void> {
 		await this.sql`UPDATE person SET membership_status = ${status} WHERE id = ${personId}`;
-	}
-
-	async listNamesBySociety(societyId: string): Promise<PersonNameRow[]> {
-		return await this.sql<PersonNameRow[]>`
-			SELECT id, given_name, surname FROM person WHERE society_id = ${societyId} AND membership_status != 'deleted' ORDER BY surname, given_name`;
 	}
 
 	async listDirectoryMembers(societyId: string): Promise<DirectoryMemberRow[]> {

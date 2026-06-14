@@ -28,13 +28,6 @@ export class InboundFedTxnRepository {
 		return !!row;
 	}
 
-	async findById(id: string): Promise<InboundFedTxnRow | null> {
-		const [row] = await this.sql<InboundFedTxnRow[]>`
-			SELECT * FROM inbound_fed_txn WHERE id = ${id}
-		`;
-		return row ?? null;
-	}
-
 	async listAll(limit = 200): Promise<InboundFedTxnRow[]> {
 		return this.sql<InboundFedTxnRow[]>`
 			SELECT * FROM inbound_fed_txn ORDER BY received_at DESC LIMIT ${limit}

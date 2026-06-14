@@ -1,9 +1,6 @@
-import { listGuideGroups, listGuides } from '$lib/server/content/guides';
+import { listGuideGroups } from '$lib/server/content/guides';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-	return {
-		guides: listGuides(),
-		guideGroups: listGuideGroups()
-	};
+	return { guideGroups: listGuideGroups() };
 };

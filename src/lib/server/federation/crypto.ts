@@ -21,8 +21,9 @@ export function canonicalJoinData(params: {
 	name: string;
 	inviteToken: string;
 	publicKey: string;
+	networkAddress: string;
 }): string {
-	return [params.id, params.type, params.societyHandle, params.timestamp, params.societyId, params.name, params.inviteToken, params.publicKey].join('\n');
+	return [params.id, params.type, params.societyHandle, params.timestamp, params.societyId, params.name, params.inviteToken, params.publicKey, params.networkAddress].join('\n');
 }
 
 export function canonicalTransferData(transfer: {

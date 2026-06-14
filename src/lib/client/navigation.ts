@@ -17,7 +17,8 @@ export const governanceTabs: NavTab[] = [
 	{ label: 'Assembly', href: '/society/assembly' },
 	{ label: 'Officers', href: '/society/officers' },
 	{ label: 'Treasury', href: '/society/treasury' },
-	{ label: 'Master Ledger', href: '/society/ledger' }
+	{ label: 'Society Ledger', href: '/society/ledger' },
+	{ label: 'Federation Ledger', href: '/society/ledger/federation' }
 ];
 
 export const directoryTabs: NavTab[] = [

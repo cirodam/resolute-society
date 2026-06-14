@@ -3,7 +3,7 @@ import type { Actions } from './$types';
 
 export const actions = {
 	default: async ({ cookies }) => {
-		cookies.delete('session', { path: '/' });
+		cookies.delete('rs_session', { path: '/' });
 		throw redirect(303, '/login');
 	}
 } satisfies Actions;

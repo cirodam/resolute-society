@@ -46,8 +46,12 @@ export const actions = {
 		if (await repos.people.handleExists(handle))
 			return fail(400, { error: 'Handle already taken' });
 
-		const { personId, publicKey, age } = await createMember({
+		const societyDetail = await repos.societies.findDetailById(societyId);
+		if (!societyDetail) throw error(404, 'Society not found');
+
+		const { personId } = await createMember({
 			societyId,
+			societyHandle: societyDetail.handle,
 			handle,
 			givenName,
 			surname,
@@ -68,25 +72,16 @@ export const actions = {
 			metadata: { handle, givenName, surname, membershipStatus }
 		});
 
-		const societyDetail = await repos.societies.findDetailById(societyId);
-		if (societyDetail) {
-			const memberCount = await repos.people.countBySociety(societyId);
-			enqueueFederationMessage('society_heartbeat', societyDetail.handle, {
-				societyId,
-				name: societyDetail.name,
-				handle: societyDetail.handle,
-				address: societyDetail.address,
-				lat: societyDetail.lat,
-				lng: societyDetail.lng,
-				memberCount
-			});
-			enqueueFederationMessage('person_joined', societyDetail.handle, {
-				personHandle: handle,
-				personId,
-				age,
-				publicKey
-			});
-		}
+		const memberCount = await repos.people.countBySociety(societyId);
+		enqueueFederationMessage('society_heartbeat', societyDetail.handle, {
+			societyId,
+			name: societyDetail.name,
+			handle: societyDetail.handle,
+			address: societyDetail.address,
+			lat: societyDetail.lat,
+			lng: societyDetail.lng,
+			memberCount
+		});
 
 		throw redirect(303, '/society/directory');
 	}

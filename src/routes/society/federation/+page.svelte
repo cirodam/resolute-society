@@ -8,18 +8,24 @@
 	const society = $derived(data.society);
 	const messages = $derived(data.messages);
 	const summary = $derived(data.summary);
+	const peerSocieties = $derived(data.peerSocieties);
 
-	function formatTimestamp(ts: string | null): string {
+	function formatTimestamp(ts: string | null | Date): string {
 		if (!ts) return '—';
-		return new Date(ts + 'Z').toLocaleString();
+		const d = typeof ts === 'string' ? new Date(ts + 'Z') : ts;
+		return d.toLocaleString();
 	}
 
-	function payloadSummary(type: string, payload: Record<string, unknown>): string {
-		if (type === 'person_joined') {
-			return `@${payload.personHandle} age ${payload.age}`;
-		}
+	function payloadSummary(_type: string, payload: Record<string, unknown>): string {
 		return JSON.stringify(payload);
 	}
+
+	const STANDING_LABEL: Record<string, string> = {
+		forming: 'Forming',
+		good_standing: 'Good Standing',
+		suspended: 'Suspended',
+		defunct: 'Defunct'
+	};
 </script>
 
 <div class="page-container">
@@ -55,6 +61,52 @@
 				<button type="submit" class="btn btn--primary">Request Admission</button>
 			</div>
 		</form>
+	</div>
+
+	<div class="peers-section">
+		<div class="peers-header">
+			<h2 class="t-label peers-title">Member Societies</h2>
+			<form method="POST" action="?/syncPeers" use:enhance class="sync-form">
+				<Alert type="success" message={form?.syncedCount != null ? `Synced ${form.syncedCount} societies from federation.` : null} />
+				<Alert type="error" message={form?.syncError} />
+				<button type="submit" class="btn btn--secondary btn--sm">Sync Now</button>
+			</form>
+		</div>
+
+		{#if peerSocieties.length === 0}
+			<EmptyState message="No peer societies synced yet. Use Sync Now to fetch them from the federation." />
+		{:else}
+			<div class="peers-table-wrapper card-border">
+				<table class="peers-table">
+					<thead>
+						<tr>
+							<th>Handle</th>
+							<th>Name</th>
+							<th>Address</th>
+							<th>Members</th>
+							<th>Standing</th>
+							<th>Last Synced</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each peerSocieties as peer}
+							<tr>
+								<td class="col-handle">@{peer.handle}</td>
+								<td class="col-name">{peer.name}</td>
+								<td class="col-address">{peer.address ?? '—'}</td>
+								<td class="col-members t-numeric">{peer.member_count}</td>
+								<td class="col-standing">
+									<span class="standing-badge standing-badge--{peer.standing}">
+										{STANDING_LABEL[peer.standing] ?? peer.standing}
+									</span>
+								</td>
+								<td class="col-time">{formatTimestamp(peer.synced_at)}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
 	</div>
 
 	<div class="summary-grid">
@@ -274,6 +326,111 @@
 	.secret-input:focus {
 		outline: none;
 		border-color: var(--border-strong);
+	}
+
+	.peers-section {
+		margin-bottom: var(--space-8);
+	}
+
+	.peers-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: var(--space-4);
+	}
+
+	.peers-title {
+		font-size: var(--text-base);
+		color: var(--ink);
+	}
+
+	.sync-form {
+		display: flex;
+		align-items: center;
+		gap: var(--space-4);
+	}
+
+	.peers-table-wrapper {
+		overflow-x: auto;
+	}
+
+	.peers-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-family: var(--font-prose);
+		font-size: var(--text-sm);
+	}
+
+	.peers-table th {
+		padding: var(--space-3) var(--space-4);
+		text-align: left;
+		font-family: var(--font-label);
+		font-size: var(--text-xs);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--ink-mid);
+		border-bottom: 1px solid var(--border);
+		white-space: nowrap;
+	}
+
+	.peers-table td {
+		padding: var(--space-3) var(--space-4);
+		border-bottom: 1px solid var(--border-faint);
+		vertical-align: middle;
+	}
+
+	.peers-table tr:last-child td {
+		border-bottom: none;
+	}
+
+	.col-handle {
+		font-family: var(--font-label);
+		font-size: var(--text-xs);
+		letter-spacing: 0.05em;
+		color: var(--ink-mid);
+	}
+
+	.col-name {
+		color: var(--ink);
+		font-weight: 500;
+	}
+
+	.col-address {
+		color: var(--ink-mid);
+	}
+
+	.col-members {
+		text-align: right;
+		color: var(--ink-mid);
+	}
+
+	.standing-badge {
+		display: inline-block;
+		padding: var(--space-1) var(--space-2);
+		font-family: var(--font-label);
+		font-size: var(--text-xs);
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+
+	.standing-badge--forming {
+		background: var(--tint-gold);
+		color: var(--gold);
+	}
+
+	.standing-badge--good_standing {
+		background: var(--accent-lt);
+		color: var(--accent);
+	}
+
+	.standing-badge--suspended {
+		background: var(--danger-lt);
+		color: var(--danger);
+	}
+
+	.standing-badge--defunct {
+		background: var(--border-faint);
+		color: var(--ink-faint);
 	}
 
 </style>

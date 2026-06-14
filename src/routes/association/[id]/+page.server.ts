@@ -1,9 +1,9 @@
 import { error, fail } from '@sveltejs/kit';
 import { calculateBalance } from '$lib/server/services/ledger.service';
-import { getFederationBalanceWithMeta } from '$lib/server/federation/client';
+import { getFedBalance } from '$lib/server/economy/fed-balance';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
-import { resolveLocalEntityById } from '$lib/server/utils/local-entity.util';
+import { resolveLocalEntity } from '$lib/server/utils/local-entity.util';
 import { createLedgerTransaction } from '$lib/server/economy/transactions';
 import { LedgerTransactionValidationError, LEDGER_TRANSACTION_ERROR } from '$lib/server/services/ledger.service';
 import { hasPermission } from '$lib/server/services/auth.service';
@@ -19,8 +19,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	const societyCredits = await calculateBalance('association', params.id);
-	const federationBalanceRead = await getFederationBalanceWithMeta(`${association.id}@${society.id}`);
-	const federationCredits = federationBalanceRead.balance;
+	const federationCredits = await getFedBalance(`${association.handle}@${society.handle}`);
 
 	const societyId = association.society_id;
 
@@ -44,11 +43,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			...association,
 			society_credits: societyCredits,
 			federation_credits: federationCredits
-		},
-		federationRead: {
-			balanceDegraded: federationBalanceRead.degraded,
-			balanceReason: federationBalanceRead.reason,
-			balanceStatus: federationBalanceRead.status
 		},
 		members: await repositories.associations.listMembers(params.id),
 		isMember,
@@ -75,7 +69,7 @@ export const actions: Actions = {
 		if (!toPrincipal) return fail(400, { creditsError: 'Recipient is required' });
 		if (amount <= 0) return fail(400, { creditsError: 'Amount must be greater than zero' });
 
-		const toEntity = await resolveLocalEntityById(toPrincipal.split('@')[0], societyId, repos);
+		const toEntity = await resolveLocalEntity(toPrincipal.split('@')[0], societyId, repos);
 		if (!toEntity) return fail(400, { creditsError: 'Recipient not found in this society' });
 
 		try {

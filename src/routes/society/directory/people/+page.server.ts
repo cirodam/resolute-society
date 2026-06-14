@@ -59,8 +59,12 @@ export const actions: Actions = {
 			repositories.people.handleExists(candidate)
 		);
 
-		const { personId, publicKey, age } = await createMember({
+		const society = await repositories.societies.findDetailById(societyId);
+		if (!society) throw error(500, 'Society not found');
+
+		const { personId } = await createMember({
 			societyId,
+			societyHandle: society.handle,
 			handle,
 			givenName,
 			surname,
@@ -69,25 +73,16 @@ export const actions: Actions = {
 			membershipStatus: 'provisional'
 		});
 
-		const society = await repositories.societies.findDetailById(societyId);
-		if (society) {
-			const memberCount = await repositories.people.countBySociety(societyId);
-			enqueueFederationMessage('society_heartbeat', society.handle, {
-				societyId,
-				name: society.name,
-				handle: society.handle,
-				address: society.address,
-				lat: society.lat,
-				lng: society.lng,
-				memberCount
-			});
-			enqueueFederationMessage('person_joined', society.handle, {
-				personHandle: handle,
-				personId,
-				age,
-				publicKey
-			});
-		}
+		const memberCount = await repositories.people.countBySociety(societyId);
+		enqueueFederationMessage('society_heartbeat', society.handle, {
+			societyId,
+			name: society.name,
+			handle: society.handle,
+			address: society.address,
+			lat: society.lat,
+			lng: society.lng,
+			memberCount
+		});
 
 		await audit({
 			actor: locals.person,

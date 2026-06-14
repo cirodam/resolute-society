@@ -2,7 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { randomUUID } from 'crypto';
 import { calculateBalance } from '$lib/server/services/ledger.service';
-import { getFederationBalance } from '$lib/server/federation/client';
+import { getFedBalance } from '$lib/server/economy/fed-balance';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	}
 
 	const societyCredits = await calculateBalance('society', resolveSocietyId(undefined));
-	const federationCredits = await getFederationBalance(`treasury@${society.id}`);
+	const federationCredits = await getFedBalance(`treasury@${society.handle}`);
 
 	return {
 		society: {

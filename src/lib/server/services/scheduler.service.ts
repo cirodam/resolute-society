@@ -5,6 +5,7 @@ import { reconcileEndowmentMint } from '$lib/server/economy/reconciliation';
 const ENDOWMENT_RECONCILE_JOB = 'endowment_reconcile_daily_0800';
 const LEDGER_PRUNE_JOB = 'ledger_prune_daily_0800';
 const BACKUP_JOB = 'backup_daily_0800';
+const PEER_SOCIETY_SYNC_JOB = 'peer_society_sync_daily_0800';
 const LOCK_LEASE_SECONDS = 5 * 60;
 const TICK_MS = 60_000;
 
@@ -111,10 +112,16 @@ async function runBackupJob(): Promise<void> {
 	await createBackup();
 }
 
+async function runPeerSocietySyncJob(): Promise<void> {
+	const { syncPeerSocieties } = await import('$lib/server/federation/client');
+	await syncPeerSocieties();
+}
+
 const JOBS: Array<{ name: string; run: () => Promise<void> }> = [
 	{ name: ENDOWMENT_RECONCILE_JOB, run: runEndowmentReconcileJob },
 	{ name: LEDGER_PRUNE_JOB, run: runLedgerPruneJob },
 	{ name: BACKUP_JOB, run: runBackupJob },
+	{ name: PEER_SOCIETY_SYNC_JOB, run: runPeerSocietySyncJob },
 ];
 
 async function runDueJobs(): Promise<void> {

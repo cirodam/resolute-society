@@ -3,8 +3,8 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { error, fail } from '@sveltejs/kit';
 import { calculateBalance } from '$lib/server/services/ledger.service';
-import { getFederationBalance, enqueueFederationMessage } from '$lib/server/federation/client';
-import { canonicalTransferData, signData } from '$lib/server/federation/crypto';
+import { getFedBalance } from '$lib/server/economy/fed-balance';
+import { sendFedTransfer } from '$lib/server/federation/p2p';
 import { requireSocietyTreasuryPermission } from '$lib/server/economy/policy';
 import { resolveSocietyMemberByHandle } from '$lib/server/economy/addressing';
 import { collectDemurrage, type DemurrageMode } from '$lib/server/economy/demurrage';
@@ -38,7 +38,7 @@ export const load: PageServerLoad = async ({ params }) => {
 	const societyId = resolveSocietyId(undefined);
 	const summary = await repositories.treasury.calculateSummary(societyId);
 	const supplySnapshot = await getSupplySnapshot(societyId);
-	const federationCredits = await getFederationBalance(`treasury@${society.id}`);
+	const federationCredits = await getFedBalance(`treasury@${society.handle}`);
 	const allowanceGroups = await repositories.allowanceGroups.listBySociety(societyId);
 	const members = await repositories.treasury.listSocietyMembers(societyId);
 	const groupMembers = await repositories.allowanceGroups.listMembers(societyId);
@@ -257,23 +257,11 @@ export const actions = {
 		const society = await repos.societies.findDetailById(societyId);
 		if (!society) return fail(404, { federationTransferError: 'Society not found' });
 
-		const keypair = await repos.keypair.get();
-		if (!keypair) return fail(500, { federationTransferError: 'Society keypair not initialised' });
-
-		if (!(await repos.federationMessageQueue.isAdmitted(society.handle))) {
-			return fail(400, { federationTransferError: 'Society is not yet admitted to the federation' });
-		}
-
-		const transfer = {
-			id: randomUUID(),
-			fromPrincipal: `treasury@${society.id}`,
+		await sendFedTransfer({
+			fromPrincipal: `treasury@${society.handle}`,
 			toPrincipal,
-			amount,
-			timestamp: new Date().toISOString()
-		};
-
-		const signature = signData(canonicalTransferData(transfer), keypair.private_key);
-		enqueueFederationMessage('transfer_requested', society.handle, { ...transfer, signature });
+			amount
+		});
 
 		return { federationTransferSuccess: true, toPrincipal, amount };
 	}, {

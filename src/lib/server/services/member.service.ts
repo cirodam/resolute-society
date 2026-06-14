@@ -10,6 +10,7 @@ export { BCRYPT_ROUNDS };
 
 export interface CreateMemberParams {
 	societyId: string;
+	societyHandle: string;
 	handle: string;
 	givenName: string;
 	surname: string;
@@ -29,6 +30,7 @@ export interface CreateMemberResult {
 export async function createMember(params: CreateMemberParams): Promise<CreateMemberResult> {
 	const {
 		societyId,
+		societyHandle,
 		handle,
 		givenName,
 		surname,
@@ -70,6 +72,15 @@ export async function createMember(params: CreateMemberParams): Promise<CreateMe
 				toId: societyId,
 				amount: endowment,
 				note: `Money creation: ${givenName} ${surname} joined (${age} person-years)`
+			});
+
+			const mintId = randomUUID();
+			await repos.fedMintEvents.create({ id: mintId, personId, personAge: age, amount: endowment });
+			await repos.inboundFedTxns.create({
+				id: mintId,
+				fromPrincipal: 'mint@federation',
+				toPrincipal: `treasury@${societyHandle}`,
+				amount: endowment
 			});
 		}
 	});

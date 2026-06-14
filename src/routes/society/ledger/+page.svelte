@@ -17,7 +17,7 @@
 
 <div class="page-container">
 	<div class="page-header">
-		<h1 class="t-display">Master Ledger</h1>
+		<h1 class="t-display">Society Ledger</h1>
 		<p class="page-header-description">
 			Complete transaction history for {society.name}
 		</p>

@@ -1,6 +1,7 @@
 import { migrate } from '$lib/server/infra/schema';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { enqueueFederationMessage, sweepFederationMessages } from '$lib/server/federation/client';
+import { sweepOutboundFedTxns } from '$lib/server/federation/p2p';
 import { generateFederationKeypair } from '$lib/server/federation/crypto';
 import { startScheduler } from '$lib/server/services/scheduler.service';
 import { resolveSocietyIdAsync } from '$lib/server/utils/society-id.util';
@@ -70,7 +71,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return new Response(null, { status: 302, headers: { location: '/login' } });
 	}
 
-	const sessionId = event.cookies.get('session');
+	const sessionId = event.cookies.get('rs_session');
 
 	if (sessionId) {
 		const person = await getRepositories().people.findSessionPersonById(sessionId);
@@ -96,6 +97,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		lastEventSweep = now;
 		sweepFederationMessages().catch((err) =>
 			console.warn('Federation message sweep failed:', (err as Error).message)
+		);
+		sweepOutboundFedTxns().catch((err) =>
+			console.warn('P2P outbound sweep failed:', (err as Error).message)
 		);
 	}
 

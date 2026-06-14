@@ -24,7 +24,7 @@ export const actions = {
 			return fail(401, { error: 'Invalid handle or password' });
 		}
 
-		cookies.set('session', person.id, {
+		cookies.set('rs_session', person.id, {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'strict',

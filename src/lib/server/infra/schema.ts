@@ -476,6 +476,60 @@ CREATE INDEX IF NOT EXISTS idx_audit_event_society_time ON audit_event(society_i
 CREATE INDEX IF NOT EXISTS idx_audit_event_type_time    ON audit_event(event_type, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_event_target       ON audit_event(target_type, target_id, occurred_at DESC);
 
+CREATE TABLE IF NOT EXISTS outbound_fed_txn (
+	id             TEXT PRIMARY KEY,
+	from_principal TEXT NOT NULL,
+	to_principal   TEXT NOT NULL,
+	amount         REAL NOT NULL CHECK (amount > 0),
+	status         TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'settled', 'escrowed')),
+	created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	settled_at     TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_outbound_fed_txn_status ON outbound_fed_txn(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_outbound_fed_txn_from   ON outbound_fed_txn(from_principal, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_outbound_fed_txn_to     ON outbound_fed_txn(to_principal, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS inbound_fed_txn (
+	id             TEXT PRIMARY KEY,
+	from_principal TEXT NOT NULL,
+	to_principal   TEXT NOT NULL,
+	amount         REAL NOT NULL CHECK (amount > 0),
+	received_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_inbound_fed_txn_from ON inbound_fed_txn(from_principal, received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inbound_fed_txn_to   ON inbound_fed_txn(to_principal, received_at DESC);
+
+CREATE TABLE IF NOT EXISTS fed_mint_event (
+	id          TEXT PRIMARY KEY,
+	person_id   TEXT NOT NULL REFERENCES person(id),
+	person_age  INTEGER NOT NULL,
+	amount      REAL NOT NULL CHECK (amount > 0),
+	created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS fed_burn_event (
+	id              TEXT PRIMARY KEY,
+	mandate_ref     TEXT NOT NULL,
+	amount          REAL NOT NULL CHECK (amount > 0),
+	executed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS peer_society (
+	id           TEXT PRIMARY KEY,
+	handle       TEXT NOT NULL UNIQUE,
+	name         TEXT NOT NULL,
+	address      TEXT,
+	lat          REAL,
+	lng          REAL,
+	ip_address   TEXT,
+	public_key   TEXT,
+	standing     TEXT NOT NULL DEFAULT 'forming' CHECK (standing IN ('forming', 'good_standing', 'suspended', 'defunct')),
+	member_count INTEGER NOT NULL DEFAULT 0,
+	synced_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 `;
 
 export async function migrate(): Promise<void> {

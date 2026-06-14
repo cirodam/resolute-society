@@ -23,6 +23,11 @@ import { LedgerDayRepository } from './ledger-day.repository';
 import { NutritionRepository } from './nutrition.repository';
 import { RoadGraphRepository } from './road-graph.repository';
 import { AuditEventRepository } from './audit-event.repository';
+import { PeerSocietyRepository } from './peer-society.repository';
+import { OutboundFedTxnRepository } from './outbound-fed-txn.repository';
+import { InboundFedTxnRepository } from './inbound-fed-txn.repository';
+import { FedMintEventRepository } from './fed-mint-event.repository';
+import { FedBurnEventRepository } from './fed-burn-event.repository';
 
 export type { EntityType } from './ledger.repository';
 
@@ -67,6 +72,11 @@ export interface Repositories {
 	locationCategories: LocationCategoryRepository;
 	dependants: DependantRepository;
 	auditEvents: AuditEventRepository;
+	peerSocieties: PeerSocietyRepository;
+	outboundFedTxns: OutboundFedTxnRepository;
+	inboundFedTxns: InboundFedTxnRepository;
+	fedMintEvents: FedMintEventRepository;
+	fedBurnEvents: FedBurnEventRepository;
 	society: SocietyRepositories;
 }
 
@@ -97,6 +107,11 @@ export function createRepositories(sql: postgres.Sql | postgres.TransactionSql =
 	const nutrition = new NutritionRepository(s);
 	const roadGraph = new RoadGraphRepository(s);
 	const auditEvents = new AuditEventRepository(s);
+	const peerSocieties = new PeerSocietyRepository(s);
+	const outboundFedTxns = new OutboundFedTxnRepository(s);
+	const inboundFedTxns = new InboundFedTxnRepository(s);
+	const fedMintEvents = new FedMintEventRepository(s);
+	const fedBurnEvents = new FedBurnEventRepository(s);
 
 	const society: SocietyRepositories = {
 		people,
@@ -139,6 +154,11 @@ export function createRepositories(sql: postgres.Sql | postgres.TransactionSql =
 		locationCategories,
 		dependants,
 		auditEvents,
+		peerSocieties,
+		outboundFedTxns,
+		inboundFedTxns,
+		fedMintEvents,
+		fedBurnEvents,
 		society
 	};
 }
@@ -209,3 +229,13 @@ export { FederationMessageQueueRepository } from './federation-message-queue.rep
 export type { FederationMessageRow } from './federation-message-queue.repository';
 export { AuditEventRepository } from './audit-event.repository';
 export type { AuditEventRow, AppendAuditEventParams } from './audit-event.repository';
+export { PeerSocietyRepository } from './peer-society.repository';
+export type { PeerSocietyRow, PeerSocietyStanding } from './peer-society.repository';
+export { OutboundFedTxnRepository } from './outbound-fed-txn.repository';
+export type { OutboundFedTxnRow, OutboundFedTxnStatus } from './outbound-fed-txn.repository';
+export { InboundFedTxnRepository } from './inbound-fed-txn.repository';
+export type { InboundFedTxnRow } from './inbound-fed-txn.repository';
+export { FedMintEventRepository } from './fed-mint-event.repository';
+export type { FedMintEventRow } from './fed-mint-event.repository';
+export { FedBurnEventRepository } from './fed-burn-event.repository';
+export type { FedBurnEventRow } from './fed-burn-event.repository';

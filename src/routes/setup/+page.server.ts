@@ -91,6 +91,15 @@ export const actions: Actions = {
 					amount: endowment,
 					note: `Bootstrap: ${givenName} ${surname} (${age} person-years)`
 				});
+
+				const mintId = randomUUID();
+				await txRepos.fedMintEvents.create({ id: mintId, personId, personAge: age, amount: endowment });
+				await txRepos.inboundFedTxns.create({
+					id: mintId,
+					fromPrincipal: 'mint@federation',
+					toPrincipal: `treasury@${societyHandle}`,
+					amount: endowment
+				});
 			}
 		});
 

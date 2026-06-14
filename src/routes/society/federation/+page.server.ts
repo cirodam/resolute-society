@@ -1,7 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { getRepositories } from '$lib/server/infra/repositories';
-import { joinFederation } from '$lib/server/federation/client';
+import { joinFederation, syncPeerSocieties } from '$lib/server/federation/client';
 import { audit } from '$lib/server/services/audit.service';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -36,12 +36,14 @@ export const load: PageServerLoad = async ({ params }) => {
 	const stalled = messages.filter((m) => m.status === 'stalled').length;
 
 	const keypair = await repositories.keypair.get();
+	const peerSocieties = await repositories.peerSocieties.listAll();
 
 	return {
 		society,
 		messages,
 		summary: { total: messages.length, delivered, pending, stalled },
-		publicKey: keypair?.public_key ?? null
+		publicKey: keypair?.public_key ?? null,
+		peerSocieties
 	};
 };
 
@@ -71,5 +73,14 @@ export const actions: Actions = {
 		});
 
 		return { joinQueued: true };
+	},
+
+	syncPeers: async ({ locals }) => {
+		try {
+			const { count } = await syncPeerSocieties();
+			return { syncedCount: count };
+		} catch (err) {
+			return fail(500, { syncError: (err as Error).message });
+		}
 	}
 };

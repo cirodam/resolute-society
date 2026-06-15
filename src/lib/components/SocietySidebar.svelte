@@ -4,62 +4,68 @@
 
 	let { children } = $props();
 	const person = $derived($page.data.person);
+	const societyName = $derived($page.data.societyName ?? 'The Resolute Society');
+	const path = $derived($page.url.pathname);
+
+	function active(...prefixes: string[]): boolean {
+		return prefixes.some(p => p === '/' ? path === p : path === p || path.startsWith(p + '/'));
+	}
 </script>
 
 <div class="app-shell">
 	<aside class="sidebar">
 		<div class="sidebar__brand">
-			The Resolute Society
+			{societyName}
 		</div>
 
 		<nav class="sidebar__nav">
-			<a href="/society" class="sidebar-link sidebar-link--active">
+			<a href="/society" class="sidebar-link" class:sidebar-link--active={path === '/society'}>
 				Dashboard
 			</a>
-			<a href="/society/directory/people" class="sidebar-link">
+			<a href="/society/directory/people" class="sidebar-link" class:sidebar-link--active={active('/society/directory')}>
 				Directory
 			</a>
-			<a href="/society/map" class="sidebar-link">
+			<a href="/society/map" class="sidebar-link" class:sidebar-link--active={active('/society/map')}>
 				Map
 			</a>
-			<a href="/society/locations" class="sidebar-link">
+			<a href="/society/locations" class="sidebar-link" class:sidebar-link--active={active('/society/locations')}>
 				Locations
 			</a>
 
 			<div class="sidebar-divider"></div>
 
-			<a href="/society/assembly" class="sidebar-link">
+			<a href="/society/assembly" class="sidebar-link" class:sidebar-link--active={active('/society/assembly', '/society/units', '/society/treasury', '/society/ledger')}>
 				Governance
 			</a>
-			<a href="/society/calendar" class="sidebar-link">
+			<a href="/society/calendar" class="sidebar-link" class:sidebar-link--active={active('/society/calendar', '/society/courses')}>
 				Activities
 			</a>
-			<a href="/society/market" class="sidebar-link">
+			<a href="/society/market" class="sidebar-link" class:sidebar-link--active={active('/society/market')}>
 				Market
 			</a>
-			<a href="/society/nutrition" class="sidebar-link">
+			<a href="/society/nutrition" class="sidebar-link" class:sidebar-link--active={active('/society/nutrition')}>
 				Nutrition
 			</a>
-			<a href="/society/encyclopedia" class="sidebar-link">
+			<a href="/society/encyclopedia" class="sidebar-link" class:sidebar-link--active={active('/society/encyclopedia', '/society/guides')}>
 				Encyclopedia
 			</a>
-			<a href="/society/settings" class="sidebar-link">
+			<a href="/society/settings" class="sidebar-link" class:sidebar-link--active={active('/society/settings')}>
 				Settings
 			</a>
-			<a href="/society/federation" class="sidebar-link">
+			<a href="/society/federation" class="sidebar-link" class:sidebar-link--active={active('/society/federation')}>
 				Federation
 			</a>
 
 			<div class="sidebar-divider"></div>
 
 			<div class="sidebar-group__label">Personal</div>
-			<a href="/profile" class="sidebar-link">
+			<a href="/profile" class="sidebar-link" class:sidebar-link--active={path === '/profile'}>
 				My Passbook
 			</a>
-			<a href="/profile/settings" class="sidebar-link">
+			<a href="/profile/settings" class="sidebar-link" class:sidebar-link--active={active('/profile/settings')}>
 				My Profile
 			</a>
-			<a href="/society/messages" class="sidebar-link">
+			<a href="/society/messages" class="sidebar-link" class:sidebar-link--active={active('/society/messages')}>
 				Messages
 			</a>
 

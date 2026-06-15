@@ -5,6 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"start": "vite dev",
+		"local": "bash scripts/local.sh",
 		"reset": "tsx scripts/seed.ts && vite dev",
 		"build": "vite build",
 		"preview": "vite preview",

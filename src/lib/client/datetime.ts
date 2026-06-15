@@ -1,18 +1,19 @@
 function formatWithOptions(
-	dateString: string | null,
+	date: Date | string | null,
 	options: Intl.DateTimeFormatOptions,
 	fallback = 'Unknown'
 ): string {
-	if (!dateString) {
+	if (!date) {
 		return fallback;
 	}
 
-	return new Date(dateString).toLocaleDateString('en-US', options);
+	const d = date instanceof Date ? date : new Date(date);
+	return d.toLocaleDateString('en-US', options);
 }
 
-export function formatShortDate(dateString: string | null, fallback?: string): string {
+export function formatShortDate(date: Date | string | null, fallback?: string): string {
 	return formatWithOptions(
-		dateString,
+		date,
 		{
 			year: 'numeric',
 			month: 'short',
@@ -22,9 +23,9 @@ export function formatShortDate(dateString: string | null, fallback?: string): s
 	);
 }
 
-export function formatLongDate(dateString: string | null, fallback?: string): string {
+export function formatLongDate(date: Date | string | null, fallback?: string): string {
 	return formatWithOptions(
-		dateString,
+		date,
 		{
 			year: 'numeric',
 			month: 'long',
@@ -34,9 +35,9 @@ export function formatLongDate(dateString: string | null, fallback?: string): st
 	);
 }
 
-export function formatWeekdayDate(dateString: string | null, fallback?: string): string {
+export function formatWeekdayDate(date: Date | string | null, fallback?: string): string {
 	return formatWithOptions(
-		dateString,
+		date,
 		{
 			weekday: 'short',
 			year: 'numeric',
@@ -47,9 +48,9 @@ export function formatWeekdayDate(dateString: string | null, fallback?: string):
 	);
 }
 
-export function formatDateTime(dateString: string | null, fallback?: string): string {
+export function formatDateTime(date: Date | string | null, fallback?: string): string {
 	return formatWithOptions(
-		dateString,
+		date,
 		{
 			year: 'numeric',
 			month: 'short',
@@ -61,21 +62,22 @@ export function formatDateTime(dateString: string | null, fallback?: string): st
 	);
 }
 
-export function formatTime(dateString: string | null, fallback?: string): string {
-	if (!dateString) {
+export function formatTime(date: Date | string | null, fallback?: string): string {
+	if (!date) {
 		return fallback ?? 'Unknown';
 	}
 
-	return new Date(dateString).toLocaleTimeString('en-US', {
+	const d = date instanceof Date ? date : new Date(date);
+	return d.toLocaleTimeString('en-US', {
 		hour: 'numeric',
 		minute: '2-digit'
 	});
 }
 
 export function formatDateRange(
-	start: string | null,
-	end: string | null,
-	formatter: (dateString: string | null) => string = formatShortDate
+	start: Date | string | null,
+	end: Date | string | null,
+	formatter: (date: Date | string | null) => string = formatShortDate
 ): string {
 	return `${formatter(start)} — ${formatter(end)}`;
 }

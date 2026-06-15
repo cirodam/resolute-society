@@ -86,28 +86,40 @@ CREATE TABLE IF NOT EXISTS general_assembly_member (
 	UNIQUE (assembly_id, seat_number)
 );
 
+DROP TABLE IF EXISTS position_permission;
+DROP TABLE IF EXISTS position;
+DROP TABLE IF EXISTS unit;
+
+CREATE TABLE IF NOT EXISTS unit (
+	id             TEXT PRIMARY KEY,
+	parent_unit_id TEXT REFERENCES unit(id),
+	name           TEXT NOT NULL UNIQUE,
+	description    TEXT,
+	created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_unit_parent ON unit(parent_unit_id);
+
 CREATE TABLE IF NOT EXISTS position (
 	id                            TEXT PRIMARY KEY,
-	society_id                    TEXT NOT NULL,
-	parent_position_id            TEXT REFERENCES position(id),
-	type                          TEXT NOT NULL CHECK (type IN ('officer', 'section_chief', 'line_worker')),
+	unit_id                       TEXT NOT NULL REFERENCES unit(id),
 	name                          TEXT NOT NULL,
+	is_unit_leader                BOOLEAN NOT NULL DEFAULT FALSE,
 	description                   TEXT,
-	section                       TEXT,
 	term_limit_years              INTEGER NOT NULL DEFAULT 2,
 	current_person_id             TEXT REFERENCES person(id),
-	appointed_at                  TEXT,
-	term_expires_at               TEXT,
+	appointed_at                  TIMESTAMPTZ,
+	term_expires_at               TIMESTAMPTZ,
 	default_allowance             REAL NOT NULL DEFAULT 0,
 	current_allowance             REAL NOT NULL DEFAULT 0,
 	allowance_modification_reason TEXT,
 	created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	UNIQUE (society_id, name)
+	UNIQUE (unit_id, name)
 );
 
-CREATE INDEX IF NOT EXISTS idx_position_society ON position(society_id);
-CREATE INDEX IF NOT EXISTS idx_position_parent  ON position(parent_position_id);
-CREATE INDEX IF NOT EXISTS idx_position_type    ON position(society_id, type);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_position_unit_leader ON position(unit_id) WHERE is_unit_leader = TRUE;
+CREATE INDEX IF NOT EXISTS idx_position_unit   ON position(unit_id);
+CREATE INDEX IF NOT EXISTS idx_position_person ON position(current_person_id) WHERE current_person_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS txn (
 	id         TEXT PRIMARY KEY,
@@ -285,4 +297,6 @@ CREATE TABLE IF NOT EXISTS position_permission (
 	granted_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY (position_id, permission_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_position_permission_position ON position_permission(position_id);
 `;

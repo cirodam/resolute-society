@@ -175,7 +175,7 @@
 			{:else if !showItemForm}
 				<div class="listings-grid">
 					{#each filteredItems as item}
-						<div class="listing-card card-border">
+						<a href="/society/market/item/{item.id}" class="listing-card card-border">
 							<div class="listing-header">
 								<h3 class="listing-title">{item.title}</h3>
 								{#if item.category}
@@ -185,12 +185,10 @@
 							<p class="listing-description">{item.description}</p>
 							<div class="listing-footer">
 								<span class="listing-price">{formatPrice(item.society_credits_price, item.federation_credits_price)}</span>
-								<a href="/person/{item.person_id}" class="listing-author">
-									{item.given_name} {item.surname}
-								</a>
+								<span class="listing-author">{item.given_name} {item.surname}</span>
 								<span class="listing-date">{formatShortDate(item.created_at)}</span>
 							</div>
-						</div>
+						</a>
 					{/each}
 				</div>
 			{/if}
@@ -265,7 +263,7 @@
 			{:else if !showServiceForm}
 				<div class="listings-grid">
 					{#each filteredServices as service}
-						<div class="listing-card card-border">
+						<a href="/society/market/service/{service.id}" class="listing-card card-border">
 							<div class="listing-header">
 								<h3 class="listing-title">{service.title}</h3>
 								{#if service.category}
@@ -275,12 +273,10 @@
 							<p class="listing-description">{service.description}</p>
 							<div class="listing-footer">
 								<span class="listing-price">{formatRate(service.society_credits_rate, service.federation_credits_rate, service.rate_unit)}</span>
-								<a href="/person/{service.person_id}" class="listing-author">
-									{service.given_name} {service.surname}
-								</a>
+								<span class="listing-author">{service.given_name} {service.surname}</span>
 								<span class="listing-date">{formatShortDate(service.created_at)}</span>
 							</div>
-						</div>
+						</a>
 					{/each}
 				</div>
 			{/if}
@@ -302,7 +298,7 @@
 			{:else}
 				<div class="listings-grid">
 					{#each data.myItemListings as item}
-						<div class="listing-card card-border">
+						<a href="/society/market/item/{item.id}" class="listing-card card-border">
 							<div class="listing-header">
 								<h3 class="listing-title">{item.title}</h3>
 								<span class="listing-type t-label listing-type--{item.type}">
@@ -317,7 +313,7 @@
 								<span class="listing-price">{formatPrice(item.society_credits_price, item.federation_credits_price)}</span>
 								<span class="listing-date">{formatShortDate(item.created_at)}</span>
 							</div>
-						</div>
+						</a>
 					{/each}
 				</div>
 			{/if}
@@ -330,7 +326,7 @@
 			{:else}
 				<div class="listings-grid">
 					{#each data.myServiceListings as service}
-						<div class="listing-card card-border">
+						<a href="/society/market/service/{service.id}" class="listing-card card-border">
 							<div class="listing-header">
 								<h3 class="listing-title">{service.title}</h3>
 							</div>
@@ -342,7 +338,7 @@
 								<span class="listing-price">{formatRate(service.society_credits_rate, service.federation_credits_rate, service.rate_unit)}</span>
 								<span class="listing-date">{formatShortDate(service.created_at)}</span>
 							</div>
-						</div>
+						</a>
 					{/each}
 				</div>
 			{/if}
@@ -449,6 +445,14 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
+		text-decoration: none;
+		color: inherit;
+		transition: border-color 0.15s, background 0.15s;
+	}
+
+	.listing-card:hover {
+		border-color: var(--border-strong);
+		background: var(--tint-gold);
 	}
 
 	.listing-header {

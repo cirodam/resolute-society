@@ -99,7 +99,7 @@
 		margin: 0;
 	}
 
-	.restore-submit {
+	:global(.restore-submit) {
 		width: 100%;
 	}
 

@@ -440,7 +440,7 @@
 		border-color: var(--border-strong);
 	}
 
-	.btn-remove-small {
+	:global(.btn-remove-small) {
 		background: transparent;
 		border: 1px solid var(--border);
 		color: var(--danger);
@@ -454,7 +454,7 @@
 		flex-shrink: 0;
 	}
 
-	.btn-remove-small:hover {
+	:global(.btn-remove-small:hover) {
 		background: var(--danger-lt);
 		border-color: var(--danger);
 	}

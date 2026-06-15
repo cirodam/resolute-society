@@ -24,7 +24,7 @@ export const load: PageServerLoad = async () => {
 			repositories.allowanceGroups.listBySociety(societyId),
 			repositories.treasury.listSocietyMembers(societyId),
 			repositories.allowanceGroups.listMembers(societyId),
-			repositories.positions.listForPayroll(societyId),
+			repositories.positions.listForPayroll(),
 			repositories.treasury.getMemberCount(societyId)
 		]);
 

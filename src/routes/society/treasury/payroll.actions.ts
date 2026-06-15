@@ -17,7 +17,7 @@ export const payrollActions = {
 
 		const societyId = resolveSocietyId(undefined);
 		const repositories = getRepositories();
-		const positions = await repositories.positions.listPayrollCandidates(societyId);
+		const positions = await repositories.positions.listPayrollCandidates();
 
 		if (positions.length === 0) return fail(400, { payrollError: 'No positions to pay' });
 
@@ -65,12 +65,7 @@ export const payrollActions = {
 
 		if (!positionId || newAllowance < 0) return fail(400, { adjustAllowanceError: 'Invalid input' });
 
-		await getRepositories().positions.updateAllowance({
-			positionId,
-			newAllowance,
-			reason,
-			societyId: resolveSocietyId(undefined)
-		});
+		await getRepositories().positions.updateAllowance({ positionId, newAllowance, reason });
 
 		return { adjustAllowanceSuccess: true };
 	}, {

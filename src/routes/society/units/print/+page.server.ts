@@ -11,7 +11,7 @@ export const load: PageServerLoad = async () => {
 
 	return {
 		society,
-		positions: await repos.positions.listOfficerPositions(societyId),
+		positions: await repos.positions.listForPayroll(),
 		printedAt: new Date().toISOString()
 	};
 };

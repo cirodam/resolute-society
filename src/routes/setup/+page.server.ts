@@ -62,8 +62,8 @@ export const actions: Actions = {
 			const txRepos = createRepositories(sql);
 			await txRepos.societies.createSociety({ societyId, handle: societyHandle, name: societyName, address: societyAddress });
 			await txRepos.assembly.initializeGeneralAssembly(societyId);
-			await txRepos.assembly.initializeOfficerCorps(societyId);
-			await txRepos.permissions.seedDefaultPositionPermissions(societyId);
+			await txRepos.assembly.initializeOfficerCorps();
+			await txRepos.permissions.seedDefaultPositionPermissions();
 
 			await txRepos.people.createPerson({
 				personId,

@@ -43,7 +43,7 @@ export const actions: Actions = {
 		}
 
 		const repositories = getRepositories();
-		if (await repositories.positions.isPersonOfficer(personId, resolveSocietyId(undefined))) {
+		if (await repositories.positions.isPersonOfficer(personId)) {
 			return fail(400, { message: 'Officers cannot be assembly members' });
 		}
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import Alert from '$lib/components/Alert.svelte';
@@ -18,10 +19,10 @@
 
 	let backing = $state(false);
 	let savingSettings = $state(false);
-	let backupDir = $state(data.backupDir);
-	let backupKeep = $state(data.backupKeep);
-	let pgDumpBin = $state(data.pgDumpBin);
-	let pgRestoreBin = $state(data.pgRestoreBin);
+	let backupDir = $state(untrack(() => data.backupDir));
+	let backupKeep = $state(untrack(() => data.backupKeep));
+	let pgDumpBin = $state(untrack(() => data.pgDumpBin));
+	let pgRestoreBin = $state(untrack(() => data.pgRestoreBin));
 </script>
 
 <div class="page-content">

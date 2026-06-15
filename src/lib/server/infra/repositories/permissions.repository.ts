@@ -80,8 +80,7 @@ export class PermissionRepository {
 			FROM position pos
 			JOIN position_permission pp ON pp.position_id = pos.id
 			JOIN permission perm ON perm.id = pp.permission_id
-			WHERE pos.society_id = ${check.societyId}
-			  AND pos.current_person_id = ${check.personId}
+			WHERE pos.current_person_id = ${check.personId}
 			  AND perm.code = ${check.permissionCode}
 			LIMIT 1`;
 
@@ -100,19 +99,18 @@ export class PermissionRepository {
 		}
 	}
 
-	async seedDefaultPositionPermissions(societyId: string): Promise<void> {
-		await this.grantCategoryPermissionsToPosition(societyId, 'Treasurer', 'treasury');
-		await this.grantCategoryPermissionsToPosition(societyId, 'Registrar', 'membership');
-		await this.grantCategoryPermissionsToPosition(societyId, 'Education Director', 'education');
+	async seedDefaultPositionPermissions(): Promise<void> {
+		await this.grantCategoryPermissionsToPosition('Treasurer', 'treasury');
+		await this.grantCategoryPermissionsToPosition('Registrar', 'membership');
+		await this.grantCategoryPermissionsToPosition('Education Director', 'education');
 	}
 
 	private async grantCategoryPermissionsToPosition(
-		societyId: string,
 		positionName: string,
 		category: string
 	): Promise<void> {
 		const [position] = await this.sql<Array<{ id: string }>>`
-			SELECT id FROM position WHERE society_id = ${societyId} AND name = ${positionName}`;
+			SELECT id FROM position WHERE name = ${positionName} LIMIT 1`;
 
 		if (!position) {
 			return;

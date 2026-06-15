@@ -23,6 +23,7 @@ import { LedgerDayRepository } from './ledger-day.repository';
 import { NutritionRepository } from './nutrition.repository';
 import { RoadGraphRepository } from './road-graph.repository';
 import { AuditEventRepository } from './audit-event.repository';
+import { UnitRepository } from './unit.repository';
 import { PeerSocietyRepository } from './peer-society.repository';
 import { OutboundFedTxnRepository } from './outbound-fed-txn.repository';
 import { InboundFedTxnRepository } from './inbound-fed-txn.repository';
@@ -41,6 +42,7 @@ export interface Repositories {
 	posts: PostRepository;
 	permissions: PermissionRepository;
 	positions: PositionRepository;
+	units: UnitRepository;
 	treasury: TreasuryRepository;
 	allowanceGroups: AllowanceGroupRepository;
 	societies: SocietyRepository;
@@ -77,6 +79,7 @@ export function createRepositories(sql: postgres.Sql | postgres.TransactionSql =
 		events: new EventRepository(s),
 		posts: new PostRepository(s),
 		positions: new PositionRepository(s),
+		units: new UnitRepository(s),
 		treasury: new TreasuryRepository(s),
 		allowanceGroups: new AllowanceGroupRepository(s),
 		federationMessageQueue: new FederationMessageQueueRepository(s),
@@ -132,7 +135,9 @@ export { AssemblyRepository } from './assembly.repository';
 export { PermissionRepository, PERMISSION_DEFINITIONS } from './permissions.repository';
 export type { PermissionDefinition } from './permissions.repository';
 export { PositionRepository } from './position.repository';
-export type { PositionPayrollRow, PositionPayrollCandidateRow, PositionAllowanceUpdateParams } from './position.repository';
+export type { PositionPayrollRow, PositionPayrollCandidateRow, PositionAllowanceUpdateParams, PositionDetailRow } from './position.repository';
+export { UnitRepository } from './unit.repository';
+export type { UnitRow, UnitDetailRow, UnitPositionRow } from './unit.repository';
 export { TreasuryRepository } from './treasury.repository';
 export { AllowanceGroupRepository } from './allowance-group.repository';
 export type { AllowanceGroupRow, AllowanceGroupMemberRow, AllowanceGroupRecord } from './allowance-group.repository';

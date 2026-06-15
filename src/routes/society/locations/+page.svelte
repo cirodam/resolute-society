@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import type { LocationRow, LocationCategoryRow } from '$lib/server/infra/repositories';
@@ -11,7 +12,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let activeTab = $state<'locations' | 'categories'>('locations');
-	let showLocationForm = $state(data.prefilledLat !== null);
+	let showLocationForm = $state(untrack(() => data.prefilledLat) != null);
 	let editingLocation = $state<LocationRow | null>(null);
 	let editingCategory = $state<LocationCategoryRow | null>(null);
 	let showCategoryForm = $state(false);

@@ -3,23 +3,23 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-SUDO_PREFIX=""
+CMD="${1:-up}"
+INSTANCE="${2:-1}"
 
 if docker compose version &>/dev/null 2>&1; then
-  COMPOSE_BASE=(docker compose -f docker-compose.dev.yml)
+  DOCKER_COMPOSE="docker compose"
 elif command -v docker-compose &>/dev/null; then
-  COMPOSE_BASE=(docker-compose -f docker-compose.dev.yml)
+  DOCKER_COMPOSE="docker-compose"
 else
   echo "Error: neither 'docker compose' nor 'docker-compose' found"
   exit 1
 fi
 
-if docker info &>/dev/null 2>&1; then
-  :
-elif command -v sudo &>/dev/null && sudo -n docker info &>/dev/null 2>&1; then
-  SUDO_PREFIX="sudo"
-else
-  cat <<'EOF'
+if ! docker info &>/dev/null 2>&1; then
+  if command -v sudo &>/dev/null && sudo -n docker info &>/dev/null 2>&1; then
+    DOCKER_COMPOSE="sudo $DOCKER_COMPOSE"
+  else
+    cat <<'EOF'
 Error: Docker daemon is not accessible from this shell.
 
 Try one of:
@@ -27,38 +27,59 @@ Try one of:
 - Add your user to the docker group and re-login
 - Run this script with sudo
 EOF
-  exit 1
+    exit 1
+  fi
 fi
 
-compose() {
-  if [[ -n "$SUDO_PREFIX" ]]; then
-    "$SUDO_PREFIX" "${COMPOSE_BASE[@]}" "$@"
-  else
-    "${COMPOSE_BASE[@]}" "$@"
-  fi
+run_instance() {
+  local instance="$1"
+  local cmd="$2"
+
+  case "$instance" in
+    1)
+      local file="docker-compose.dev.yml"
+      local project="resolute-society"
+      local port=3000
+      ;;
+    2)
+      local file="docker-compose.society2.dev.yml"
+      local project="resolute-society-2"
+      local port=3002
+      ;;
+    *)
+      echo "Error: instance must be 1 or 2"
+      exit 1
+      ;;
+  esac
+
+  local compose="$DOCKER_COMPOSE -f $file -p $project"
+
+  case "$cmd" in
+    up)
+      echo "Building and starting society $instance..."
+      $compose up --build -d
+      echo "Society $instance running at http://localhost:$port"
+      ;;
+    down)
+      echo "Stopping society $instance..."
+      $compose down --volumes --remove-orphans
+      ;;
+    logs)
+      $compose logs -f
+      ;;
+    *)
+      echo "Usage: $0 [up|down|logs] [1|2|all]"
+      exit 1
+      ;;
+  esac
 }
 
-case "${1:-up}" in
-  up)
-    echo "Building and starting local containers..."
-    compose up --build -d
-    echo ""
-    echo "Running at http://localhost:3000"
-    echo "Logs: ./scripts/local.sh logs"
-    ;;
-  down)
-    echo "Stopping and removing local containers, networks, and volumes..."
-    compose down --volumes --remove-orphans
-    ;;
-  logs)
-    if [[ -n "${2:-}" ]]; then
-      compose logs -f "$2"
-    else
-      compose logs -f
-    fi
+case "$INSTANCE" in
+  all)
+    run_instance 1 "$CMD"
+    run_instance 2 "$CMD"
     ;;
   *)
-    echo "Usage: $0 [up|down|logs [service]]"
-    exit 1
+    run_instance "$INSTANCE" "$CMD"
     ;;
 esac

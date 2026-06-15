@@ -10,28 +10,30 @@
 	const vacant = $derived(positions.filter((p) => !p.current_person_id));
 </script>
 
-<PrintToolbar backHref="/society/officers" backLabel="← Officers" />
+<PrintToolbar backHref="/society/units" backLabel="← Units" />
 
 <div class="doc">
 	<header class="doc-header">
 		<div class="header-society">{society.name}</div>
-		<div class="header-title">Officer Roster</div>
+		<div class="header-title">Unit Roster</div>
 	</header>
 
 	{#if positions.length === 0}
 		<p class="empty">No officer positions defined.</p>
 	{:else}
-		<table class="officers-table">
+		<table class="units-table">
 			<thead>
 				<tr>
+					<th>Unit</th>
 					<th>Position</th>
-					<th>Officer</th>
+					<th>Person</th>
 					<th>Term</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each filled as pos}
 					<tr>
+						<td class="col-unit">{pos.unit_name}</td>
 						<td class="col-position">
 							<span class="position-name">{pos.name}</span>
 							{#if pos.description}<span class="position-desc">{pos.description}</span>{/if}
@@ -42,6 +44,7 @@
 				{/each}
 				{#each vacant as pos}
 					<tr class="row-vacant">
+						<td class="col-unit">{pos.unit_name}</td>
 						<td class="col-position">
 							<span class="position-name">{pos.name}</span>
 							{#if pos.description}<span class="position-desc">{pos.description}</span>{/if}
@@ -90,13 +93,13 @@
 		color: #555;
 	}
 
-	.officers-table {
+	.units-table {
 		width: 100%;
 		border-collapse: collapse;
 		font-size: 10pt;
 	}
 
-	.officers-table th {
+	.units-table th {
 		font-size: 8pt;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -106,12 +109,13 @@
 		border-bottom: 1px solid #111;
 	}
 
-	.officers-table td {
+	.units-table td {
 		padding: 0.4rem 0.4rem;
 		border-bottom: 1px solid #e8e8e8;
 		vertical-align: top;
 	}
 
+	.col-unit { color: #777; font-size: 9pt; width: 7rem; }
 	.position-name { font-weight: bold; display: block; }
 
 	.position-desc {

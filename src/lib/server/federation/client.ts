@@ -26,7 +26,8 @@ async function societyAuthHeaders(canonical: string): Promise<Record<string, str
 async function getFederationUrl(): Promise<string | null> {
 	const societies = await getRepositories().societies.listAll();
 	const ip = societies[0]?.federation_ip_address;
-	return ip ? `http://${ip}` : null;
+	if (!ip) return null;
+	return /^https?:\/\//i.test(ip) ? ip.replace(/\/$/, '') : `http://${ip}`;
 }
 
 export interface PeerSocietyData {

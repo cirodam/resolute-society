@@ -15,7 +15,7 @@ export const marketTabs: NavTab[] = [
 
 export const governanceTabs: NavTab[] = [
 	{ label: 'Assembly', href: '/society/assembly' },
-	{ label: 'Officers', href: '/society/officers' },
+	{ label: 'Units', href: '/society/units' },
 	{ label: 'Treasury', href: '/society/treasury' },
 	{ label: 'Society Ledger', href: '/society/ledger' },
 	{ label: 'Federation Ledger', href: '/society/ledger/federation' }

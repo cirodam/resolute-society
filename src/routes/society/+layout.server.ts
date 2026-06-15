@@ -15,8 +15,11 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	}
 
 	const repositories = getRepositories();
-	const society = await repositories.societies.findFounderById(societyId);
-	const isFounder = society?.founder_person_id === locals.person.id;
+	const [societyIdentity, societyFounder] = await Promise.all([
+		repositories.societies.findById(societyId),
+		repositories.societies.findFounderById(societyId)
+	]);
+	const isFounder = societyFounder?.founder_person_id === locals.person.id;
 
 	let permissionCodes: string[] = [];
 	if (!isFounder) {
@@ -25,6 +28,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 
 	return {
 		person: locals.person,
+		societyName: societyIdentity?.name ?? 'The Resolute Society',
 		permissions: {
 			societyId,
 			isFounder,

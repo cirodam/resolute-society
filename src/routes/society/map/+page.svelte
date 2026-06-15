@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import SocietyMap from '$lib/components/SocietyMap.svelte';
 	import type { PageData, ActionData } from './$types';
@@ -75,8 +76,8 @@
 	);
 
 	// ── Road graph ───────────────────────────────────────────────────────────
-	let roadNodes = $state<RoadNodeRow[]>(data.roadNodes);
-	let roadEdges = $state<RoadEdgeRow[]>(data.roadEdges);
+	let roadNodes = $state<RoadNodeRow[]>(untrack(() => data.roadNodes));
+	let roadEdges = $state<RoadEdgeRow[]>(untrack(() => data.roadEdges));
 	let graphMode = $state<GraphMode>('view');
 	let graphBusy = $state(false);
 

@@ -13,7 +13,9 @@ export interface ItemListingRow {
 	description: string;
 	society_credits_price: number | null;
 	federation_credits_price: number | null;
+	status: string;
 	created_at: string;
+	closed_at: string | null;
 	person_id: string;
 	given_name: string;
 	surname: string;
@@ -28,6 +30,7 @@ export interface ServiceListingRow {
 	society_credits_rate: number | null;
 	federation_credits_rate: number | null;
 	rate_unit: string | null;
+	status: string;
 	created_at: string;
 	person_id: string;
 	given_name: string;
@@ -50,7 +53,8 @@ export class MarketRepository {
 	async listItemListings(societyId: string, limit: number, offset: number): Promise<ItemListingRow[]> {
 		return await this.sql<ItemListingRow[]>`
 			SELECT il.id, il.type, il.category, il.title, il.description,
-			       il.society_credits_price, il.federation_credits_price, il.created_at,
+			       il.society_credits_price, il.federation_credits_price,
+			       il.status, il.created_at, il.closed_at,
 			       p.id as person_id, p.given_name, p.surname, p.handle
 			FROM item_listing il
 			JOIN person p ON p.id = il.person_id
@@ -68,7 +72,8 @@ export class MarketRepository {
 	async listServiceListings(societyId: string, limit: number, offset: number): Promise<ServiceListingRow[]> {
 		return await this.sql<ServiceListingRow[]>`
 			SELECT sl.id, sl.category, sl.title, sl.description,
-			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit, sl.created_at,
+			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit,
+			       sl.status, sl.created_at,
 			       p.id as person_id, p.given_name, p.surname, p.handle
 			FROM service_listing sl
 			JOIN person p ON p.id = sl.person_id
@@ -86,7 +91,8 @@ export class MarketRepository {
 	async listItemListingsByPerson(societyId: string, personId: string): Promise<ItemListingRow[]> {
 		return await this.sql<ItemListingRow[]>`
 			SELECT il.id, il.type, il.category, il.title, il.description,
-			       il.society_credits_price, il.federation_credits_price, il.created_at,
+			       il.society_credits_price, il.federation_credits_price,
+			       il.status, il.created_at, il.closed_at,
 			       p.id as person_id, p.given_name, p.surname, p.handle
 			FROM item_listing il
 			JOIN person p ON p.id = il.person_id
@@ -97,12 +103,80 @@ export class MarketRepository {
 	async listServiceListingsByPerson(societyId: string, personId: string): Promise<ServiceListingRow[]> {
 		return await this.sql<ServiceListingRow[]>`
 			SELECT sl.id, sl.category, sl.title, sl.description,
-			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit, sl.created_at,
+			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit,
+			       sl.status, sl.created_at,
 			       p.id as person_id, p.given_name, p.surname, p.handle
 			FROM service_listing sl
 			JOIN person p ON p.id = sl.person_id
 			WHERE sl.society_id = ${societyId} AND sl.person_id = ${personId} AND sl.status = 'active'
 			ORDER BY sl.created_at DESC`;
+	}
+
+	async findItemListing(id: string): Promise<ItemListingRow | null> {
+		const [row] = await this.sql<ItemListingRow[]>`
+			SELECT il.id, il.type, il.category, il.title, il.description,
+			       il.society_credits_price, il.federation_credits_price,
+			       il.status, il.created_at, il.closed_at,
+			       p.id as person_id, p.given_name, p.surname, p.handle
+			FROM item_listing il
+			JOIN person p ON p.id = il.person_id
+			WHERE il.id = ${id}`;
+		return row ?? null;
+	}
+
+	async findServiceListing(id: string): Promise<ServiceListingRow | null> {
+		const [row] = await this.sql<ServiceListingRow[]>`
+			SELECT sl.id, sl.category, sl.title, sl.description,
+			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit,
+			       sl.status, sl.created_at,
+			       p.id as person_id, p.given_name, p.surname, p.handle
+			FROM service_listing sl
+			JOIN person p ON p.id = sl.person_id
+			WHERE sl.id = ${id}`;
+		return row ?? null;
+	}
+
+	async updateItemListing(id: string, params: {
+		category: string | null;
+		title: string;
+		description: string;
+		societyCreditsPrice: number | null;
+		federationCreditsPrice: number | null;
+	}): Promise<void> {
+		await this.sql`
+			UPDATE item_listing
+			SET category = ${params.category}, title = ${params.title},
+			    description = ${params.description},
+			    society_credits_price = ${params.societyCreditsPrice},
+			    federation_credits_price = ${params.federationCreditsPrice}
+			WHERE id = ${id}`;
+	}
+
+	async updateServiceListing(id: string, params: {
+		category: string | null;
+		title: string;
+		description: string;
+		societyCreditsRate: number | null;
+		federationCreditsRate: number | null;
+		rateUnit: string | null;
+	}): Promise<void> {
+		await this.sql`
+			UPDATE service_listing
+			SET category = ${params.category}, title = ${params.title},
+			    description = ${params.description},
+			    society_credits_rate = ${params.societyCreditsRate},
+			    federation_credits_rate = ${params.federationCreditsRate},
+			    rate_unit = ${params.rateUnit}
+			WHERE id = ${id}`;
+	}
+
+	async closeItemListing(id: string, status: 'sold' | 'closed'): Promise<void> {
+		await this.sql`
+			UPDATE item_listing SET status = ${status}, closed_at = NOW() WHERE id = ${id}`;
+	}
+
+	async deactivateServiceListing(id: string): Promise<void> {
+		await this.sql`UPDATE service_listing SET status = 'inactive' WHERE id = ${id}`;
 	}
 
 	async findLocalPerson(societyId: string): Promise<{ id: string } | null> {

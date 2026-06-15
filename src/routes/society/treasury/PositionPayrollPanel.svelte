@@ -9,7 +9,7 @@
 	type Position = {
 		id: string;
 		name: string;
-		type: string;
+		unit_name: string;
 		current_person_id: string | null;
 		given_name: string | null;
 		surname: string | null;
@@ -42,12 +42,6 @@
 		positions.filter((p) => p.current_person_id && p.current_allowance > 0).length
 	);
 
-	function formatPositionType(type: string): string {
-		if (type === 'officer') return 'Officer';
-		if (type === 'section_chief') return 'Section Chief';
-		if (type === 'line_worker') return 'Line Worker';
-		return type;
-	}
 </script>
 
 <div class="payroll-section">
@@ -97,7 +91,7 @@
 							<div class="position-header">
 								<div class="position-info">
 									<h4 class="position-name">{position.name}</h4>
-									<span class="position-type-badge">{formatPositionType(position.type)}</span>
+									<span class="position-type-badge">{position.unit_name}</span>
 								</div>
 								{#if position.current_person_id}
 									<div class="position-holder">

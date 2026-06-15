@@ -55,18 +55,20 @@
 				{#if expandedId === event.id && meta}
 					<div class="audit-meta">
 						<table class="meta-table">
-							{#each Object.entries(meta) as [key, value]}
-								<tr>
-									<td class="meta-key">{key}</td>
-									<td class="meta-value">
-										{#if value !== null && typeof value === 'object'}
-											<pre class="meta-json">{JSON.stringify(value, null, 2)}</pre>
-										{:else}
-											{String(value ?? '—')}
-										{/if}
-									</td>
-								</tr>
-							{/each}
+							<tbody>
+								{#each Object.entries(meta) as [key, value]}
+									<tr>
+										<td class="meta-key">{key}</td>
+										<td class="meta-value">
+											{#if value !== null && typeof value === 'object'}
+												<pre class="meta-json">{JSON.stringify(value, null, 2)}</pre>
+											{:else}
+												{String(value ?? '—')}
+											{/if}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
 						</table>
 					</div>
 				{/if}

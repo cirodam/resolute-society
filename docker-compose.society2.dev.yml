@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: resolute_society
+      POSTGRES_DB: resolute_society_2
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
@@ -14,19 +14,19 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5432:5432"
+      - "5434:5432"
 
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "3002:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
-      ORIGIN: http://localhost:3000
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/resolute_society
+      ORIGIN: http://localhost:3002
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/resolute_society_2
       DATA_DIR: /app/data
-      SOCIETY_PUBLIC_URL: host.docker.internal:3000
+      SOCIETY_PUBLIC_URL: host.docker.internal:3002
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

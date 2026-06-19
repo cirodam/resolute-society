@@ -43,22 +43,6 @@ export interface PersonSocietyRow {
 	society_id: string;
 }
 
-export interface PersonDetailRow {
-	id: string;
-	handle: string;
-	given_name: string;
-	surname: string;
-	dob: string | null;
-	sex: 'male' | 'female' | 'other' | null;
-	location_id: string | null;
-	location_name: string | null;
-	bio: string | null;
-	sortition_number: number | null;
-	membership_status: string;
-	society_name: string;
-	society_id: string;
-}
-
 export interface PersonAssociationRow {
 	name: string;
 	type: string | null;
@@ -143,20 +127,6 @@ export class PersonRepository {
 	async findByHandleAndSociety(handle: string, societyId: string): Promise<PersonIdentityRow | null> {
 		const [row] = await this.sql<PersonIdentityRow[]>`
 			SELECT id, given_name, surname FROM person WHERE handle = ${handle} AND society_id = ${societyId}`;
-		return row ?? null;
-	}
-
-	async findDetailById(personId: string): Promise<PersonDetailRow | null> {
-		const [row] = await this.sql<PersonDetailRow[]>`
-			SELECT
-				p.id, p.handle, p.given_name, p.surname, p.dob, p.sex,
-				p.location_id, l.name AS location_name,
-				p.bio, p.sortition_number, p.membership_status,
-				(SELECT value FROM society_config WHERE key = 'society.name') AS society_name,
-				p.society_id
-			FROM person p
-			LEFT JOIN location l ON p.location_id = l.id
-			WHERE p.id = ${personId}`;
 		return row ?? null;
 	}
 

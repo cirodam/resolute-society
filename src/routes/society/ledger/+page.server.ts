@@ -5,6 +5,7 @@ import { calculateBalance } from '$lib/server/services/ledger.service';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { performCloseDay } from '$lib/server/economy/close-day';
 import { withCriticalAction } from '$lib/server/http/critical-action';
+import { parsePage, pageOffset, totalPages } from '$lib/server/utils/pagination';
 import type { Actions, PageServerLoad } from './$types';
 
 const PAGE_SIZE = 50;
@@ -19,8 +20,8 @@ export const load: PageServerLoad = async ({ url }) => {
 	}
 
 	const today = new Date().toISOString().slice(0, 10);
-	const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
-	const offset = (page - 1) * PAGE_SIZE;
+	const page = parsePage(url);
+	const offset = pageOffset(page, PAGE_SIZE);
 
 	const [todayRecord, recentDays, transactions, totalTxns, members] = await Promise.all([
 		repos.ledgerDays.findByDate(societyId, today),
@@ -38,7 +39,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		transactions,
 		members,
 		page,
-		totalPages: Math.max(1, Math.ceil(totalTxns / PAGE_SIZE))
+		totalPages: totalPages(totalTxns, PAGE_SIZE)
 	};
 };
 

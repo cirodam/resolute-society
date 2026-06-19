@@ -3,6 +3,7 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { randomUUID } from 'crypto';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { audit } from '$lib/server/services/audit.service';
+import { parsePage, pageOffset, totalPages } from '$lib/server/utils/pagination';
 import type { Actions, PageServerLoad } from './$types';
 
 const PAGE_SIZE = 25;
@@ -16,14 +17,14 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		throw error(404, 'Society not found');
 	}
 
-	const itemPage = Math.max(1, parseInt(url.searchParams.get('itemPage') ?? '1', 10));
-	const servicePage = Math.max(1, parseInt(url.searchParams.get('servicePage') ?? '1', 10));
+	const itemPage = parsePage(url, 'itemPage');
+	const servicePage = parsePage(url, 'servicePage');
 
 	const [itemListings, totalItems, serviceListings, totalServices, myItemListings, myServiceListings] =
 		await Promise.all([
-			repositories.market.listItemListings(societyId, PAGE_SIZE, (itemPage - 1) * PAGE_SIZE),
+			repositories.market.listItemListings(societyId, PAGE_SIZE, pageOffset(itemPage, PAGE_SIZE)),
 			repositories.market.countItemListings(societyId),
-			repositories.market.listServiceListings(societyId, PAGE_SIZE, (servicePage - 1) * PAGE_SIZE),
+			repositories.market.listServiceListings(societyId, PAGE_SIZE, pageOffset(servicePage, PAGE_SIZE)),
 			repositories.market.countServiceListings(societyId),
 			locals.person
 				? repositories.market.listItemListingsByPerson(societyId, locals.person.id)
@@ -37,10 +38,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		society,
 		itemListings,
 		itemPage,
-		itemTotalPages: Math.max(1, Math.ceil(totalItems / PAGE_SIZE)),
+		itemTotalPages: totalPages(totalItems, PAGE_SIZE),
 		serviceListings,
 		servicePage,
-		serviceTotalPages: Math.max(1, Math.ceil(totalServices / PAGE_SIZE)),
+		serviceTotalPages: totalPages(totalServices, PAGE_SIZE),
 		myItemListings,
 		myServiceListings
 	};

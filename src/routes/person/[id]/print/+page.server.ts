@@ -5,7 +5,7 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const repos = getRepositories();
-	const person = await repos.people.findDetailById(params.id);
+	const person = await repos.people.findProfileById(params.id);
 
 	if (!person || person.membership_status === 'deleted') {
 		throw error(404, 'Person not found');

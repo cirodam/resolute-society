@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { formatLongDate } from '$lib/client/datetime';
+	import { formatPrice } from '$lib/client/market';
 	import ConfirmButton from '$lib/components/ConfirmButton.svelte';
 	import Subnav from '$lib/components/Subnav.svelte';
 
@@ -20,13 +21,7 @@
 		'Books & Reference', 'Household Goods', 'Electronics & Comms', 'Vehicles & Parts'
 	];
 
-	function formatPrice(societyPrice: number | null, federationPrice: number | null) {
-		if (societyPrice === null && federationPrice === null) return 'Free / Trade';
-		const parts = [];
-		if (societyPrice !== null) parts.push(`${societyPrice.toFixed(0)} society credits`);
-		if (federationPrice !== null) parts.push(`${federationPrice.toFixed(0)} federation credits`);
-		return parts.join(' + ');
-	}
+
 </script>
 
 <div class="page-container page-container--content">
@@ -140,20 +135,6 @@
 </div>
 
 <style>
-	.breadcrumb {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin-bottom: var(--space-3);
-		font-family: var(--font-prose);
-		font-size: var(--text-sm);
-		color: var(--ink-mid);
-	}
-
-	.breadcrumb-link { text-decoration: none; color: inherit; }
-	.breadcrumb-link:hover { color: var(--gold); }
-	.breadcrumb-sep { color: var(--ink-faint); }
-
 	.title-row {
 		display: flex;
 		align-items: center;

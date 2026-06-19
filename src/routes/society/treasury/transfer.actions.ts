@@ -55,11 +55,8 @@ export const transferActions = {
 
 	transferFederationCredits: withCriticalAction(async (event) => {
 		const { request } = event;
-		requireSocietyTreasuryPermission({
-			event,
-			societyId: resolveSocietyId(undefined),
-			permissionCode: 'treasury.transfer'
-		});
+		const societyId = resolveSocietyId(undefined);
+		requireSocietyTreasuryPermission({ event, societyId, permissionCode: 'treasury.transfer' });
 
 		const data = await request.formData();
 		const toPrincipal = data.get('toPrincipal')?.toString().trim();
@@ -73,7 +70,7 @@ export const transferActions = {
 			return fail(400, { federationTransferError: 'Recipient must be in handle@society format (e.g. alice@athensga)' });
 
 		const repos = getRepositories();
-		const society = await repos.societies.findDetailById(resolveSocietyId(undefined));
+		const society = await repos.societies.findDetailById(societyId);
 		if (!society) return fail(404, { federationTransferError: 'Society not found' });
 
 		const targetSocietyHandle = parsedTo.society;

@@ -205,25 +205,6 @@
 </div>
 
 <style>
-	.breadcrumb {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin-bottom: var(--space-3);
-		font-family: var(--font-prose);
-		font-size: var(--text-sm);
-		color: var(--ink-mid);
-	}
-
-	.breadcrumb-link {
-		text-decoration: none;
-		color: inherit;
-	}
-
-	.breadcrumb-link:hover { color: var(--gold); }
-
-	.breadcrumb-sep { color: var(--ink-faint); }
-
 	.header-actions {
 		display: flex;
 		gap: var(--space-2);

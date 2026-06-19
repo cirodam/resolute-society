@@ -1,6 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
-import { requirePermission, hasPermission } from '$lib/server/services/auth.service';
+import { requirePermission } from '$lib/server/services/auth.service';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { audit } from '$lib/server/services/audit.service';
 import type { Actions, PageServerLoad } from './$types';
@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	const canApprove = locals.person
-		? await hasPermission({
+		? await getRepositories().permissions.hasPermission({
 			personId: locals.person.id,
 			societyId: resolveSocietyId(undefined),
 			permissionCode: 'education.approve_course'

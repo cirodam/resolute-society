@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { formatShortDate } from '$lib/client/datetime';
+	import { formatPrice, formatRate } from '$lib/client/market';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Subnav from '$lib/components/Subnav.svelte';
@@ -51,23 +52,6 @@
 	function setItemMode(mode: 'offer' | 'wanted') {
 		itemMode = mode;
 		showItemForm = false;
-	}
-
-	function formatPrice(societyPrice: number | null, federationPrice: number | null) {
-		if (societyPrice === null && federationPrice === null) return 'Free / Trade';
-		const parts = [];
-		if (societyPrice !== null) parts.push(`${societyPrice.toFixed(0)} SC`);
-		if (federationPrice !== null) parts.push(`${federationPrice.toFixed(0)} FC`);
-		return parts.join(' + ');
-	}
-
-	function formatRate(societyRate: number | null, federationRate: number | null, rateUnit: string | null) {
-		if (societyRate === null && federationRate === null) return 'Rate negotiable';
-		const parts = [];
-		if (societyRate !== null) parts.push(`${societyRate.toFixed(0)} SC`);
-		if (federationRate !== null) parts.push(`${federationRate.toFixed(0)} FC`);
-		const unitStr = rateUnit ? `/${rateUnit}` : '';
-		return parts.join(' + ') + unitStr;
 	}
 
 	const filteredItems = $derived(
@@ -184,7 +168,7 @@
 							</div>
 							<p class="listing-description">{item.description}</p>
 							<div class="listing-footer">
-								<span class="listing-price">{formatPrice(item.society_credits_price, item.federation_credits_price)}</span>
+								<span class="listing-price">{formatPrice(item.society_credits_price, item.federation_credits_price, true)}</span>
 								<span class="listing-author">{item.given_name} {item.surname}</span>
 								<span class="listing-date">{formatShortDate(item.created_at)}</span>
 							</div>
@@ -272,7 +256,7 @@
 							</div>
 							<p class="listing-description">{service.description}</p>
 							<div class="listing-footer">
-								<span class="listing-price">{formatRate(service.society_credits_rate, service.federation_credits_rate, service.rate_unit)}</span>
+								<span class="listing-price">{formatRate(service.society_credits_rate, service.federation_credits_rate, service.rate_unit, true)}</span>
 								<span class="listing-author">{service.given_name} {service.surname}</span>
 								<span class="listing-date">{formatShortDate(service.created_at)}</span>
 							</div>
@@ -310,7 +294,7 @@
 							{/if}
 							<p class="listing-description">{item.description}</p>
 							<div class="listing-footer">
-								<span class="listing-price">{formatPrice(item.society_credits_price, item.federation_credits_price)}</span>
+								<span class="listing-price">{formatPrice(item.society_credits_price, item.federation_credits_price, true)}</span>
 								<span class="listing-date">{formatShortDate(item.created_at)}</span>
 							</div>
 						</a>
@@ -335,7 +319,7 @@
 							{/if}
 							<p class="listing-description">{service.description}</p>
 							<div class="listing-footer">
-								<span class="listing-price">{formatRate(service.society_credits_rate, service.federation_credits_rate, service.rate_unit)}</span>
+								<span class="listing-price">{formatRate(service.society_credits_rate, service.federation_credits_rate, service.rate_unit, true)}</span>
 								<span class="listing-date">{formatShortDate(service.created_at)}</span>
 							</div>
 						</a>

@@ -4,18 +4,9 @@
 	import type { PageData, ActionData } from './$types';
 	import Alert from '$lib/components/Alert.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import { formatDateTime } from '$lib/client/datetime';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-
-	function formatDate(iso: string) {
-		return new Date(iso).toLocaleString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric',
-			hour: 'numeric',
-			minute: '2-digit'
-		});
-	}
 
 	let backing = $state(false);
 	let savingSettings = $state(false);
@@ -134,7 +125,7 @@
 			</div>
 			{#each data.backups as backup}
 				<div class="backup-row">
-					<div class="backup-cell backup-cell--date">{formatDate(backup.createdAt)}</div>
+					<div class="backup-cell backup-cell--date">{formatDateTime(backup.createdAt)}</div>
 					<div class="backup-cell backup-cell--filename">{backup.filename}</div>
 					<div class="backup-cell backup-cell--size">{backup.sizeLabel}</div>
 					<div class="backup-cell backup-cell--action">

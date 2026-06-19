@@ -6,7 +6,6 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { resolveLocalEntity } from '$lib/server/utils/local-entity.util';
 import { createLedgerTransaction } from '$lib/server/economy/transactions';
 import { LedgerTransactionValidationError, LEDGER_TRANSACTION_ERROR } from '$lib/server/services/ledger.service';
-import { hasPermission } from '$lib/server/services/auth.service';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -28,7 +27,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		: false;
 
 	const canManageMembers = locals.person
-		? await hasPermission({ personId: locals.person.id, societyId, permissionCode: 'membership.create_association' })
+		? await getRepositories().permissions.hasPermission({ personId: locals.person.id, societyId, permissionCode: 'membership.create_association' })
 		: false;
 
 	const [inbox, sent] = isMember
@@ -147,7 +146,7 @@ export const actions: Actions = {
 		const repos = getRepositories();
 		const societyId = resolveSocietyId(undefined);
 
-		const canManage = await hasPermission({ personId: locals.person.id, societyId, permissionCode: 'membership.create_association' });
+		const canManage = await getRepositories().permissions.hasPermission({ personId: locals.person.id, societyId, permissionCode: 'membership.create_association' });
 		if (!canManage) return fail(403, { memberError: 'Permission denied' });
 
 		const data = await request.formData();
@@ -168,7 +167,7 @@ export const actions: Actions = {
 		const repos = getRepositories();
 		const societyId = resolveSocietyId(undefined);
 
-		const canManage = await hasPermission({ personId: locals.person.id, societyId, permissionCode: 'membership.create_association' });
+		const canManage = await getRepositories().permissions.hasPermission({ personId: locals.person.id, societyId, permissionCode: 'membership.create_association' });
 		if (!canManage) return fail(403, { memberError: 'Permission denied' });
 
 		const data = await request.formData();

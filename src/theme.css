@@ -730,6 +730,22 @@ h3, .heading-subsection {
 }
 
 
+/* ── BREADCRUMB ─────────────────────────────────────────────────────────── */
+
+.breadcrumb {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin-bottom: var(--space-3);
+	font-family: var(--font-prose);
+	font-size: var(--text-sm);
+	color: var(--ink-mid);
+}
+
+.breadcrumb-link { text-decoration: none; color: inherit; }
+.breadcrumb-link:hover { color: var(--gold); }
+.breadcrumb-sep { color: var(--ink-faint); }
+
 /* ── Print ───────────────────────────────────────────────────────────────── */
 @media print {
 	.no-print { display: none !important; }

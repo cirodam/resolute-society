@@ -3,6 +3,7 @@ import { getFedBalance, getFedHistory } from '$lib/server/economy/fed-balance';
 import { sendFedTransfer } from '$lib/server/federation/p2p';
 import { withCriticalAction } from '$lib/server/http/critical-action';
 import { resolveLocalEntityById, resolveLocalEntity } from '$lib/server/utils/local-entity.util';
+import { parsePage, pageOffset, totalPages } from '$lib/server/utils/pagination';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -19,8 +20,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const principal = `${person.handle}@${society.handle}`;
 
-	const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
-	const offset = (page - 1) * PAGE_SIZE;
+	const page = parsePage(url);
+	const offset = pageOffset(page, PAGE_SIZE);
 
 	const [societyCredits, totalTxns, societyTransactions, federationCredits, fedHistory, hasKeypair] =
 		await Promise.all([
@@ -45,7 +46,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		principal,
 		hasKeypair,
 		page,
-		totalPages: Math.max(1, Math.ceil(totalTxns / PAGE_SIZE)),
+		totalPages: totalPages(totalTxns, PAGE_SIZE),
 		societyTransactions,
 		fedTransactions
 	};

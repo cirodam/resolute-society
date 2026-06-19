@@ -54,26 +54,6 @@ export async function calculateBalance(
 	return repositories.ledger.calculateBalance(entityType, entityId);
 }
 
-export async function calculateBalances(type: EntityType, ids: string[]): Promise<Map<string, number>> {
-	return getRepositories().ledger.calculateBalances(type, ids);
-}
-
-export async function calculateMoneySupply(societyId: string) {
-	return getRepositories().ledger.calculateMoneySupply(societyId);
-}
-
-export async function checkSufficientBalance(
-	entityType: EntityType,
-	entityId: string,
-	amount: number
-): Promise<boolean> {
-	return (await calculateBalance(entityType, entityId)) >= amount;
-}
-
-export async function verifyChain(): Promise<{ valid: boolean; invalidAt?: string }> {
-	return getRepositories().ledger.verifyChain();
-}
-
 // Validated path for peer-to-peer transfers only. Do NOT use for minting (system/mint has no
 // real balance and will always fail the check). Mint/burn must use
 // createSystemLedgerTransaction in src/lib/server/economy/transactions.ts.

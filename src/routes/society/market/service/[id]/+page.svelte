@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { formatLongDate } from '$lib/client/datetime';
+	import { formatRate } from '$lib/client/market';
 	import ConfirmButton from '$lib/components/ConfirmButton.svelte';
 	import Subnav from '$lib/components/Subnav.svelte';
 
@@ -21,14 +22,7 @@
 		'Legal & Administrative', 'Childcare & Care'
 	];
 
-	function formatRate(societyRate: number | null, federationRate: number | null, rateUnit: string | null) {
-		if (societyRate === null && federationRate === null) return 'Rate negotiable';
-		const parts = [];
-		if (societyRate !== null) parts.push(`${societyRate.toFixed(0)} society credits`);
-		if (federationRate !== null) parts.push(`${federationRate.toFixed(0)} federation credits`);
-		const unitStr = rateUnit ? `/${rateUnit}` : '';
-		return parts.join(' + ') + unitStr;
-	}
+
 </script>
 
 <div class="page-container page-container--content">
@@ -141,20 +135,6 @@
 </div>
 
 <style>
-	.breadcrumb {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin-bottom: var(--space-3);
-		font-family: var(--font-prose);
-		font-size: var(--text-sm);
-		color: var(--ink-mid);
-	}
-
-	.breadcrumb-link { text-decoration: none; color: inherit; }
-	.breadcrumb-link:hover { color: var(--gold); }
-	.breadcrumb-sep { color: var(--ink-faint); }
-
 	.title-row {
 		display: flex;
 		align-items: center;

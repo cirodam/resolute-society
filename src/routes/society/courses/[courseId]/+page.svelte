@@ -5,14 +5,6 @@
 
 	let { data }: { data: PageData } = $props();
 
-	function formatDate(dateStr: string) {
-		return new Date(dateStr).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
-	}
-
 	function getEnrollmentStatus(enrolled: number, max: number | null) {
 		if (max === null) return `${enrolled} enrolled`;
 		return `${enrolled} / ${max} enrolled`;
@@ -102,7 +94,7 @@
 				<p class="approval-info">
 					Approved by {data.course.approver_given_name} {data.course.approver_surname}
 					{#if data.course.approved_at}
-						on {formatDate(data.course.approved_at)}
+						on {formatShortDate(data.course.approved_at)}
 					{/if}
 				</p>
 			{/if}

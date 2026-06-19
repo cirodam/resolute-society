@@ -1,7 +1,10 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
+import { parsePage, pageOffset, totalPages } from '$lib/server/utils/pagination';
 import type { Actions, PageServerLoad } from './$types';
+
+const PAGE_SIZE = 25;
 
 type MessageListItem = {
 	id: string;
@@ -17,10 +20,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		throw redirect(303, '/login');
 	}
 
-	const PAGE_SIZE = 25;
 	const view = url.searchParams.get('view') || 'inbox';
-	const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
-	const offset = (page - 1) * PAGE_SIZE;
+	const page = parsePage(url);
+	const offset = pageOffset(page, PAGE_SIZE);
 	const repositories = getRepositories();
 	const personId = locals.person.id;
 
@@ -59,7 +61,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		view,
 		messages,
 		page,
-		totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+		totalPages: totalPages(total, PAGE_SIZE),
 		unreadCount: await repositories.messages.getUnreadCount(personId)
 	};
 };

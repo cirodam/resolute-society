@@ -9,7 +9,7 @@ import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const repositories = getRepositories();
-	const person = await repositories.people.findDetailById(params.id);
+	const person = await repositories.people.findProfileById(params.id);
 	const society = person ? await repositories.societies.findDetailById(person.society_id) : null;
 
 	if (!person || person.membership_status === 'deleted' || !society) {
@@ -64,7 +64,7 @@ export const actions: Actions = {
 		}
 
 		const repos = getRepositories();
-		const person = await repos.people.findDetailById(params.id);
+		const person = await repos.people.findProfileById(params.id);
 		await repos.people.updateMembershipStatus(params.id, status);
 
 		await audit({
@@ -83,7 +83,7 @@ export const actions: Actions = {
 	deleteMember: async (event) => {
 		const { params, locals } = event;
 		const repositories = getRepositories();
-		const person = await repositories.people.findDetailById(params.id);
+		const person = await repositories.people.findProfileById(params.id);
 
 		if (!person || person.membership_status === 'deleted') {
 			return fail(404, { deleteError: 'Member not found' });

@@ -45,19 +45,12 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
 	{ code: PERMISSION.POSITIONS_CREATE_OFFICER, name: 'Create Officer Position', category: 'positions' },
 	{ code: PERMISSION.POSITIONS_ASSIGN_PERSON, name: 'Assign Person to Position', category: 'positions' },
 	{ code: PERMISSION.POSITIONS_REMOVE_PERSON, name: 'Remove Person from Position', category: 'positions' },
-	{
-		code: PERMISSION.POSITIONS_CREATE_SUBORDINATE,
-		name: 'Create Subordinate Position',
-		category: 'positions'
-	},
 	{ code: PERMISSION.ASSEMBLY_ASSIGN_SEAT, name: 'Assign Assembly Seat', category: 'assembly' },
 	{ code: PERMISSION.ASSEMBLY_UNASSIGN_SEAT, name: 'Unassign Assembly Seat', category: 'assembly' },
 	{ code: PERMISSION.MEMBERSHIP_CREATE_MEMBER, name: 'Create New Member', category: 'membership' },
-	{ code: PERMISSION.MEMBERSHIP_REMOVE_MEMBER, name: 'Remove Member', category: 'membership' },
 	{ code: PERMISSION.MEMBERSHIP_RUN_SORTITION, name: 'Run Sortition', category: 'membership' },
 	{ code: PERMISSION.MEMBERSHIP_CREATE_ASSOCIATION, name: 'Create Association', category: 'membership' },
 	{ code: PERMISSION.LEDGER_CLOSE_DAY, name: 'Close Daily Ledger', category: 'ledger' },
-	{ code: PERMISSION.GOVERNANCE_UPDATE_SOCIETY, name: 'Update Society Settings', category: 'governance' },
 	{ code: PERMISSION.EDUCATION_APPROVE_COURSE, name: 'Approve Course', category: 'education' }
 ];
 

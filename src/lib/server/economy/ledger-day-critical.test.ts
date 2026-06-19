@@ -75,9 +75,8 @@ describe('ledger day close critical behavior', () => {
 
 		assert.equal(second.ok, false);
 		if (!second.ok) {
-			assert.equal(second.failure.status, 400);
-			assert.equal(second.failure.data.closeDayCode, 'ALREADY_CLOSED');
-			assert.equal(second.failure.data.closeDayError, "Today's ledger is already closed");
+			assert.equal(second.code, 'ALREADY_CLOSED');
+			assert.equal(second.message, "Today's ledger is already closed");
 		}
 	});
 
@@ -108,8 +107,7 @@ describe('ledger day close critical behavior', () => {
 
 		assert.equal(result.ok, false);
 		if (!result.ok) {
-			assert.equal(result.failure.status, 409);
-			assert.equal(result.failure.data.closeDayCode, 'RACE_LOST');
+			assert.equal(result.code, 'RACE_LOST');
 		}
 
 		assert.equal(closedSnapshot.closing_balance, 80);

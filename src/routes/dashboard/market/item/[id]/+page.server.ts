@@ -58,6 +58,7 @@ export const actions: Actions = {
 		const listing = await getRepositories().market.findItemListing(params.id);
 		if (!listing) return fail(404, { closeError: 'Listing not found' });
 		if (listing.person_id !== locals.person.id) return fail(403, { closeError: 'Not your listing' });
+		if (listing.status !== 'active') return fail(400, { closeError: 'Listing is no longer active' });
 
 		await getRepositories().market.closeItemListing(params.id, 'sold');
 
@@ -80,6 +81,7 @@ export const actions: Actions = {
 		const listing = await getRepositories().market.findItemListing(params.id);
 		if (!listing) return fail(404, { closeError: 'Listing not found' });
 		if (listing.person_id !== locals.person.id) return fail(403, { closeError: 'Not your listing' });
+		if (listing.status !== 'active') return fail(400, { closeError: 'Listing is no longer active' });
 
 		await getRepositories().market.closeItemListing(params.id, 'closed');
 

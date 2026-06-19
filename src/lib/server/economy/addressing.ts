@@ -65,26 +65,11 @@ export function parseAddress(input: string): ParsedAddress {
 }
 
 export function parsePrincipalAddress(address: string): ParsedPrincipalAddress | null {
-	const trimmed = address.trim();
-	if (!trimmed) return null;
-
-	const atIdx = trimmed.indexOf('@');
-	if (atIdx === -1) return null;
-	if (trimmed.indexOf('@', atIdx + 1) !== -1) return null;
-
-	const local = trimmed.slice(0, atIdx);
-	const domain = trimmed.slice(atIdx + 1);
-
-	if (!local || !domain) return null;
-	if (!UUID_RE.test(domain)) return null;
-
-	if (local === 'treasury') {
-		return { kind: 'treasury', societyId: domain };
-	}
-
-	if (!UUID_RE.test(local)) return null;
-
-	return { kind: 'member', personId: local, societyId: domain };
+	const parsed = parseAddress(address);
+	if (parsed.form !== 'ref' || parsed.kind !== 'qualified') return null;
+	const { local, societyId } = parsed;
+	if (local === 'treasury') return { kind: 'treasury', societyId };
+	return { kind: 'member', personId: local, societyId };
 }
 
 export type AddressResolveResult =
@@ -102,7 +87,7 @@ export async function resolveAddress(
 	const repos = getRepositories();
 
 	if (parsed.form === 'ref') {
-		if (parsed.kind === 'bare') return { ok: false, error: 'malformed' };
+		if (parsed.kind === 'bare') return { ok: false, error: 'ambiguous' };
 
 		const { local, societyId } = parsed;
 

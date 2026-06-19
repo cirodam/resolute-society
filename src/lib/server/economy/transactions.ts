@@ -1,13 +1,11 @@
 import type { EntityType } from '$lib/server/types';
 import {
-	createTransaction as serviceCreateTransaction,
 	validateLedgerTransactionAmount,
 	validateLedgerBalanceGuard,
 	LedgerTransactionValidationError,
 	LEDGER_TRANSACTION_ERROR
 } from '$lib/server/services/ledger.service';
-import { getRepositories } from '$lib/server/infra/repositories';
-import { createRepositories, type Repositories } from '$lib/server/infra/repositories';
+import { getRepositories, createRepositories, type Repositories } from '$lib/server/infra/repositories';
 import { db } from '$lib/server/infra/db';
 
 type LedgerOnlyRepositories = Pick<Repositories, 'ledger'>;
@@ -37,11 +35,7 @@ export async function createLedgerTransaction(params: {
 	toId: string;
 	amount: number;
 	note: string | null;
-}, repositories?: LedgerOnlyRepositories): Promise<string> {
-	if (!repositories) {
-		return serviceCreateTransaction(params);
-	}
-
+}, repositories: LedgerOnlyRepositories = getRepositories()): Promise<string> {
 	validateLedgerTransactionAmount(params.amount);
 
 	if (params.fromType === 'system') {
@@ -69,17 +63,7 @@ export async function createSystemLedgerTransaction(params: {
 	toId: string;
 	amount: number;
 	note: string | null;
-}, repositories?: LedgerOnlyRepositories): Promise<string> {
-	const targetRepositories = repositories ?? getRepositories();
-
+}, repositories: LedgerOnlyRepositories = getRepositories()): Promise<string> {
 	validateLedgerTransactionAmount(params.amount);
-
-	if (params.fromType !== 'system') {
-		throw new LedgerTransactionValidationError(
-			LEDGER_TRANSACTION_ERROR.SYSTEM_TRANSACTION_REQUIRES_EXPLICIT_PATH,
-			'System transaction path requires fromType=system'
-		);
-	}
-
-	return targetRepositories.ledger.createTransaction(params);
+	return repositories.ledger.createTransaction(params);
 }

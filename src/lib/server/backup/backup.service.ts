@@ -19,7 +19,9 @@ async function backupDir(): Promise<string> {
 }
 
 async function keepBackups(): Promise<number> {
-	return parseInt(await getConfig('backup_keep', BACKUP_KEEP_DEFAULT), 10);
+	const raw = await getConfig('backup_keep', BACKUP_KEEP_DEFAULT);
+	const n = parseInt(raw, 10);
+	return Number.isFinite(n) && n > 0 ? n : parseInt(BACKUP_KEEP_DEFAULT, 10);
 }
 
 async function pgDumpBin(): Promise<string> {
@@ -49,7 +51,7 @@ function parseDbUrl() {
 	};
 }
 
-function pgEnv(): NodeJS.ProcessEnv {
+function pgEnv(password: string): NodeJS.ProcessEnv {
 	// Augment PATH with common PostgreSQL bin locations so pg_dump/pg_restore are
 	// found even when only the server package is installed (not postgresql-client).
 	const extraPaths = [
@@ -63,7 +65,7 @@ function pgEnv(): NodeJS.ProcessEnv {
 	return {
 		...process.env,
 		PATH: `${process.env.PATH ?? ''}:${extraPaths}`,
-		PGPASSWORD: parseDbUrl().password
+		PGPASSWORD: password
 	};
 }
 
@@ -76,16 +78,16 @@ export async function createBackup(): Promise<BackupEntry> {
 	const filename = `backup-${timestamp}.dump`;
 	const filePath = join(dir, filename);
 
-	const { host, port, user, database } = parseDbUrl();
+	const { host, port, user, password, database } = parseDbUrl();
 
 	await execFileAsync(
 		await pgDumpBin(),
 		['--format=custom', '--compress=6', `--file=${filePath}`, '-h', host, '-p', port, '-U', user, database],
-		{ env: pgEnv() }
+		{ env: pgEnv(password) }
 	);
 
 	const info = await stat(filePath);
-	await pruneOldBackups();
+	pruneOldBackups().catch(() => {});
 
 	return { filename, path: filePath, createdAt: now, sizeBytes: info.size };
 }
@@ -130,12 +132,12 @@ export async function restoreFromUpload(buffer: Buffer): Promise<void> {
 }
 
 async function restoreFromFile(filePath: string): Promise<void> {
-	const { host, port, user, database } = parseDbUrl();
+	const { host, port, user, password, database } = parseDbUrl();
 
 	await execFileAsync(
 		await pgRestoreBin(),
 		['--clean', '--if-exists', '--no-owner', '--no-acl', '-h', host, '-p', port, '-U', user, '-d', database, filePath],
-		{ env: pgEnv() }
+		{ env: pgEnv(password) }
 	);
 }
 
@@ -145,6 +147,7 @@ export async function streamBackup(filename: string): Promise<ReadableStream> {
 	}
 	const dir = await backupDir();
 	const filePath = join(dir, filename);
+	await stat(filePath);
 	return Readable.toWeb(createReadStream(filePath)) as ReadableStream;
 }
 

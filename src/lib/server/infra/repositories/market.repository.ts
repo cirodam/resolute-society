@@ -1,10 +1,5 @@
 import type postgres from 'postgres';
 
-export interface SocietyRow {
-	id: string;
-	name: string;
-}
-
 export interface ItemListingRow {
 	id: string;
 	type: 'offer' | 'wanted';
@@ -40,15 +35,6 @@ export interface ServiceListingRow {
 
 export class MarketRepository {
 	constructor(private readonly sql: postgres.Sql) {}
-
-	async findSociety(societyId: string): Promise<SocietyRow | null> {
-		const [row] = await this.sql<SocietyRow[]>`
-			SELECT s_id.value AS id, s_name.value AS name
-			FROM society_config s_id
-			JOIN society_config s_name ON s_name.key = 'society.name'
-			WHERE s_id.key = 'society.id' AND s_id.value = ${societyId}`;
-		return row ?? null;
-	}
 
 	async listItemListings(societyId: string, limit: number, offset: number): Promise<ItemListingRow[]> {
 		return await this.sql<ItemListingRow[]>`
@@ -177,11 +163,6 @@ export class MarketRepository {
 
 	async deactivateServiceListing(id: string): Promise<void> {
 		await this.sql`UPDATE service_listing SET status = 'inactive' WHERE id = ${id}`;
-	}
-
-	async findLocalPerson(societyId: string): Promise<{ id: string } | null> {
-		const [row] = await this.sql<Array<{ id: string }>>`SELECT id FROM person WHERE society_id = ${societyId} LIMIT 1`;
-		return row ?? null;
 	}
 
 	async createItemListing(params: {

@@ -19,8 +19,8 @@ interface ContentGroup {
 }
 
 interface ParsedMarkdown {
-	title?: string;
-	summary?: string;
+	title: string;
+	summary: string;
 	category: string;
 	order: number;
 	body: string;
@@ -104,6 +104,7 @@ async function renderHtml(markdown: string): Promise<string> {
 			code: ['class']
 		},
 		allowedSchemes: ['http', 'https', 'mailto'],
+		allowedSchemesAppliedToAttributes: ['href', 'src'],
 		transformTags: {
 			a: (tagName, attribs) => ({
 				tagName,
@@ -127,12 +128,13 @@ export function createContentLoader(
 	fallbackSummary: string,
 	contentDir: string
 ) {
+	if (!contentDir.endsWith('/')) throw new Error(`contentDir must end with '/': ${contentDir}`);
 	function list(): ContentMeta[] {
 		return Object.entries(modules)
 			.map(([path, markdown]) => {
 				const slug = slugFromPath(path);
 				const parsed = parseMarkdown(markdown, slug, fallbackSummary);
-				return { slug, title: parsed.title!, summary: parsed.summary!, category: parsed.category, order: parsed.order };
+				return { slug, title: parsed.title, summary: parsed.summary, category: parsed.category, order: parsed.order };
 			})
 			.sort(compareItems);
 	}
@@ -155,8 +157,8 @@ export function createContentLoader(
 		const parsed = parseMarkdown(markdown, slug, fallbackSummary);
 		return {
 			slug,
-			title: parsed.title!,
-			summary: parsed.summary!,
+			title: parsed.title,
+			summary: parsed.summary,
 			category: parsed.category,
 			order: parsed.order,
 			html: await renderHtml(parsed.body)

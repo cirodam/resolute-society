@@ -73,7 +73,10 @@ export const actions = {
 			refetchDay: () => repos.ledgerDays.findByDate(societyId, today)
 		});
 
-		if (!result.ok) return result.failure;
+		if (!result.ok) {
+				const status = result.code === 'ALREADY_CLOSED' ? 400 : result.code === 'RACE_LOST' ? 409 : 500;
+				return fail(status, { closeDayError: result.message, closeDayCode: result.code, date: result.date });
+			}
 
 		return { closeDaySuccess: true, date: result.date, pageNumber: result.pageNumber };
 	}, {

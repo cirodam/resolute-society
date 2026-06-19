@@ -1,15 +1,9 @@
 import { calculateBalance, type EntityType } from '$lib/server/services/ledger.service';
 import { createLedgerTransaction, runInRepositoryTransaction } from '$lib/server/economy/transactions';
-import type { PrincipalBalance } from '$lib/server/economy/endowment';
+import type { PrincipalBalance, PrincipalDeduction } from '$lib/server/economy/endowment';
 
-export type { PrincipalBalance };
+export type { PrincipalBalance, PrincipalDeduction };
 export type DemurrageMode = 'percent' | 'flat';
-
-export type DemurrageDeduction = {
-	type: EntityType;
-	id: string;
-	amount: number;
-};
 
 export function calculateDemurrageAmount(
 	balance: number,
@@ -17,15 +11,15 @@ export function calculateDemurrageAmount(
 	value: number
 ): number {
 	if (balance <= 0 || value <= 0) return 0;
-	if (mode === 'percent') return balance * (value / 100);
-	return Math.min(value, balance);
+	if (mode === 'percent') return Math.round(Math.min(balance * (value / 100), balance) * 100) / 100;
+	return Math.min(Math.round(value * 100) / 100, balance);
 }
 
 export function planDemurrageDeductions(
 	principals: PrincipalBalance[],
 	mode: DemurrageMode,
 	value: number
-): DemurrageDeduction[] {
+): PrincipalDeduction[] {
 	return principals
 		.map((principal) => ({
 			type: principal.type,
@@ -33,6 +27,31 @@ export function planDemurrageDeductions(
 			amount: calculateDemurrageAmount(principal.balance, mode, value)
 		}))
 		.filter((entry) => entry.amount > 0);
+}
+
+export async function executeDeductions(
+	deductions: PrincipalDeduction[],
+	target: { type: EntityType; id: string },
+	note: string
+): Promise<number> {
+	let total = 0;
+	await runInRepositoryTransaction(async (repositories) => {
+		for (const deduction of deductions) {
+			total += deduction.amount;
+			await createLedgerTransaction(
+				{
+					fromType: deduction.type,
+					fromId: deduction.id,
+					toType: target.type,
+					toId: target.id,
+					amount: deduction.amount,
+					note
+				},
+				repositories
+			);
+		}
+	});
+	return total;
 }
 
 export async function collectDemurrage(params: {
@@ -50,27 +69,7 @@ export async function collectDemurrage(params: {
 	);
 
 	const deductions = planDemurrageDeductions(principalBalances, params.mode, params.value);
+	const totalCollected = await executeDeductions(deductions, params.target, params.note);
 
-	let totalCollected = 0;
-	await runInRepositoryTransaction(async (repositories) => {
-		for (const deduction of deductions) {
-			totalCollected += deduction.amount;
-			await createLedgerTransaction(
-				{
-					fromType: deduction.type,
-					fromId: deduction.id,
-					toType: params.target.type,
-					toId: params.target.id,
-					amount: deduction.amount,
-					note: params.note
-				},
-				repositories
-			);
-		}
-	});
-
-	return {
-		totalCollected,
-		chargedPrincipalCount: deductions.length
-	};
+	return { totalCollected, chargedPrincipalCount: deductions.length };
 }

@@ -9,15 +9,11 @@ export const activitiesTabs: NavTab[] = [
 	{ label: 'Courses', href: '/dashboard/courses' }
 ];
 
-export const marketTabs: NavTab[] = [
-	{ label: 'Market', href: '/dashboard/market' }
-];
-
 export const governanceTabs: NavTab[] = [
 	{ label: 'Assembly', href: '/dashboard/assembly' },
 	{ label: 'Units', href: '/dashboard/units' },
 	{ label: 'Treasury', href: '/dashboard/treasury' },
-	{ label: 'Society Ledger', href: '/dashboard/ledger' },
+	{ label: 'Society Ledger', href: '/dashboard/ledger', exact: true },
 	{ label: 'Federation Ledger', href: '/dashboard/ledger/federation' }
 ];
 

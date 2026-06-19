@@ -11,7 +11,7 @@ const PAGE_SIZE = 25;
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const repositories = getRepositories();
 	const societyId = resolveSocietyId(undefined);
-	const society = await repositories.market.findSociety(societyId);
+	const society = await repositories.societies.findById(societyId);
 
 	if (!society) {
 		throw error(404, 'Society not found');
@@ -54,7 +54,11 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const type = formData.get('type') as 'offer' | 'wanted';
+		const typeRaw = formData.get('type')?.toString();
+		if (typeRaw !== 'offer' && typeRaw !== 'wanted') {
+			return fail(400, { message: 'Type must be offer or wanted' });
+		}
+		const type: 'offer' | 'wanted' = typeRaw;
 		const title = formData.get('title')?.toString();
 		const description = formData.get('description')?.toString();
 		const category = formData.get('category')?.toString() || null;

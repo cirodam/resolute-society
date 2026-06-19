@@ -121,7 +121,7 @@ export type {
 export { MessageRepository } from './message.repository';
 export type { InboxMessageRow, SentMessageRow, ArchivedMessageRow, MessageRecipient, AssociationInboxMessageRow, AssociationSentMessageRow } from './message.repository';
 export { MarketRepository } from './market.repository';
-export type { SocietyRow as MarketSocietyRow, ItemListingRow, ServiceListingRow } from './market.repository';
+export type { ItemListingRow, ServiceListingRow } from './market.repository';
 export { PersonRepository } from './person.repository';
 export type {
 	SessionPersonRow,

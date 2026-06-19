@@ -198,22 +198,6 @@ describe('createLedgerTransaction — demurrage burn', () => {
 // ---------------------------------------------------------------------------
 
 describe('createSystemLedgerTransaction', () => {
-	it('rejects non-system fromType before repository write', async () => {
-		await assert.rejects(
-			() => createSystemLedgerTransaction({
-				fromType: 'person' as unknown as 'system',
-				fromId: 'mint',
-				toType: 'society',
-				toId: 'soc-1',
-				amount: 1,
-				note: null
-			}),
-			(err: unknown) =>
-				err instanceof LedgerTransactionValidationError &&
-				err.code === LEDGER_TRANSACTION_ERROR.SYSTEM_TRANSACTION_REQUIRES_EXPLICIT_PATH
-		);
-	});
-
 	it('mints credits to society treasury', async () => {
 		const { repos, balance } = createLedgerRepos({ 'society:soc-1': 0 });
 

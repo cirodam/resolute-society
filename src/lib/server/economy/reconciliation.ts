@@ -1,11 +1,8 @@
 import { randomUUID } from 'crypto';
 import { getRepositories } from '$lib/server/infra/repositories';
-import {
-	createLedgerTransaction,
-	createSystemLedgerTransaction,
-	runInRepositoryTransaction
-} from '$lib/server/economy/transactions';
+import { createSystemLedgerTransaction } from '$lib/server/economy/transactions';
 import { MEMBER_ENDOWMENT, calculateExpectedSupply, planProportionalBurn } from './endowment';
+import { executeDeductions } from './demurrage';
 
 export type SupplySnapshot = {
 	totalSupply: number;
@@ -128,21 +125,7 @@ export async function runSupplyReconciliationDemurrage(societyId: string): Promi
 	];
 
 	const { deductions, burnAmount } = planProportionalBurn(principalBalances, snapshot.supplyExcess);
-	await runInRepositoryTransaction(async (repositories) => {
-		for (const deduction of deductions) {
-			await createLedgerTransaction(
-				{
-					fromType: deduction.type,
-					fromId: deduction.id,
-					toType: 'system',
-					toId: 'burn',
-					amount: deduction.amount,
-					note: 'Supply reconciliation demurrage'
-				},
-				repositories
-			);
-		}
-	});
+	await executeDeductions(deductions, { type: 'system', id: 'burn' }, 'Supply reconciliation demurrage');
 
 	return {
 		burned: burnAmount,

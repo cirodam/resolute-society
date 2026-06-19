@@ -45,8 +45,8 @@ export function planProportionalBurn(
 		const isLast = index === positive.length - 1;
 
 		const amount = isLast
-			? Math.max(0, burnAmount - allocated)
-			: Math.min(principal.balance, burnAmount * (principal.balance / totalPositive));
+			? Math.round(Math.max(0, burnAmount - allocated) * 100) / 100
+			: Math.round(Math.min(principal.balance, burnAmount * (principal.balance / totalPositive)) * 100) / 100;
 
 		if (amount > 0) {
 			deductions.push({

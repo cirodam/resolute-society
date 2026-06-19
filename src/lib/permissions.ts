@@ -11,15 +11,12 @@ export const PERMISSION = {
 	POSITIONS_CREATE_OFFICER: 'positions.create_officer',
 	POSITIONS_ASSIGN_PERSON: 'positions.assign_person',
 	POSITIONS_REMOVE_PERSON: 'positions.remove_person',
-	POSITIONS_CREATE_SUBORDINATE: 'positions.create_subordinate',
 	ASSEMBLY_ASSIGN_SEAT: 'assembly.assign_seat',
 	ASSEMBLY_UNASSIGN_SEAT: 'assembly.unassign_seat',
 	MEMBERSHIP_CREATE_MEMBER: 'membership.create_member',
-	MEMBERSHIP_REMOVE_MEMBER: 'membership.remove_member',
 	MEMBERSHIP_RUN_SORTITION: 'membership.run_sortition',
 	MEMBERSHIP_CREATE_ASSOCIATION: 'membership.create_association',
 	LEDGER_CLOSE_DAY: 'ledger.close_day',
-	GOVERNANCE_UPDATE_SOCIETY: 'governance.update_society',
 	EDUCATION_APPROVE_COURSE: 'education.approve_course'
 } as const;
 

@@ -1,11 +1,6 @@
 import type { EntityType } from '$lib/server/types';
 
-export const CREDITS_PER_PERSON_YEAR = 2000;
-
-export type EndowmentMember = {
-	id: string;
-	dob: string | null;
-};
+export const MEMBER_ENDOWMENT = 60_000;
 
 export type PrincipalBalance = {
 	type: EntityType;
@@ -26,16 +21,8 @@ export function calculateAgeYears(dob: string | null, nowMs = Date.now()): numbe
 	return Math.max(0, Math.floor((nowMs - dobMs) / (365.25 * 24 * 60 * 60 * 1000)));
 }
 
-export function calculateEndowmentTarget(dob: string | null): number {
-	return calculateAgeYears(dob) * CREDITS_PER_PERSON_YEAR;
-}
-
-export function calculateExpectedSupply(members: EndowmentMember[]): number {
-	let total = 0;
-	for (const member of members) {
-		total += calculateEndowmentTarget(member.dob);
-	}
-	return total;
+export function calculateExpectedSupply(memberCount: number): number {
+	return memberCount * MEMBER_ENDOWMENT;
 }
 
 export function planProportionalBurn(

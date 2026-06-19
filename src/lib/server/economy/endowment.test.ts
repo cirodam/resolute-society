@@ -3,11 +3,9 @@ import assert from 'node:assert/strict';
 
 import {
 	calculateAgeYears,
-	calculateEndowmentTarget,
 	calculateExpectedSupply,
 	planProportionalBurn,
-	CREDITS_PER_PERSON_YEAR,
-	type EndowmentMember,
+	MEMBER_ENDOWMENT,
 	type PrincipalBalance
 } from './endowment';
 
@@ -38,29 +36,14 @@ describe('calculateAgeYears', () => {
 	});
 });
 
-describe('calculateEndowmentTarget', () => {
-	it('returns 0 for null dob', () => {
-		assert.equal(calculateEndowmentTarget(null), 0);
-	});
-
-	it('equals age * CREDITS_PER_PERSON_YEAR', () => {
-		const dob = '1980-06-15';
-		assert.equal(calculateEndowmentTarget(dob), calculateAgeYears(dob) * CREDITS_PER_PERSON_YEAR);
-	});
-});
-
 describe('calculateExpectedSupply', () => {
-	it('returns 0 for empty member list', () => {
-		assert.equal(calculateExpectedSupply([]), 0);
+	it('returns 0 for zero members', () => {
+		assert.equal(calculateExpectedSupply(0), 0);
 	});
 
-	it('sums endowment targets, treating null dob as 0', () => {
-		const members: EndowmentMember[] = [
-			{ id: 'p1', dob: '1980-06-15' },
-			{ id: 'p2', dob: null }
-		];
-		const expected = calculateEndowmentTarget('1980-06-15') + 0;
-		assert.equal(calculateExpectedSupply(members), expected);
+	it('returns MEMBER_ENDOWMENT per member', () => {
+		assert.equal(calculateExpectedSupply(1), MEMBER_ENDOWMENT);
+		assert.equal(calculateExpectedSupply(5), 5 * MEMBER_ENDOWMENT);
 	});
 });
 

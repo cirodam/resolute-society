@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { calculateBalance } from '$lib/server/services/ledger.service';
-import { calculateEndowmentTarget } from '$lib/server/economy/endowment';
+import { MEMBER_ENDOWMENT } from '$lib/server/economy/endowment';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { audit } from '$lib/server/services/audit.service';
@@ -99,30 +99,27 @@ export const actions: Actions = {
 			return fail(400, { deleteError: 'Founder cannot be deleted' });
 		}
 
-		const balance = Math.max(0, await calculateBalance('person', params.id));
-		const endowmentTarget = calculateEndowmentTarget(person.dob);
-		const burnAmount = Math.min(balance, endowmentTarget);
-		const treasuryRemainder = Math.max(0, balance - burnAmount);
-
-		if (burnAmount > 0) {
-			await repositories.ledger.createTransaction({
-				fromType: 'person',
-				fromId: params.id,
-				toType: 'system',
-				toId: 'burn',
-				amount: burnAmount,
-				note: 'Member deletion clawback burn'
-			});
-		}
-
-		if (treasuryRemainder > 0) {
+		const memberBalance = Math.max(0, await calculateBalance('person', params.id));
+		if (memberBalance > 0) {
 			await repositories.ledger.createTransaction({
 				fromType: 'person',
 				fromId: params.id,
 				toType: 'society',
 				toId: person.society_id,
-				amount: treasuryRemainder,
-				note: 'Member deletion remainder transfer'
+				amount: memberBalance,
+				note: 'Member departure: balance returned to treasury'
+			});
+		}
+
+		const treasuryBalance = await calculateBalance('society', person.society_id);
+		if (treasuryBalance >= MEMBER_ENDOWMENT) {
+			await repositories.ledger.createTransaction({
+				fromType: 'society',
+				fromId: person.society_id,
+				toType: 'system',
+				toId: 'burn',
+				amount: MEMBER_ENDOWMENT,
+				note: 'Member departure: endowment burn'
 			});
 		}
 

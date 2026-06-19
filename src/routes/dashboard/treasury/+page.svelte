@@ -62,7 +62,7 @@
 					</div>
 					<div class="supply-divider"></div>
 					<div class="supply-col">
-						<span class="supply-col-label t-label">Expected (person-years)</span>
+						<span class="supply-col-label t-label">Expected (60k × members)</span>
 						<span class="supply-col-amount t-numeric">{data.expectedMoneySupply.toFixed(2)}</span>
 					</div>
 				</div>
@@ -80,7 +80,7 @@
 			<div class="reconcile-grid">
 				<div class="reconcile-col card-border">
 					<div class="reconcile-col-label t-label">Local Credits</div>
-					<p class="demurrage-description">Reconcile local supply against person-year endowment target.</p>
+					<p class="demurrage-description">Reconcile local supply against member endowment target (60,000 per member).</p>
 					{#if hasPermission(data.permissions, 'treasury.run_demurrage')}
 						<div class="reconcile-actions">
 							<form method="POST" action="?/reconcileEndowmentMint" use:enhance>
@@ -95,7 +95,7 @@
 
 				<div class="reconcile-col card-border">
 					<div class="reconcile-col-label t-label">Federation Credits</div>
-					<p class="demurrage-description">Reconcile federation supply against person-year endowment target.</p>
+					<p class="demurrage-description">Reconcile federation supply against member endowment target (60,000 per member).</p>
 					{#if hasPermission(data.permissions, 'treasury.run_demurrage')}
 						<div class="reconcile-actions">
 							<form method="POST" action="?/reconcileFedMint" use:enhance>

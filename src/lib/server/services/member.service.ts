@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { db } from '$lib/server/infra/db';
 import { createRepositories } from '$lib/server/infra/repositories';
 import { generateFederationKeypair } from '$lib/server/federation/crypto';
-import { calculateAgeYears, calculateEndowmentTarget } from '$lib/server/economy/endowment';
+import { MEMBER_ENDOWMENT } from '$lib/server/economy/endowment';
 import { BCRYPT_ROUNDS } from '$lib/server/utils/form.util';
 
 export { BCRYPT_ROUNDS };
@@ -24,7 +24,6 @@ export interface CreateMemberParams {
 export interface CreateMemberResult {
 	personId: string;
 	publicKey: string;
-	age: number;
 }
 
 export async function createMember(params: CreateMemberParams): Promise<CreateMemberResult> {
@@ -44,8 +43,6 @@ export async function createMember(params: CreateMemberParams): Promise<CreateMe
 	const personId = randomUUID();
 	const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 	const keypair = generateFederationKeypair();
-	const age = calculateAgeYears(dob);
-	const endowment = calculateEndowmentTarget(dob);
 
 	await db().begin(async (sql) => {
 		const repos = createRepositories(sql);
@@ -64,26 +61,24 @@ export async function createMember(params: CreateMemberParams): Promise<CreateMe
 			privateKey: keypair.privateKey
 		});
 
-		if (endowment > 0) {
-			await repos.ledger.createTransaction({
-				fromType: 'system',
-				fromId: 'mint',
-				toType: 'society',
-				toId: societyId,
-				amount: endowment,
-				note: `Money creation: ${givenName} ${surname} joined (${age} person-years)`
-			});
+		await repos.ledger.createTransaction({
+			fromType: 'system',
+			fromId: 'mint',
+			toType: 'society',
+			toId: societyId,
+			amount: MEMBER_ENDOWMENT,
+			note: `Member joined: ${givenName} ${surname}`
+		});
 
-			const mintId = randomUUID();
-			await repos.fedMintEvents.create({ id: mintId, personId, personAge: age, amount: endowment });
-			await repos.inboundFedTxns.create({
-				id: mintId,
-				fromPrincipal: 'mint@federation',
-				toPrincipal: `treasury@${societyHandle}`,
-				amount: endowment
-			});
-		}
+		const mintId = randomUUID();
+		await repos.fedMintEvents.create({ id: mintId, personId, amount: MEMBER_ENDOWMENT });
+		await repos.inboundFedTxns.create({
+			id: mintId,
+			fromPrincipal: 'mint@federation',
+			toPrincipal: `treasury@${societyHandle}`,
+			amount: MEMBER_ENDOWMENT
+		});
 	});
 
-	return { personId, publicKey: keypair.publicKey, age };
+	return { personId, publicKey: keypair.publicKey };
 }

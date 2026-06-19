@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 import { db } from '$lib/server/infra/db';
 import { getRepositories, createRepositories } from '$lib/server/infra/repositories';
 import { generateFederationKeypair } from '$lib/server/federation/crypto';
-import { calculateAgeYears, calculateEndowmentTarget } from '$lib/server/economy/endowment';
+import { MEMBER_ENDOWMENT } from '$lib/server/economy/endowment';
 import { parseSex, BCRYPT_ROUNDS } from '$lib/server/utils/form.util';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -55,8 +55,6 @@ export const actions: Actions = {
 
 		const societyId = randomUUID();
 		const personId  = randomUUID();
-		const age        = calculateAgeYears(dob);
-		const endowment  = calculateEndowmentTarget(dob);
 
 		await db().begin(async (sql) => {
 			const txRepos = createRepositories(sql);
@@ -82,25 +80,23 @@ export const actions: Actions = {
 			await txRepos.societies.setFounder(societyId, personId);
 			await txRepos.nutrition.seedDefaults(societyId);
 
-			if (endowment > 0) {
-				await txRepos.ledger.createTransaction({
-					fromType: 'system',
-					fromId: 'mint',
-					toType: 'society',
-					toId: societyId,
-					amount: endowment,
-					note: `Bootstrap: ${givenName} ${surname} (${age} person-years)`
-				});
+			await txRepos.ledger.createTransaction({
+				fromType: 'system',
+				fromId: 'mint',
+				toType: 'society',
+				toId: societyId,
+				amount: MEMBER_ENDOWMENT,
+				note: `Founder joined: ${givenName} ${surname}`
+			});
 
-				const mintId = randomUUID();
-				await txRepos.fedMintEvents.create({ id: mintId, personId, personAge: age, amount: endowment });
-				await txRepos.inboundFedTxns.create({
-					id: mintId,
-					fromPrincipal: 'mint@federation',
-					toPrincipal: `treasury@${societyHandle}`,
-					amount: endowment
-				});
-			}
+			const mintId = randomUUID();
+			await txRepos.fedMintEvents.create({ id: mintId, personId, amount: MEMBER_ENDOWMENT });
+			await txRepos.inboundFedTxns.create({
+				id: mintId,
+				fromPrincipal: 'mint@federation',
+				toPrincipal: `treasury@${societyHandle}`,
+				amount: MEMBER_ENDOWMENT
+			});
 		});
 
 		throw redirect(303, '/login');

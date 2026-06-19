@@ -84,11 +84,6 @@ export interface FullMemberRow {
 	id: string;
 }
 
-export interface EndowmentMemberRow {
-	id: string;
-	dob: string | null;
-}
-
 export class PersonRepository {
 	constructor(private readonly sql: postgres.Sql) {}
 
@@ -221,11 +216,6 @@ export class PersonRepository {
 	async listForNutrition(societyId: string): Promise<Array<{ dob: string | null; sex: 'male' | 'female' | 'other' | null }>> {
 		return await this.sql<Array<{ dob: string | null; sex: 'male' | 'female' | 'other' | null }>>`
 			SELECT dob, sex FROM person WHERE society_id = ${societyId} AND membership_status != 'deleted'`;
-	}
-
-	async listEndowmentMembers(societyId: string): Promise<EndowmentMemberRow[]> {
-		return await this.sql<EndowmentMemberRow[]>`
-			SELECT id, dob FROM person WHERE society_id = ${societyId} AND membership_status != 'deleted'`;
 	}
 
 	async markDeleted(personId: string): Promise<void> {

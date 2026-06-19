@@ -5,7 +5,7 @@ import {
 	createSystemLedgerTransaction,
 	runInRepositoryTransaction
 } from '$lib/server/economy/transactions';
-import { calculateExpectedSupply, planProportionalBurn } from './endowment';
+import { MEMBER_ENDOWMENT, calculateExpectedSupply, planProportionalBurn } from './endowment';
 
 export type SupplySnapshot = {
 	totalSupply: number;
@@ -17,7 +17,8 @@ export type SupplySnapshot = {
 export async function getSupplySnapshot(societyId: string): Promise<SupplySnapshot> {
 	const repositories = getRepositories();
 	const summary = await repositories.treasury.calculateSummary(societyId);
-	const expectedSupply = calculateExpectedSupply(await repositories.people.listEndowmentMembers(societyId));
+	const memberCount = await repositories.treasury.getMemberCount(societyId);
+	const expectedSupply = calculateExpectedSupply(memberCount);
 
 	return {
 		totalSupply: summary.totalSupply,
@@ -68,9 +69,8 @@ export async function reconcileFedMint(societyId: string): Promise<{
 	const society = await repositories.societies.findDetailById(societyId);
 	if (!society) throw new Error(`Society not found: ${societyId}`);
 
-	const expectedSupply = calculateExpectedSupply(
-		await repositories.people.listEndowmentMembers(societyId)
-	);
+	const memberCount = await repositories.treasury.getMemberCount(societyId);
+	const expectedSupply = calculateExpectedSupply(memberCount);
 	const totalFedSupply = await repositories.fedLedger.getTotalFedSupplyForSociety(society.handle);
 	const shortfall = Math.max(0, expectedSupply - totalFedSupply);
 
@@ -98,9 +98,8 @@ export async function runFedSupplyReconciliationBurn(societyId: string): Promise
 	const society = await repositories.societies.findDetailById(societyId);
 	if (!society) throw new Error(`Society not found: ${societyId}`);
 
-	const expectedSupply = calculateExpectedSupply(
-		await repositories.people.listEndowmentMembers(societyId)
-	);
+	const memberCount = await repositories.treasury.getMemberCount(societyId);
+	const expectedSupply = calculateExpectedSupply(memberCount);
 	const totalFedSupply = await repositories.fedLedger.getTotalFedSupplyForSociety(society.handle);
 	const excess = Math.max(0, totalFedSupply - expectedSupply);
 

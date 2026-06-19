@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { formatLongDate } from '$lib/client/datetime';
@@ -65,7 +66,7 @@
 											<p class="member-name">{seat.member.given_name} {seat.member.surname}</p>
 											<p class="member-handle">{seat.member.handle}</p>
 										</a>
-										{#if hasPermission(data.permissions, 'assembly.unassign_seat')}
+										{#if hasPermission(data.permissions, PERMISSION.ASSEMBLY_UNASSIGN_SEAT)}
 											<form method="POST" action="?/unassign" use:enhance>
 												<input type="hidden" name="assembly_id" value={currentAssembly.id} />
 												<input type="hidden" name="seat_number" value={seat.number} />
@@ -78,7 +79,7 @@
 								{:else}
 									<div class="seat-vacant">
 										<p class="vacant">Vacant</p>
-										{#if hasPermission(data.permissions, 'assembly.assign_seat')}
+										{#if hasPermission(data.permissions, PERMISSION.ASSEMBLY_ASSIGN_SEAT)}
 											<form method="POST" action="?/assign" use:enhance class="assign-form">
 												<input type="hidden" name="assembly_id" value={currentAssembly.id} />
 												<input type="hidden" name="seat_number" value={seat.number} />
@@ -129,7 +130,7 @@
 											<p class="member-name">{seat.member.given_name} {seat.member.surname}</p>
 											<p class="member-handle">{seat.member.handle}</p>
 										</a>
-										{#if hasPermission(data.permissions, 'assembly.unassign_seat')}
+										{#if hasPermission(data.permissions, PERMISSION.ASSEMBLY_UNASSIGN_SEAT)}
 											<form method="POST" action="?/unassign" use:enhance>
 												<input type="hidden" name="assembly_id" value={followingAssembly.id} />
 												<input type="hidden" name="seat_number" value={seat.number} />
@@ -142,7 +143,7 @@
 								{:else}
 									<div class="seat-vacant">
 										<p class="vacant">Vacant</p>
-										{#if hasPermission(data.permissions, 'assembly.assign_seat')}
+										{#if hasPermission(data.permissions, PERMISSION.ASSEMBLY_ASSIGN_SEAT)}
 											<form method="POST" action="?/assign" use:enhance class="assign-form">
 												<input type="hidden" name="assembly_id" value={followingAssembly.id} />
 												<input type="hidden" name="seat_number" value={seat.number} />

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import { enhance } from '$app/forms';
 	import Alert from '$lib/components/Alert.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
@@ -81,7 +82,7 @@
 			</div>
 
 			{#if showCreateGroupForm}
-				{#if hasPermission(permissions, 'treasury.create_allowance_group')}
+				{#if hasPermission(permissions, PERMISSION.TREASURY_CREATE_ALLOWANCE_GROUP)}
 					<form method="POST" action="?/createAllowanceGroup" use:enhance class="create-group-form">
 						<div class="input-group">
 							<label for="group-name">Group Name</label>
@@ -116,7 +117,7 @@
 									</p>
 								</div>
 								<div class="group-actions">
-									{#if hasPermission(permissions, 'treasury.run_allowance_group')}
+									{#if hasPermission(permissions, PERMISSION.TREASURY_RUN_ALLOWANCE_GROUP)}
 										<form method="POST" action="?/runAllowanceGroup" use:enhance style="display: inline;">
 											<input type="hidden" name="group_id" value={group.id} />
 											<ConfirmButton
@@ -135,7 +136,7 @@
 									>
 										{expandedGroupId === group.id ? 'Close' : 'Manage'}
 									</button>
-									{#if hasPermission(permissions, 'treasury.delete_allowance_group')}
+									{#if hasPermission(permissions, PERMISSION.TREASURY_DELETE_ALLOWANCE_GROUP)}
 										<form
 											method="POST"
 											action="?/deleteAllowanceGroup"
@@ -162,7 +163,7 @@
 														<span class="member-handle">({member.handle})</span>
 													</div>
 													<div class="member-actions">
-														{#if hasPermission(permissions, 'treasury.manage_allowance_members')}
+														{#if hasPermission(permissions, PERMISSION.TREASURY_MANAGE_ALLOWANCE_MEMBERS)}
 															<form
 																method="POST"
 																action="?/updateMemberAmount"
@@ -185,7 +186,7 @@
 																</button>
 															</form>
 														{/if}
-														{#if hasPermission(permissions, 'treasury.manage_allowance_members')}
+														{#if hasPermission(permissions, PERMISSION.TREASURY_MANAGE_ALLOWANCE_MEMBERS)}
 															<form
 																method="POST"
 																action="?/removeGroupMember"
@@ -206,7 +207,7 @@
 									{/if}
 
 									<div class="add-member-form">
-										{#if hasPermission(permissions, 'treasury.manage_allowance_members')}
+										{#if hasPermission(permissions, PERMISSION.TREASURY_MANAGE_ALLOWANCE_MEMBERS)}
 											<form method="POST" action="?/addGroupMember" use:enhance>
 												<input type="hidden" name="group_id" value={group.id} />
 												<select name="person_id" required class="input">

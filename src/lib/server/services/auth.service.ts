@@ -1,9 +1,10 @@
 import { getRepositories } from '../infra/repositories';
 import { error, type RequestEvent } from '@sveltejs/kit';
+import { type PermissionCode } from '$lib/permissions';
 
 export async function requirePermission(
 	event: RequestEvent,
-	permissionCode: string,
+	permissionCode: PermissionCode,
 	societyId?: string
 ): Promise<void> {
 	if (!event.locals.person) {

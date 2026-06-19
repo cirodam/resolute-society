@@ -1,6 +1,8 @@
+import type { PermissionCode } from '$lib/permissions';
+
 export function hasPermission(
 	permissions: { isFounder: boolean; codes: string[] } | undefined,
-	code: string
+	code: PermissionCode
 ): boolean {
 	if (!permissions) return false;
 	if (permissions.isFounder) return true;
@@ -9,7 +11,7 @@ export function hasPermission(
 
 export function hasAnyPermission(
 	permissions: { isFounder: boolean; codes: string[] } | undefined,
-	codes: string[]
+	codes: PermissionCode[]
 ): boolean {
 	if (!permissions) return false;
 	if (permissions.isFounder) return true;

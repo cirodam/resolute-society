@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { getRepositories } from '$lib/server/infra/repositories';
@@ -27,7 +28,7 @@ export const load: PageServerLoad = async ({ params }) => {
 export const actions: Actions = {
 	assign: async (event) => {
 		const { request, params, locals } = event;
-		await requirePermission(event, 'positions.assign_person', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.POSITIONS_ASSIGN_PERSON, resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const personId = formData.get('person_id')?.toString();
@@ -67,7 +68,7 @@ export const actions: Actions = {
 
 	remove: async (event) => {
 		const { params, locals } = event;
-		await requirePermission(event, 'positions.remove_person', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.POSITIONS_REMOVE_PERSON, resolveSocietyId(undefined));
 
 		await getRepositories().positions.clearAppointment(params.position_id);
 
@@ -86,7 +87,7 @@ export const actions: Actions = {
 
 	updatePosition: async (event) => {
 		const { request, params, locals } = event;
-		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.POSITIONS_CREATE_OFFICER, resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const name = formData.get('name')?.toString()?.trim();
@@ -124,7 +125,7 @@ export const actions: Actions = {
 
 	grantPermission: async (event) => {
 		const { request, params, locals } = event;
-		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.POSITIONS_CREATE_OFFICER, resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const permissionId = formData.get('permission_id')?.toString();
@@ -147,7 +148,7 @@ export const actions: Actions = {
 
 	revokePermission: async (event) => {
 		const { request, params, locals } = event;
-		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.POSITIONS_CREATE_OFFICER, resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const permissionId = formData.get('permission_id')?.toString();
@@ -170,7 +171,7 @@ export const actions: Actions = {
 
 	deletePosition: async (event) => {
 		const { params, locals } = event;
-		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.POSITIONS_CREATE_OFFICER, resolveSocietyId(undefined));
 
 		const repos = getRepositories();
 		const position = await repos.positions.findById(params.position_id);

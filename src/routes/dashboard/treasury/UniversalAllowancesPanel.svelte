@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import { enhance } from '$app/forms';
 	import Alert from '$lib/components/Alert.svelte';
 	import { hasPermission } from '$lib/client/permissions';
@@ -46,7 +47,7 @@
 		<Alert type="error" message={form?.universalAllowanceError ?? null} />
 
 		<div class="universal-form card-border">
-			{#if hasPermission(permissions, 'treasury.distribute_universal_allowance')}
+			{#if hasPermission(permissions, PERMISSION.TREASURY_DISTRIBUTE_UNIVERSAL_ALLOWANCE)}
 				<form method="POST" action="?/distributeUniversalAllowance" use:enhance>
 					<div class="form-row-inline">
 						<div class="input-group-inline">

@@ -1,63 +1,64 @@
+import { PERMISSION, type PermissionCode } from '$lib/permissions';
 import type postgres from 'postgres';
 import { randomUUID } from 'crypto';
 
 export type PermissionDefinition = {
-	code: string;
+	code: PermissionCode;
 	name: string;
 	category: string;
 };
 
 export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
-	{ code: 'treasury.run_demurrage', name: 'Run Demurrage', category: 'treasury' },
-	{ code: 'treasury.transfer', name: 'Transfer Credits', category: 'treasury' },
-	{ code: 'treasury.run_allowance_group', name: 'Run Allowance Group', category: 'treasury' },
+	{ code: PERMISSION.TREASURY_RUN_DEMURRAGE, name: 'Run Demurrage', category: 'treasury' },
+	{ code: PERMISSION.TREASURY_TRANSFER, name: 'Transfer Credits', category: 'treasury' },
+	{ code: PERMISSION.TREASURY_RUN_ALLOWANCE_GROUP, name: 'Run Allowance Group', category: 'treasury' },
 	{
-		code: 'treasury.create_allowance_group',
+		code: PERMISSION.TREASURY_CREATE_ALLOWANCE_GROUP,
 		name: 'Create Allowance Group',
 		category: 'treasury'
 	},
 	{
-		code: 'treasury.delete_allowance_group',
+		code: PERMISSION.TREASURY_DELETE_ALLOWANCE_GROUP,
 		name: 'Delete Allowance Group',
 		category: 'treasury'
 	},
 	{
-		code: 'treasury.manage_allowance_members',
+		code: PERMISSION.TREASURY_MANAGE_ALLOWANCE_MEMBERS,
 		name: 'Manage Allowance Members',
 		category: 'treasury'
 	},
 	{
-		code: 'treasury.run_position_payroll',
+		code: PERMISSION.TREASURY_RUN_POSITION_PAYROLL,
 		name: 'Run Position Payroll',
 		category: 'treasury'
 	},
 	{
-		code: 'treasury.adjust_position_allowance',
+		code: PERMISSION.TREASURY_ADJUST_POSITION_ALLOWANCE,
 		name: 'Adjust Position Allowance',
 		category: 'treasury'
 	},
 	{
-		code: 'treasury.distribute_universal_allowance',
+		code: PERMISSION.TREASURY_DISTRIBUTE_UNIVERSAL_ALLOWANCE,
 		name: 'Distribute Universal Allowance',
 		category: 'treasury'
 	},
-	{ code: 'positions.create_officer', name: 'Create Officer Position', category: 'positions' },
-	{ code: 'positions.assign_person', name: 'Assign Person to Position', category: 'positions' },
-	{ code: 'positions.remove_person', name: 'Remove Person from Position', category: 'positions' },
+	{ code: PERMISSION.POSITIONS_CREATE_OFFICER, name: 'Create Officer Position', category: 'positions' },
+	{ code: PERMISSION.POSITIONS_ASSIGN_PERSON, name: 'Assign Person to Position', category: 'positions' },
+	{ code: PERMISSION.POSITIONS_REMOVE_PERSON, name: 'Remove Person from Position', category: 'positions' },
 	{
-		code: 'positions.create_subordinate',
+		code: PERMISSION.POSITIONS_CREATE_SUBORDINATE,
 		name: 'Create Subordinate Position',
 		category: 'positions'
 	},
-	{ code: 'assembly.assign_seat', name: 'Assign Assembly Seat', category: 'assembly' },
-	{ code: 'assembly.unassign_seat', name: 'Unassign Assembly Seat', category: 'assembly' },
-	{ code: 'membership.create_member', name: 'Create New Member', category: 'membership' },
-	{ code: 'membership.remove_member', name: 'Remove Member', category: 'membership' },
-	{ code: 'membership.run_sortition', name: 'Run Sortition', category: 'membership' },
-	{ code: 'membership.create_association', name: 'Create Association', category: 'membership' },
-	{ code: 'ledger.close_day', name: 'Close Daily Ledger', category: 'ledger' },
-	{ code: 'governance.update_society', name: 'Update Society Settings', category: 'governance' },
-	{ code: 'education.approve_course', name: 'Approve Course', category: 'education' }
+	{ code: PERMISSION.ASSEMBLY_ASSIGN_SEAT, name: 'Assign Assembly Seat', category: 'assembly' },
+	{ code: PERMISSION.ASSEMBLY_UNASSIGN_SEAT, name: 'Unassign Assembly Seat', category: 'assembly' },
+	{ code: PERMISSION.MEMBERSHIP_CREATE_MEMBER, name: 'Create New Member', category: 'membership' },
+	{ code: PERMISSION.MEMBERSHIP_REMOVE_MEMBER, name: 'Remove Member', category: 'membership' },
+	{ code: PERMISSION.MEMBERSHIP_RUN_SORTITION, name: 'Run Sortition', category: 'membership' },
+	{ code: PERMISSION.MEMBERSHIP_CREATE_ASSOCIATION, name: 'Create Association', category: 'membership' },
+	{ code: PERMISSION.LEDGER_CLOSE_DAY, name: 'Close Daily Ledger', category: 'ledger' },
+	{ code: PERMISSION.GOVERNANCE_UPDATE_SOCIETY, name: 'Update Society Settings', category: 'governance' },
+	{ code: PERMISSION.EDUCATION_APPROVE_COURSE, name: 'Approve Course', category: 'education' }
 ];
 
 export class PermissionRepository {

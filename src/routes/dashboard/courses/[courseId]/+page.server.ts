@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission } from '$lib/server/services/auth.service';
@@ -17,7 +18,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		? await getRepositories().permissions.hasPermission({
 			personId: locals.person.id,
 			societyId: resolveSocietyId(undefined),
-			permissionCode: 'education.approve_course'
+			permissionCode: PERMISSION.EDUCATION_APPROVE_COURSE
 		})
 		: false;
 
@@ -59,7 +60,7 @@ export const actions: Actions = {
 	},
 	approveCourse: async (event) => {
 		const { params, locals } = event;
-		await requirePermission(event, 'education.approve_course', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.EDUCATION_APPROVE_COURSE, resolveSocietyId(undefined));
 
 		if (!locals.person) {
 			return fail(400, { message: 'Invalid request' });
@@ -88,7 +89,7 @@ export const actions: Actions = {
 	},
 	rejectCourse: async (event) => {
 		const { params, locals } = event;
-		await requirePermission(event, 'education.approve_course', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.EDUCATION_APPROVE_COURSE, resolveSocietyId(undefined));
 
 		if (!locals.person) {
 			return fail(400, { message: 'Invalid request' });

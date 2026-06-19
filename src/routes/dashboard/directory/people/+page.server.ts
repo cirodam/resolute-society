@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { error, fail } from '@sveltejs/kit';
@@ -51,7 +52,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 export const actions: Actions = {
 	seedRandomPerson: async (event) => {
 		const { locals } = event;
-		await requirePermission(event, 'membership.create_member', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.MEMBERSHIP_CREATE_MEMBER, resolveSocietyId(undefined));
 
 		const societyId = resolveSocietyId(undefined);
 		const repositories = getRepositories();
@@ -103,7 +104,7 @@ export const actions: Actions = {
 
 	runSortition: async (event) => {
 		const { locals } = event;
-		await requirePermission(event, 'membership.run_sortition', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.MEMBERSHIP_RUN_SORTITION, resolveSocietyId(undefined));
 
 		const repositories = getRepositories();
 		const members = await repositories.people.listFullMembers(resolveSocietyId(undefined));

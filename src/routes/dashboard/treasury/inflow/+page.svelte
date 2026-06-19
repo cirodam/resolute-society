@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import { enhance } from '$app/forms';
 	import { hasPermission } from '$lib/client/permissions';
 	import type { PageData, ActionData } from './$types';
@@ -29,7 +30,7 @@
 	<Alert type="success" message={form?.success ? `Collected ${form.collected.toFixed(2)} credits from ${form.principalCount} principals` : null} />
 	<Alert type="error" message={form?.error} />
 
-	{#if hasPermission(data.permissions, 'treasury.run_demurrage')}
+	{#if hasPermission(data.permissions, PERMISSION.TREASURY_RUN_DEMURRAGE)}
 		<div class="demurrage-card card-border">
 			<form method="POST" action="?/runDemurrage" use:enhance class="demurrage-form">
 				<input type="hidden" name="mode" value={demurrageMode} />

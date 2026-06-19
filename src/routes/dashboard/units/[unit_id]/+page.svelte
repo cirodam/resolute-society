@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { formatLongDate } from '$lib/client/datetime';
@@ -35,7 +36,7 @@
 		</div>
 		<div class="section-header">
 			<h1 class="t-display">{data.unit.name}</h1>
-			{#if hasPermission(data.permissions, 'positions.create_officer')}
+			{#if hasPermission(data.permissions, PERMISSION.POSITIONS_CREATE_OFFICER)}
 				<div class="header-actions">
 					<button class="btn btn--secondary btn--small" onclick={() => (showEditUnit = !showEditUnit)}>
 						{showEditUnit ? 'Cancel' : 'Edit'}
@@ -50,7 +51,7 @@
 			<p class="page-header-description">{data.unit.description}</p>
 		{/if}
 
-		{#if showEditUnit && hasPermission(data.permissions, 'positions.create_officer')}
+		{#if showEditUnit && hasPermission(data.permissions, PERMISSION.POSITIONS_CREATE_OFFICER)}
 			<form method="POST" action="?/updateUnit" use:enhance class="edit-form"
 				onsubmit={() => (showEditUnit = false)}>
 				<div class="form-group">
@@ -76,7 +77,7 @@
 		<div class="section-card card-border">
 			<div class="section-header">
 				<h2 class="section-title">Sub-units ({data.subUnits.length})</h2>
-				{#if hasPermission(data.permissions, 'positions.create_officer')}
+				{#if hasPermission(data.permissions, PERMISSION.POSITIONS_CREATE_OFFICER)}
 					<button class="btn btn--primary btn--small" onclick={() => (showSubUnitForm = !showSubUnitForm)}>
 						{showSubUnitForm ? 'Cancel' : '+ Add Sub-unit'}
 					</button>
@@ -123,7 +124,7 @@
 		<div class="section-card card-border">
 			<div class="section-header">
 				<h2 class="section-title">Positions ({data.positions.length})</h2>
-				{#if hasPermission(data.permissions, 'positions.create_officer')}
+				{#if hasPermission(data.permissions, PERMISSION.POSITIONS_CREATE_OFFICER)}
 					<button class="btn btn--primary btn--small" onclick={() => (showPositionForm = !showPositionForm)}>
 						{showPositionForm ? 'Cancel' : '+ Add Position'}
 					</button>

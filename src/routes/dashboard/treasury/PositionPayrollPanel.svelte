@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import { enhance } from '$app/forms';
 	import Alert from '$lib/components/Alert.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
@@ -73,7 +74,7 @@
 						· {totalPayroll().toFixed(2)} credits total
 					</p>
 				</div>
-				{#if hasPermission(permissions, 'treasury.run_position_payroll')}
+				{#if hasPermission(permissions, PERMISSION.TREASURY_RUN_POSITION_PAYROLL)}
 					<form method="POST" action="?/runPositionPayroll" use:enhance>
 						<ConfirmButton class="btn btn--primary" disabled={filledCount() === 0}>
 							Run Position Payroll
@@ -119,7 +120,7 @@
 
 								{#if expandedPositionId === position.id}
 									<div class="adjust-form">
-										{#if hasPermission(permissions, 'treasury.adjust_position_allowance')}
+										{#if hasPermission(permissions, PERMISSION.TREASURY_ADJUST_POSITION_ALLOWANCE)}
 											<form method="POST" action="?/adjustPositionAllowance" use:enhance>
 												<input type="hidden" name="position_id" value={position.id} />
 

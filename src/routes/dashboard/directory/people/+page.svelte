@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
 	import { hasPermission } from '$lib/client/permissions';
@@ -14,13 +15,13 @@
 		<h2 class="section-title">People ({data.total})</h2>
 		<div class="header-actions">
 			<a href="/dashboard/directory/people/print" class="btn btn--secondary btn--small">Print Roster</a>
-			{#if hasPermission(data.permissions, 'membership.create_member')}
+			{#if hasPermission(data.permissions, PERMISSION.MEMBERSHIP_CREATE_MEMBER)}
 				<a href="/dashboard/directory/people/new" class="btn btn--secondary btn--small">Add Member</a>
 				<form method="POST" action="?/seedRandomPerson" use:enhance style="display: inline;">
 					<button type="submit" class="btn btn--secondary btn--small">Seed Random Person</button>
 				</form>
 			{/if}
-			{#if hasPermission(data.permissions, 'membership.run_sortition')}
+			{#if hasPermission(data.permissions, PERMISSION.MEMBERSHIP_RUN_SORTITION)}
 				<form method="POST" action="?/runSortition" use:enhance style="display: inline;">
 					<button type="submit" class="btn btn--secondary btn--small">Shuffle Sortition Numbers</button>
 				</form>

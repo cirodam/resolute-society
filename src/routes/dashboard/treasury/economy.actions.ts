@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission } from '$lib/server/services/auth.service';
@@ -10,7 +11,7 @@ import { withCriticalAction } from '$lib/server/http/critical-action';
 export const demurrageAction = {
 	runDemurrage: withCriticalAction(async (event) => {
 		const { request } = event;
-		await requirePermission(event, 'treasury.run_demurrage', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_RUN_DEMURRAGE, resolveSocietyId(undefined));
 
 		const data = await request.formData();
 		const modeRaw = data.get('mode')?.toString();
@@ -63,7 +64,7 @@ export const demurrageAction = {
 
 export const reconciliationActions = {
 	reconcileEndowmentMint: withCriticalAction(async (event) => {
-		await requirePermission(event, 'treasury.run_demurrage', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_RUN_DEMURRAGE, resolveSocietyId(undefined));
 		const result = await reconcileEndowmentMint(resolveSocietyId(undefined));
 		return {
 			endowmentMintSuccess: true,
@@ -78,7 +79,7 @@ export const reconciliationActions = {
 	}),
 
 	runSupplyReconciliationDemurrage: withCriticalAction(async (event) => {
-		await requirePermission(event, 'treasury.run_demurrage', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_RUN_DEMURRAGE, resolveSocietyId(undefined));
 
 		let result: Awaited<ReturnType<typeof runSupplyReconciliationDemurrage>>;
 		try {
@@ -108,7 +109,7 @@ export const reconciliationActions = {
 	}),
 
 	runFedSupplyReconciliationBurn: withCriticalAction(async (event) => {
-		await requirePermission(event, 'treasury.run_demurrage', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_RUN_DEMURRAGE, resolveSocietyId(undefined));
 		const result = await runFedSupplyReconciliationBurn(resolveSocietyId(undefined));
 		return {
 			fedBurnSuccess: true,

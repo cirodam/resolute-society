@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { governanceTabs } from '$lib/client/navigation';
@@ -20,7 +21,7 @@
 			</div>
 			<div class="header-actions">
 				<a href="/dashboard/units/print" class="btn btn--secondary btn--small">Print Roster</a>
-				{#if hasPermission(data.permissions, 'positions.create_officer')}
+				{#if hasPermission(data.permissions, PERMISSION.POSITIONS_CREATE_OFFICER)}
 					<button class="btn btn--primary btn--small" onclick={() => (showUnitForm = !showUnitForm)}>
 						{showUnitForm ? 'Cancel' : '+ New Unit'}
 					</button>
@@ -31,7 +32,7 @@
 
 	<Subnav tabs={governanceTabs} />
 
-	{#if showUnitForm && hasPermission(data.permissions, 'positions.create_officer')}
+	{#if showUnitForm && hasPermission(data.permissions, PERMISSION.POSITIONS_CREATE_OFFICER)}
 		<form method="POST" action="?/createUnit" use:enhance class="unit-form card-border">
 			<div class="form-group">
 				<label for="unit-name">Unit Name</label>

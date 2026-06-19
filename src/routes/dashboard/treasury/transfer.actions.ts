@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission } from '$lib/server/services/auth.service';
@@ -18,7 +19,7 @@ export const transferActions = {
 	transfer: withCriticalAction(async (event) => {
 		const { request } = event;
 		const societyId = resolveSocietyId(undefined);
-		await requirePermission(event, 'treasury.transfer', societyId);
+		await requirePermission(event, PERMISSION.TREASURY_TRANSFER, societyId);
 
 		const data = await request.formData();
 		const handle = data.get('handle')?.toString();
@@ -56,7 +57,7 @@ export const transferActions = {
 	transferFederationCredits: withCriticalAction(async (event) => {
 		const { request } = event;
 		const societyId = resolveSocietyId(undefined);
-		await requirePermission(event, 'treasury.transfer', societyId);
+		await requirePermission(event, PERMISSION.TREASURY_TRANSFER, societyId);
 
 		const data = await request.formData();
 		const toPrincipal = data.get('toPrincipal')?.toString().trim();

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import { enhance } from '$app/forms';
 	import { hasPermission } from '$lib/client/permissions';
 	import type { PageData, ActionData } from './$types';
@@ -49,7 +50,7 @@
 		<div class="reconcile-col card-border">
 			<div class="reconcile-col-label t-label">Local Credits</div>
 			<p class="reconcile-description">Reconcile local supply against member endowment target (60,000 per member).</p>
-			{#if hasPermission(data.permissions, 'treasury.run_demurrage')}
+			{#if hasPermission(data.permissions, PERMISSION.TREASURY_RUN_DEMURRAGE)}
 				<div class="reconcile-actions">
 					<form method="POST" action="?/reconcileEndowmentMint" use:enhance>
 						<ConfirmButton class="btn btn--secondary btn--small">Mint Shortfall</ConfirmButton>
@@ -74,7 +75,7 @@
 				</span>
 			</div>
 			<p class="reconcile-description">Federation credits issued at member join flow freely to other societies. A balance below issued is normal. Burn excess if holdings exceed the issued amount.</p>
-			{#if hasPermission(data.permissions, 'treasury.run_demurrage') && data.totalFedSupply > data.expectedFedSupply}
+			{#if hasPermission(data.permissions, PERMISSION.TREASURY_RUN_DEMURRAGE) && data.totalFedSupply > data.expectedFedSupply}
 				<div class="reconcile-actions">
 					<form method="POST" action="?/runFedSupplyReconciliationBurn" use:enhance>
 						<ConfirmButton class="btn btn--primary btn--small">Burn Excess</ConfirmButton>

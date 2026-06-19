@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission } from '$lib/server/services/auth.service';
@@ -8,7 +9,7 @@ import { withCriticalAction } from '$lib/server/http/critical-action';
 
 export const payrollActions = {
 	runPositionPayroll: withCriticalAction(async (event) => {
-		await requirePermission(event, 'treasury.run_position_payroll', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_RUN_POSITION_PAYROLL, resolveSocietyId(undefined));
 
 		const societyId = resolveSocietyId(undefined);
 		const repositories = getRepositories();
@@ -52,7 +53,7 @@ export const payrollActions = {
 
 	adjustPositionAllowance: withCriticalAction(async (event) => {
 		const { request } = event;
-		await requirePermission(event, 'treasury.adjust_position_allowance', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_ADJUST_POSITION_ALLOWANCE, resolveSocietyId(undefined));
 		const data = await request.formData();
 		const positionId = data.get('position_id')?.toString();
 		const newAllowance = parseFloat(data.get('current_allowance')?.toString() || '0');

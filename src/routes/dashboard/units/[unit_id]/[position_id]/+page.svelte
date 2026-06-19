@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { formatLongDate } from '$lib/client/datetime';
@@ -13,7 +14,7 @@
 	let showPermissionGrant = $state(false);
 
 	const tabs = $derived(
-		hasPermission(data.permissions, 'positions.create_officer')
+		hasPermission(data.permissions, PERMISSION.POSITIONS_CREATE_OFFICER)
 			? [{ label: 'Details' }, { label: 'Description' }, { label: 'Edit' }]
 			: [{ label: 'Details' }, { label: 'Description' }]
 	);
@@ -79,7 +80,7 @@
 								{formatLongDate(data.position.term_expires_at)}
 							</p>
 						</div>
-						{#if hasPermission(data.permissions, 'positions.remove_person')}
+						{#if hasPermission(data.permissions, PERMISSION.POSITIONS_REMOVE_PERSON)}
 							<form method="POST" action="?/remove" use:enhance>
 								<button type="submit" class="btn btn--secondary">Remove from Position</button>
 							</form>
@@ -88,7 +89,7 @@
 				{:else}
 					<div class="holder-vacant">
 						<p class="vacant-text">This position is currently vacant.</p>
-						{#if hasPermission(data.permissions, 'positions.assign_person')}
+						{#if hasPermission(data.permissions, PERMISSION.POSITIONS_ASSIGN_PERSON)}
 							<form method="POST" action="?/assign" use:enhance class="assign-form">
 								<label for="person-select" class="form-label">Appoint Person</label>
 								<div class="form-row">
@@ -109,7 +110,7 @@
 			</div>
 
 			<!-- Permissions -->
-			{#if hasPermission(data.permissions, 'positions.create_officer')}
+			{#if hasPermission(data.permissions, PERMISSION.POSITIONS_CREATE_OFFICER)}
 				<div class="section-card card-border">
 					<div class="section-header">
 						<h2 class="section-title">Permissions ({data.currentPermissions.length})</h2>
@@ -213,7 +214,7 @@
 				</div>
 			</form>
 
-			{#if hasPermission(data.permissions, 'positions.create_officer')}
+			{#if hasPermission(data.permissions, PERMISSION.POSITIONS_CREATE_OFFICER)}
 				<div class="danger-zone">
 					<h3 class="danger-title">Danger Zone</h3>
 					<form method="POST" action="?/deletePosition" use:enhance>

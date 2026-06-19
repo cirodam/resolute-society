@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { error, fail, redirect } from '@sveltejs/kit';
@@ -22,7 +23,7 @@ export const load: PageServerLoad = async () => {
 export const actions = {
 	default: async (event) => {
 		const { request, locals } = event;
-		await requirePermission(event, 'membership.create_association', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.MEMBERSHIP_CREATE_ASSOCIATION, resolveSocietyId(undefined));
 
 		const data = await request.formData();
 		const handle = data.get('handle')?.toString().trim();

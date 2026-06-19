@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { randomUUID } from 'crypto';
 import { fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
@@ -10,7 +11,7 @@ import { withCriticalAction } from '$lib/server/http/critical-action';
 export const allowanceActions = {
 	runAllowanceGroup: withCriticalAction(async (event) => {
 		const { request } = event;
-		await requirePermission(event, 'treasury.run_allowance_group', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_RUN_ALLOWANCE_GROUP, resolveSocietyId(undefined));
 
 		const data = await request.formData();
 		const groupId = data.get('group_id')?.toString();
@@ -60,7 +61,7 @@ export const allowanceActions = {
 
 	createAllowanceGroup: withCriticalAction(async (event) => {
 		const { request } = event;
-		await requirePermission(event, 'treasury.create_allowance_group', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_CREATE_ALLOWANCE_GROUP, resolveSocietyId(undefined));
 		const data = await request.formData();
 		const name = data.get('name')?.toString();
 		if (!name) return fail(400, { createGroupError: 'Name required' });
@@ -80,7 +81,7 @@ export const allowanceActions = {
 
 	deleteAllowanceGroup: withCriticalAction(async (event) => {
 		const { request } = event;
-		await requirePermission(event, 'treasury.delete_allowance_group', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_DELETE_ALLOWANCE_GROUP, resolveSocietyId(undefined));
 		const data = await request.formData();
 		const groupId = data.get('group_id')?.toString();
 		if (!groupId) return fail(400, { deleteGroupError: 'Group ID required' });
@@ -99,7 +100,7 @@ export const allowanceActions = {
 
 	addGroupMember: withCriticalAction(async (event) => {
 		const { request } = event;
-		await requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_MANAGE_ALLOWANCE_MEMBERS, resolveSocietyId(undefined));
 		const data = await request.formData();
 		const groupId = data.get('group_id')?.toString();
 		const personId = data.get('person_id')?.toString();
@@ -122,7 +123,7 @@ export const allowanceActions = {
 
 	removeGroupMember: withCriticalAction(async (event) => {
 		const { request } = event;
-		await requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_MANAGE_ALLOWANCE_MEMBERS, resolveSocietyId(undefined));
 		const data = await request.formData();
 		const groupId = data.get('group_id')?.toString();
 		const personId = data.get('person_id')?.toString();
@@ -138,7 +139,7 @@ export const allowanceActions = {
 
 	updateMemberAmount: withCriticalAction(async (event) => {
 		const { request } = event;
-		await requirePermission(event, 'treasury.manage_allowance_members', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_MANAGE_ALLOWANCE_MEMBERS, resolveSocietyId(undefined));
 		const data = await request.formData();
 		const groupId = data.get('group_id')?.toString();
 		const personId = data.get('person_id')?.toString();
@@ -157,7 +158,7 @@ export const allowanceActions = {
 
 	distributeUniversalAllowance: withCriticalAction(async (event) => {
 		const { request } = event;
-		await requirePermission(event, 'treasury.distribute_universal_allowance', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.TREASURY_DISTRIBUTE_UNIVERSAL_ALLOWANCE, resolveSocietyId(undefined));
 
 		const data = await request.formData();
 		const amountPerMember = parseFloat(data.get('amount')?.toString() || '0');

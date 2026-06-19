@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { randomUUID } from 'crypto';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { fail } from '@sveltejs/kit';
@@ -15,7 +16,7 @@ export const load: PageServerLoad = async () => {
 export const actions: Actions = {
 	createUnit: async (event) => {
 		const { request, locals } = event;
-		await requirePermission(event, 'positions.create_officer', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.POSITIONS_CREATE_OFFICER, resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const name = formData.get('name')?.toString()?.trim();

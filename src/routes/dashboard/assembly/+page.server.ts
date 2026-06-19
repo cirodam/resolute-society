@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { error, fail } from '@sveltejs/kit';
@@ -31,7 +32,7 @@ export const load: PageServerLoad = async ({ params }) => {
 export const actions: Actions = {
 	assign: async (event) => {
 		const { request, locals } = event;
-		await requirePermission(event, 'assembly.assign_seat', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.ASSEMBLY_ASSIGN_SEAT, resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const assemblyId = formData.get('assembly_id') as string;
@@ -68,7 +69,7 @@ export const actions: Actions = {
 
 	unassign: async (event) => {
 		const { request, locals } = event;
-		await requirePermission(event, 'assembly.unassign_seat', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.ASSEMBLY_UNASSIGN_SEAT, resolveSocietyId(undefined));
 
 		const formData = await request.formData();
 		const assemblyId = formData.get('assembly_id') as string;

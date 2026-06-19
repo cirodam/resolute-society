@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { requirePermission } from '$lib/server/services/auth.service';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { error, fail, redirect } from '@sveltejs/kit';
@@ -25,7 +26,7 @@ export const actions = {
 	default: async (event) => {
 		const { locals } = event;
 		const societyId = resolveSocietyId(undefined);
-		await requirePermission(event, 'membership.create_member', societyId);
+		await requirePermission(event, PERMISSION.MEMBERSHIP_CREATE_MEMBER, societyId);
 
 		const data = await event.request.formData();
 		const handle   = data.get('handle')?.toString();

@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { calculateBalance } from '$lib/server/services/ledger.service';
 import { MEMBER_ENDOWMENT } from '$lib/server/economy/endowment';
@@ -25,7 +26,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		: await repositories.societies.listPermissionCodesForPerson(person.society_id, locals.person?.id ?? '');
 	const canDelete =
 		locals.person?.id !== params.id &&
-		(isFounder || permissionCodes.includes('membership.create_member'));
+		(isFounder || permissionCodes.includes(PERMISSION.MEMBERSHIP_CREATE_MEMBER));
 
 	return {
 		person: {
@@ -88,7 +89,7 @@ export const actions: Actions = {
 			return fail(404, { deleteError: 'Member not found' });
 		}
 
-		await requirePermission(event, 'membership.create_member', person.society_id);
+		await requirePermission(event, PERMISSION.MEMBERSHIP_CREATE_MEMBER, person.society_id);
 
 		if (locals.person?.id === params.id) {
 			return fail(400, { deleteError: 'You cannot delete your own account' });

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import type { PageData } from './$types';
 	import { hasPermission } from '$lib/client/permissions';
 	import EmptyState from '$lib/components/EmptyState.svelte';
@@ -9,7 +10,7 @@
 <section class="directory-section">
 	<div class="section-header">
 		<h2 class="section-title">Associations ({data.associations.length})</h2>
-		{#if hasPermission(data.permissions, 'membership.create_association')}
+		{#if hasPermission(data.permissions, PERMISSION.MEMBERSHIP_CREATE_ASSOCIATION)}
 			<a href="/dashboard/directory/associations/new" class="btn btn--secondary btn--small">Add Association</a>
 		{/if}
 	</div>

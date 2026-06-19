@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { error, fail } from '@sveltejs/kit';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { requirePermission } from '$lib/server/services/auth.service';
@@ -45,7 +46,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
 export const actions = {
 	closeDay: withCriticalAction(async (event) => {
-		await requirePermission(event, 'ledger.close_day', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.LEDGER_CLOSE_DAY, resolveSocietyId(undefined));
 
 		const data = await event.request.formData();
 		const witnessedById = data.get('witnessed_by_id')?.toString() || null;
@@ -82,7 +83,7 @@ export const actions = {
 	}),
 
 	markPrinted: withCriticalAction(async (event) => {
-		await requirePermission(event, 'ledger.close_day', resolveSocietyId(undefined));
+		await requirePermission(event, PERMISSION.LEDGER_CLOSE_DAY, resolveSocietyId(undefined));
 
 		const data = await event.request.formData();
 		const dayId = data.get('day_id')?.toString();

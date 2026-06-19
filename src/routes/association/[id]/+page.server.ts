@@ -1,3 +1,4 @@
+import { PERMISSION } from '$lib/permissions';
 import { error, fail } from '@sveltejs/kit';
 import { calculateBalance } from '$lib/server/services/ledger.service';
 import { getRepositories } from '$lib/server/infra/repositories';
@@ -26,7 +27,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		: false;
 
 	const canManageMembers = locals.person
-		? await getRepositories().permissions.hasPermission({ personId: locals.person.id, societyId, permissionCode: 'membership.create_association' })
+		? await getRepositories().permissions.hasPermission({ personId: locals.person.id, societyId, permissionCode: PERMISSION.MEMBERSHIP_CREATE_ASSOCIATION })
 		: false;
 
 	const [inbox, sent] = isMember
@@ -145,7 +146,7 @@ export const actions: Actions = {
 		const repos = getRepositories();
 		const societyId = resolveSocietyId(undefined);
 
-		const canManage = await getRepositories().permissions.hasPermission({ personId: locals.person.id, societyId, permissionCode: 'membership.create_association' });
+		const canManage = await getRepositories().permissions.hasPermission({ personId: locals.person.id, societyId, permissionCode: PERMISSION.MEMBERSHIP_CREATE_ASSOCIATION });
 		if (!canManage) return fail(403, { memberError: 'Permission denied' });
 
 		const data = await request.formData();
@@ -166,7 +167,7 @@ export const actions: Actions = {
 		const repos = getRepositories();
 		const societyId = resolveSocietyId(undefined);
 
-		const canManage = await getRepositories().permissions.hasPermission({ personId: locals.person.id, societyId, permissionCode: 'membership.create_association' });
+		const canManage = await getRepositories().permissions.hasPermission({ personId: locals.person.id, societyId, permissionCode: PERMISSION.MEMBERSHIP_CREATE_ASSOCIATION });
 		if (!canManage) return fail(403, { memberError: 'Permission denied' });
 
 		const data = await request.formData();

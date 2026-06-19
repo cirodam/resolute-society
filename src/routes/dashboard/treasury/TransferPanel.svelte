@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PERMISSION } from '$lib/permissions';
 	import { enhance } from '$app/forms';
 	import Alert from '$lib/components/Alert.svelte';
 	import { hasPermission } from '$lib/client/permissions';
@@ -45,7 +46,7 @@
 				Send society credits from the treasury to a member or association
 			</p>
 
-			{#if hasPermission(permissions, 'treasury.transfer')}
+			{#if hasPermission(permissions, PERMISSION.TREASURY_TRANSFER)}
 				<form method="POST" action="?/transfer" use:enhance class="transfer-form">
 					<div class="input-group">
 						<label for="handle">Member or Association Handle</label>
@@ -96,7 +97,7 @@
 			/>
 			<Alert type="error" message={form?.federationTransferError ?? null} />
 
-			{#if hasPermission(permissions, 'treasury.transfer')}
+			{#if hasPermission(permissions, PERMISSION.TREASURY_TRANSFER)}
 				<form method="POST" action="?/transferFederationCredits" use:enhance class="transfer-form">
 					<div class="input-group">
 						<label for="fed-to-principal">Recipient principal</label>

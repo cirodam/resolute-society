@@ -60,34 +60,6 @@ export async function reconcileEndowmentMint(societyId: string): Promise<{
 	};
 }
 
-export async function reconcileFedMint(societyId: string): Promise<{
-	minted: number;
-	expectedSupply: number;
-	totalFedSupply: number;
-}> {
-	const repositories = getRepositories();
-	const society = await repositories.societies.findDetailById(societyId);
-	if (!society) throw new Error(`Society not found: ${societyId}`);
-
-	const memberCount = await repositories.treasury.getMemberCount(societyId);
-	const expectedSupply = calculateExpectedSupply(memberCount);
-	const totalFedSupply = await repositories.fedLedger.getTotalFedSupplyForSociety(society.handle);
-	const shortfall = Math.max(0, expectedSupply - totalFedSupply);
-
-	if (shortfall <= 0) {
-		return { minted: 0, expectedSupply, totalFedSupply };
-	}
-
-	await repositories.inboundFedTxns.create({
-		id: randomUUID(),
-		fromPrincipal: 'mint@federation',
-		toPrincipal: `treasury@${society.handle}`,
-		amount: shortfall
-	});
-
-	return { minted: shortfall, expectedSupply, totalFedSupply };
-}
-
 export async function runFedSupplyReconciliationBurn(societyId: string): Promise<{
 	burned: number;
 	remainingExcess: number;

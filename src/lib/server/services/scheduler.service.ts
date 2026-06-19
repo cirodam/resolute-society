@@ -1,6 +1,6 @@
 import { db } from '$lib/server/infra/db';
 import { getRepositories } from '$lib/server/infra/repositories';
-import { reconcileEndowmentMint, reconcileFedMint } from '$lib/server/economy/reconciliation';
+import { reconcileEndowmentMint } from '$lib/server/economy/reconciliation';
 
 const ENDOWMENT_RECONCILE_JOB = 'endowment_reconcile_daily_0800';
 const LEDGER_PRUNE_JOB = 'ledger_prune_daily_0800';
@@ -100,7 +100,6 @@ async function runEndowmentReconcileJob(): Promise<void> {
 
 	for (const society of societies) {
 		await reconcileEndowmentMint(society.id);
-		await reconcileFedMint(society.id);
 	}
 }
 

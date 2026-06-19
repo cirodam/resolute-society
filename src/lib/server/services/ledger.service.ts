@@ -8,6 +8,10 @@ export {
 	LedgerTransactionValidationError
 } from '../infra/ledger-errors';
 export type { LedgerTransactionErrorCode } from '../infra/ledger-errors';
+import {
+	LEDGER_TRANSACTION_ERROR,
+	LedgerTransactionValidationError
+} from '../infra/ledger-errors';
 
 export function validateLedgerTransactionAmount(amount: number): void {
 	if (!Number.isFinite(amount) || amount <= 0) {

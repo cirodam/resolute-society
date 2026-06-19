@@ -3,25 +3,11 @@ import type { Repositories } from '../infra/repositories';
 import type { EntityType } from '$lib/server/types';
 
 export type { EntityType } from '$lib/server/types';
-
-export const LEDGER_TRANSACTION_ERROR = {
-	NON_POSITIVE_AMOUNT: 'NON_POSITIVE_AMOUNT',
-	INSUFFICIENT_BALANCE: 'INSUFFICIENT_BALANCE',
-	SYSTEM_TRANSACTION_REQUIRES_EXPLICIT_PATH: 'SYSTEM_TRANSACTION_REQUIRES_EXPLICIT_PATH'
-} as const;
-
-export type LedgerTransactionErrorCode =
-	(typeof LEDGER_TRANSACTION_ERROR)[keyof typeof LEDGER_TRANSACTION_ERROR];
-
-export class LedgerTransactionValidationError extends Error {
-	constructor(
-		public readonly code: LedgerTransactionErrorCode,
-		message: string
-	) {
-		super(message);
-		this.name = 'LedgerTransactionValidationError';
-	}
-}
+export {
+	LEDGER_TRANSACTION_ERROR,
+	LedgerTransactionValidationError
+} from '../infra/ledger-errors';
+export type { LedgerTransactionErrorCode } from '../infra/ledger-errors';
 
 export function validateLedgerTransactionAmount(amount: number): void {
 	if (!Number.isFinite(amount) || amount <= 0) {

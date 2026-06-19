@@ -43,7 +43,7 @@
 				<span class="meta-badge t-label">{association.type}</span>
 			{/if}
 			<span class="meta-link">
-				<a href="/society">{association.society_name}</a>
+				<a href="/dashboard">{association.society_name}</a>
 			</span>
 		</div>
 	</div>
@@ -57,7 +57,7 @@
 					{#if association.location_address}
 						<span class="location-address">{association.location_address}</span>
 					{/if}
-					<a href="/society/map" class="location-map-link">View on map →</a>
+					<a href="/dashboard/map" class="location-map-link">View on map →</a>
 				</div>
 			</section>
 		{/if}

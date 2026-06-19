@@ -87,7 +87,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			}
 
 			if (person.welcome_seen_at && isWelcomeRoute) {
-				return new Response(null, { status: 302, headers: { location: '/society' } });
+				return new Response(null, { status: 302, headers: { location: '/dashboard' } });
 			}
 		}
 	}

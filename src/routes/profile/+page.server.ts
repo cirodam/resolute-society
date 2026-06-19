@@ -1,5 +1,4 @@
 import { getRepositories } from '$lib/server/infra/repositories';
-import { getFedBalance, getFedHistory } from '$lib/server/economy/fed-balance';
 import { sendFedTransfer } from '$lib/server/federation/p2p';
 import { withCriticalAction } from '$lib/server/http/critical-action';
 import { resolveLocalEntityById, resolveLocalEntity } from '$lib/server/utils/local-entity.util';
@@ -28,8 +27,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			repos.ledger.calculateBalance('person', person.id),
 			repos.ledger.countPersonTransactions(person.id),
 			repos.ledger.listPersonTransactionsPaginated(person.id, PAGE_SIZE, offset),
-			getFedBalance(principal),
-			getFedHistory(principal),
+			repos.fedLedger.getFedBalance(principal),
+			repos.fedLedger.getFedHistory(principal),
 			repos.keypair.get().then((k) => !!k)
 		]);
 

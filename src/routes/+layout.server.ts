@@ -5,7 +5,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 	let theme = 'default';
 	if (url.pathname.startsWith('/federation')) {
 		theme = 'federation';
-	} else if (url.pathname.startsWith('/society') || url.pathname.startsWith('/person')) {
+	} else if (url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/person')) {
 		theme = 'society';
 	}
 

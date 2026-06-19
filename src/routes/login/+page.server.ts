@@ -32,6 +32,6 @@ export const actions = {
 			maxAge: 60 * 60 * 24 * 7 // 1 week
 		});
 
-		throw redirect(303, person.welcome_seen_at ? '/society' : '/welcome');
+		throw redirect(303, person.welcome_seen_at ? '/dashboard' : '/welcome');
 	}
 } satisfies Actions;

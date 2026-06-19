@@ -28,6 +28,7 @@ import { PeerSocietyRepository } from './peer-society.repository';
 import { OutboundFedTxnRepository } from './outbound-fed-txn.repository';
 import { InboundFedTxnRepository } from './inbound-fed-txn.repository';
 import { FedMintEventRepository } from './fed-mint-event.repository';
+import { FedLedgerRepository } from './fed-ledger.repository';
 
 export type { EntityType } from './ledger.repository';
 
@@ -60,6 +61,7 @@ export interface Repositories {
 	outboundFedTxns: OutboundFedTxnRepository;
 	inboundFedTxns: InboundFedTxnRepository;
 	fedMintEvents: FedMintEventRepository;
+	fedLedger: FedLedgerRepository;
 }
 
 let repositories: Repositories | null = null;
@@ -94,7 +96,8 @@ export function createRepositories(sql: postgres.Sql | postgres.TransactionSql =
 		peerSocieties: new PeerSocietyRepository(s),
 		outboundFedTxns: new OutboundFedTxnRepository(s),
 		inboundFedTxns: new InboundFedTxnRepository(s),
-		fedMintEvents: new FedMintEventRepository(s)
+		fedMintEvents: new FedMintEventRepository(s),
+		fedLedger: new FedLedgerRepository(s)
 	};
 }
 
@@ -173,3 +176,5 @@ export { InboundFedTxnRepository } from './inbound-fed-txn.repository';
 export type { InboundFedTxnRow } from './inbound-fed-txn.repository';
 export { FedMintEventRepository } from './fed-mint-event.repository';
 export type { FedMintEventRow } from './fed-mint-event.repository';
+export { FedLedgerRepository } from './fed-ledger.repository';
+export type { FedTxnEntry } from './fed-ledger.repository';

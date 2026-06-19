@@ -27,6 +27,6 @@ export const actions: Actions = {
 		}
 
 		await getRepositories().people.markWelcomeSeen(locals.person.id);
-		throw redirect(303, '/society');
+		throw redirect(303, '/dashboard');
 	}
 };

@@ -73,8 +73,10 @@ export class AllowanceGroupRepository {
 	}
 
 	async delete(groupId: string): Promise<void> {
-		await this.sql`DELETE FROM allowance_group_member WHERE group_id = ${groupId}`;
-		await this.sql`DELETE FROM allowance_group WHERE id = ${groupId}`;
+		await this.sql.begin(async (sql) => {
+			await sql`DELETE FROM allowance_group_member WHERE group_id = ${groupId}`;
+			await sql`DELETE FROM allowance_group WHERE id = ${groupId}`;
+		});
 	}
 
 	async addMember(groupId: string, personId: string, amount: number): Promise<void> {

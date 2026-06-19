@@ -9,7 +9,7 @@
 
 	const currentPath = $derived($page.url.pathname);
 	const isLoginPage = $derived(currentPath.startsWith('/login'));
-	const isSocietyPage = $derived(currentPath.startsWith('/society'));
+	const isSocietyPage = $derived(currentPath.startsWith('/dashboard'));
 	const isPersonPage = $derived(currentPath.startsWith('/person'));
 	const isAssociationPage = $derived(currentPath.startsWith('/association'));
 	const isProfilePage = $derived(currentPath.startsWith('/profile'));

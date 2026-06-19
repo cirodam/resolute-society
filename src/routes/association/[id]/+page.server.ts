@@ -1,6 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
 import { calculateBalance } from '$lib/server/services/ledger.service';
-import { getFedBalance } from '$lib/server/economy/fed-balance';
 import { getRepositories } from '$lib/server/infra/repositories';
 import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import { resolveLocalEntity } from '$lib/server/utils/local-entity.util';
@@ -18,7 +17,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	const societyCredits = await calculateBalance('association', params.id);
-	const federationCredits = await getFedBalance(`${association.handle}@${society.handle}`);
+	const federationCredits = await repositories.fedLedger.getFedBalance(`${association.handle}@${society.handle}`);
 
 	const societyId = association.society_id;
 

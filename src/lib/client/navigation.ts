@@ -5,36 +5,36 @@ export interface NavTab {
 }
 
 export const activitiesTabs: NavTab[] = [
-	{ label: 'Calendar', href: '/society/calendar' },
-	{ label: 'Courses', href: '/society/courses' }
+	{ label: 'Calendar', href: '/dashboard/calendar' },
+	{ label: 'Courses', href: '/dashboard/courses' }
 ];
 
 export const marketTabs: NavTab[] = [
-	{ label: 'Market', href: '/society/market' }
+	{ label: 'Market', href: '/dashboard/market' }
 ];
 
 export const governanceTabs: NavTab[] = [
-	{ label: 'Assembly', href: '/society/assembly' },
-	{ label: 'Units', href: '/society/units' },
-	{ label: 'Treasury', href: '/society/treasury' },
-	{ label: 'Society Ledger', href: '/society/ledger' },
-	{ label: 'Federation Ledger', href: '/society/ledger/federation' }
+	{ label: 'Assembly', href: '/dashboard/assembly' },
+	{ label: 'Units', href: '/dashboard/units' },
+	{ label: 'Treasury', href: '/dashboard/treasury' },
+	{ label: 'Society Ledger', href: '/dashboard/ledger' },
+	{ label: 'Federation Ledger', href: '/dashboard/ledger/federation' }
 ];
 
 export const directoryTabs: NavTab[] = [
-	{ label: 'People', href: '/society/directory/people' },
-	{ label: 'Associations', href: '/society/directory/associations' },
-	{ label: 'Neighbors', href: '/society/directory/neighbors' }
+	{ label: 'People', href: '/dashboard/directory/people' },
+	{ label: 'Associations', href: '/dashboard/directory/associations' },
+	{ label: 'Neighbors', href: '/dashboard/directory/neighbors' }
 ];
 
 export const nutritionTabs: NavTab[] = [
-	{ label: 'Requirements', href: '/society/nutrition/requirements' },
-	{ label: 'Planner', href: '/society/nutrition/planner' }
+	{ label: 'Requirements', href: '/dashboard/nutrition/requirements' },
+	{ label: 'Planner', href: '/dashboard/nutrition/planner' }
 ];
 
 export const knowledgeTabs: NavTab[] = [
-	{ label: 'Encyclopedia', href: '/society/encyclopedia' },
-	{ label: 'Guides', href: '/society/guides' }
+	{ label: 'Encyclopedia', href: '/dashboard/encyclopedia' },
+	{ label: 'Guides', href: '/dashboard/guides' }
 ];
 
 export const settingsTabs: NavTab[] = [
@@ -42,8 +42,8 @@ export const settingsTabs: NavTab[] = [
 ];
 
 export const societySettingsTabs: NavTab[] = [
-	{ label: 'Configuration', href: '/society/settings', exact: true },
-	{ label: 'Schedule', href: '/society/settings/schedule' },
-	{ label: 'Audit Log', href: '/society/settings/audit-log' },
-	{ label: 'Backup', href: '/society/settings/backup' }
+	{ label: 'Configuration', href: '/dashboard/settings', exact: true },
+	{ label: 'Schedule', href: '/dashboard/settings/schedule' },
+	{ label: 'Audit Log', href: '/dashboard/settings/audit-log' },
+	{ label: 'Backup', href: '/dashboard/settings/backup' }
 ];

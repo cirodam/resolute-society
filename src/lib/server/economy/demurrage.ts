@@ -1,13 +1,9 @@
 import { calculateBalance, type EntityType } from '$lib/server/services/ledger.service';
 import { createLedgerTransaction, runInRepositoryTransaction } from '$lib/server/economy/transactions';
+import type { PrincipalBalance } from '$lib/server/economy/endowment';
 
+export type { PrincipalBalance };
 export type DemurrageMode = 'percent' | 'flat';
-
-export type PrincipalBalance = {
-	type: EntityType;
-	id: string;
-	balance: number;
-};
 
 export type DemurrageDeduction = {
 	type: EntityType;

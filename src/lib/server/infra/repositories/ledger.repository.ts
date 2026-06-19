@@ -2,6 +2,10 @@ import type postgres from 'postgres';
 import { randomUUID } from 'node:crypto';
 import type { EntityType } from '$lib/server/types';
 import { computeChainHash, GENESIS_PREV_HASH } from '$lib/server/infra/chain';
+import {
+	LedgerTransactionValidationError,
+	LEDGER_TRANSACTION_ERROR
+} from '$lib/server/infra/ledger-errors';
 
 export type { EntityType };
 
@@ -353,6 +357,35 @@ export class LedgerRepository {
 
 		const execute = async (sql: postgres.Sql | postgres.TransactionSql) => {
 			await sql`LOCK TABLE txn IN SHARE ROW EXCLUSIVE MODE`;
+
+			if (params.fromType !== 'system') {
+				const [checkpoint] = await sql<Array<{ balance: string; as_of_date: string }>>`
+					SELECT balance, as_of_date FROM balance_checkpoint
+					WHERE entity_type = ${params.fromType} AND entity_id = ${params.fromId}
+					ORDER BY as_of_date DESC LIMIT 1`;
+
+				const base = checkpoint ? Number(checkpoint.balance) : 0;
+				const since = checkpoint
+					? sql`AND created_at::date > ${checkpoint.as_of_date}::date`
+					: sql``;
+
+				const [credits] = await sql<[{ total: string }]>`
+					SELECT COALESCE(SUM(amount), 0) AS total
+					FROM txn WHERE to_type = ${params.fromType} AND to_id = ${params.fromId} ${since}`;
+
+				const [debits] = await sql<[{ total: string }]>`
+					SELECT COALESCE(SUM(amount), 0) AS total
+					FROM txn WHERE from_type = ${params.fromType} AND from_id = ${params.fromId} ${since}`;
+
+				const balance = base + Number(credits.total) - Number(debits.total);
+
+				if (balance < params.amount) {
+					throw new LedgerTransactionValidationError(
+						LEDGER_TRANSACTION_ERROR.INSUFFICIENT_BALANCE,
+						`Insufficient balance: ${params.fromType} ${params.fromId} has ${balance} but needs ${params.amount}`
+					);
+				}
+			}
 
 			const [last] = await sql<Array<{ chain_hash: string }>>`
 				SELECT chain_hash FROM txn WHERE chain_hash IS NOT NULL

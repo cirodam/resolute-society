@@ -260,7 +260,7 @@
 					<div class="marker-popup">
 						<h3 class="popup-name">${society.name}</h3>
 						<p class="popup-handle">${society.handle}</p>
-						<a href="/society" class="popup-link">View Society →</a>
+						<a href="/dashboard" class="popup-link">View Society →</a>
 					</div>
 				`);
 			});

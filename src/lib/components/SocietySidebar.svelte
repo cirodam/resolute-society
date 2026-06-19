@@ -19,40 +19,40 @@
 		</div>
 
 		<nav class="sidebar__nav">
-			<a href="/society" class="sidebar-link" class:sidebar-link--active={path === '/society'}>
+			<a href="/dashboard" class="sidebar-link" class:sidebar-link--active={path === '/dashboard'}>
 				Dashboard
 			</a>
-			<a href="/society/directory/people" class="sidebar-link" class:sidebar-link--active={active('/society/directory')}>
+			<a href="/dashboard/directory/people" class="sidebar-link" class:sidebar-link--active={active('/dashboard/directory')}>
 				Directory
 			</a>
-			<a href="/society/map" class="sidebar-link" class:sidebar-link--active={active('/society/map')}>
+			<a href="/dashboard/map" class="sidebar-link" class:sidebar-link--active={active('/dashboard/map')}>
 				Map
 			</a>
-			<a href="/society/locations" class="sidebar-link" class:sidebar-link--active={active('/society/locations')}>
+			<a href="/dashboard/locations" class="sidebar-link" class:sidebar-link--active={active('/dashboard/locations')}>
 				Locations
 			</a>
 
 			<div class="sidebar-divider"></div>
 
-			<a href="/society/assembly" class="sidebar-link" class:sidebar-link--active={active('/society/assembly', '/society/units', '/society/treasury', '/society/ledger')}>
+			<a href="/dashboard/assembly" class="sidebar-link" class:sidebar-link--active={active('/dashboard/assembly', '/dashboard/units', '/dashboard/treasury') || path === '/dashboard/ledger' || path.startsWith('/dashboard/ledger/day')}>
 				Governance
 			</a>
-			<a href="/society/calendar" class="sidebar-link" class:sidebar-link--active={active('/society/calendar', '/society/courses')}>
+			<a href="/dashboard/calendar" class="sidebar-link" class:sidebar-link--active={active('/dashboard/calendar', '/dashboard/courses')}>
 				Activities
 			</a>
-			<a href="/society/market" class="sidebar-link" class:sidebar-link--active={active('/society/market')}>
+			<a href="/dashboard/market" class="sidebar-link" class:sidebar-link--active={active('/dashboard/market')}>
 				Market
 			</a>
-			<a href="/society/nutrition" class="sidebar-link" class:sidebar-link--active={active('/society/nutrition')}>
+			<a href="/dashboard/nutrition" class="sidebar-link" class:sidebar-link--active={active('/dashboard/nutrition')}>
 				Nutrition
 			</a>
-			<a href="/society/encyclopedia" class="sidebar-link" class:sidebar-link--active={active('/society/encyclopedia', '/society/guides')}>
+			<a href="/dashboard/encyclopedia" class="sidebar-link" class:sidebar-link--active={active('/dashboard/encyclopedia', '/dashboard/guides')}>
 				Encyclopedia
 			</a>
-			<a href="/society/settings" class="sidebar-link" class:sidebar-link--active={active('/society/settings')}>
+			<a href="/dashboard/settings" class="sidebar-link" class:sidebar-link--active={active('/dashboard/settings')}>
 				Settings
 			</a>
-			<a href="/society/federation" class="sidebar-link" class:sidebar-link--active={active('/society/federation')}>
+			<a href="/dashboard/federation" class="sidebar-link" class:sidebar-link--active={active('/dashboard/federation')}>
 				Federation
 			</a>
 
@@ -65,7 +65,7 @@
 			<a href="/profile/settings" class="sidebar-link" class:sidebar-link--active={active('/profile/settings')}>
 				My Profile
 			</a>
-			<a href="/society/messages" class="sidebar-link" class:sidebar-link--active={active('/society/messages')}>
+			<a href="/dashboard/messages" class="sidebar-link" class:sidebar-link--active={active('/dashboard/messages')}>
 				Messages
 			</a>
 

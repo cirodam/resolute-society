@@ -1,13 +1,11 @@
 import { randomUUID } from 'crypto';
 import { getRepositories } from '$lib/server/infra/repositories';
-import { calculateBalance } from '$lib/server/services/ledger.service';
 import {
 	createLedgerTransaction,
 	createSystemLedgerTransaction,
 	runInRepositoryTransaction
 } from '$lib/server/economy/transactions';
 import { calculateExpectedSupply, planProportionalBurn } from './endowment';
-import { getTotalFedSupplyForSociety } from './fed-balance';
 
 export type SupplySnapshot = {
 	totalSupply: number;
@@ -73,7 +71,7 @@ export async function reconcileFedMint(societyId: string): Promise<{
 	const expectedSupply = calculateExpectedSupply(
 		await repositories.people.listEndowmentMembers(societyId)
 	);
-	const totalFedSupply = await getTotalFedSupplyForSociety(society.handle);
+	const totalFedSupply = await repositories.fedLedger.getTotalFedSupplyForSociety(society.handle);
 	const shortfall = Math.max(0, expectedSupply - totalFedSupply);
 
 	if (shortfall <= 0) {
@@ -88,6 +86,41 @@ export async function reconcileFedMint(societyId: string): Promise<{
 	});
 
 	return { minted: shortfall, expectedSupply, totalFedSupply };
+}
+
+export async function runFedSupplyReconciliationBurn(societyId: string): Promise<{
+	burned: number;
+	remainingExcess: number;
+	expectedSupply: number;
+	totalFedSupply: number;
+}> {
+	const repositories = getRepositories();
+	const society = await repositories.societies.findDetailById(societyId);
+	if (!society) throw new Error(`Society not found: ${societyId}`);
+
+	const expectedSupply = calculateExpectedSupply(
+		await repositories.people.listEndowmentMembers(societyId)
+	);
+	const totalFedSupply = await repositories.fedLedger.getTotalFedSupplyForSociety(society.handle);
+	const excess = Math.max(0, totalFedSupply - expectedSupply);
+
+	if (excess <= 0) {
+		return { burned: 0, remainingExcess: 0, expectedSupply, totalFedSupply };
+	}
+
+	await repositories.outboundFedTxns.create({
+		id: randomUUID(),
+		fromPrincipal: `treasury@${society.handle}`,
+		toPrincipal: 'burn@federation',
+		amount: excess
+	});
+
+	return {
+		burned: excess,
+		remainingExcess: 0,
+		expectedSupply,
+		totalFedSupply
+	};
 }
 
 export async function runSupplyReconciliationDemurrage(societyId: string): Promise<{
@@ -112,17 +145,15 @@ export async function runSupplyReconciliationDemurrage(societyId: string): Promi
 
 	const people = await repositories.treasury.listSocietyPrincipals(societyId);
 	const associations = await repositories.treasury.listSocietyAssociations(societyId);
+
+	const [personBalances, associationBalances] = await Promise.all([
+		repositories.ledger.calculateBalances('person', people.map((p) => p.id)),
+		repositories.ledger.calculateBalances('association', associations.map((a) => a.id))
+	]);
+
 	const principalBalances = [
-		...(await Promise.all(people.map(async (person) => ({
-			type: 'person' as const,
-			id: person.id,
-			balance: await calculateBalance('person', person.id)
-		})))),
-		...(await Promise.all(associations.map(async (association) => ({
-			type: 'association' as const,
-			id: association.id,
-			balance: await calculateBalance('association', association.id)
-		}))))
+		...people.map((p) => ({ type: 'person' as const, id: p.id, balance: personBalances.get(p.id) ?? 0 })),
+		...associations.map((a) => ({ type: 'association' as const, id: a.id, balance: associationBalances.get(a.id) ?? 0 }))
 	];
 
 	const { deductions, burnAmount } = planProportionalBurn(principalBalances, snapshot.supplyExcess);

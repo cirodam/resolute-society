@@ -8,6 +8,7 @@ export interface ItemListingRow {
 	description: string;
 	society_credits_price: number | null;
 	federation_credits_price: number | null;
+	dollars_allowed: boolean;
 	status: string;
 	created_at: string;
 	closed_at: string | null;
@@ -24,6 +25,7 @@ export interface ServiceListingRow {
 	description: string;
 	society_credits_rate: number | null;
 	federation_credits_rate: number | null;
+	dollars_allowed: boolean;
 	rate_unit: string | null;
 	status: string;
 	created_at: string;
@@ -39,7 +41,7 @@ export class MarketRepository {
 	async listItemListings(societyId: string, limit: number, offset: number): Promise<ItemListingRow[]> {
 		return await this.sql<ItemListingRow[]>`
 			SELECT il.id, il.type, il.category, il.title, il.description,
-			       il.society_credits_price, il.federation_credits_price,
+			       il.society_credits_price, il.federation_credits_price, il.dollars_allowed,
 			       il.status, il.created_at, il.closed_at,
 			       p.id as person_id, p.given_name, p.surname, p.handle
 			FROM item_listing il
@@ -58,7 +60,7 @@ export class MarketRepository {
 	async listServiceListings(societyId: string, limit: number, offset: number): Promise<ServiceListingRow[]> {
 		return await this.sql<ServiceListingRow[]>`
 			SELECT sl.id, sl.category, sl.title, sl.description,
-			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit,
+			       sl.society_credits_rate, sl.federation_credits_rate, sl.dollars_allowed, sl.rate_unit,
 			       sl.status, sl.created_at,
 			       p.id as person_id, p.given_name, p.surname, p.handle
 			FROM service_listing sl
@@ -77,7 +79,7 @@ export class MarketRepository {
 	async listItemListingsByPerson(societyId: string, personId: string): Promise<ItemListingRow[]> {
 		return await this.sql<ItemListingRow[]>`
 			SELECT il.id, il.type, il.category, il.title, il.description,
-			       il.society_credits_price, il.federation_credits_price,
+			       il.society_credits_price, il.federation_credits_price, il.dollars_allowed,
 			       il.status, il.created_at, il.closed_at,
 			       p.id as person_id, p.given_name, p.surname, p.handle
 			FROM item_listing il
@@ -89,7 +91,7 @@ export class MarketRepository {
 	async listServiceListingsByPerson(societyId: string, personId: string): Promise<ServiceListingRow[]> {
 		return await this.sql<ServiceListingRow[]>`
 			SELECT sl.id, sl.category, sl.title, sl.description,
-			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit,
+			       sl.society_credits_rate, sl.federation_credits_rate, sl.dollars_allowed, sl.rate_unit,
 			       sl.status, sl.created_at,
 			       p.id as person_id, p.given_name, p.surname, p.handle
 			FROM service_listing sl
@@ -101,7 +103,7 @@ export class MarketRepository {
 	async findItemListing(id: string): Promise<ItemListingRow | null> {
 		const [row] = await this.sql<ItemListingRow[]>`
 			SELECT il.id, il.type, il.category, il.title, il.description,
-			       il.society_credits_price, il.federation_credits_price,
+			       il.society_credits_price, il.federation_credits_price, il.dollars_allowed,
 			       il.status, il.created_at, il.closed_at,
 			       p.id as person_id, p.given_name, p.surname, p.handle
 			FROM item_listing il
@@ -113,7 +115,7 @@ export class MarketRepository {
 	async findServiceListing(id: string): Promise<ServiceListingRow | null> {
 		const [row] = await this.sql<ServiceListingRow[]>`
 			SELECT sl.id, sl.category, sl.title, sl.description,
-			       sl.society_credits_rate, sl.federation_credits_rate, sl.rate_unit,
+			       sl.society_credits_rate, sl.federation_credits_rate, sl.dollars_allowed, sl.rate_unit,
 			       sl.status, sl.created_at,
 			       p.id as person_id, p.given_name, p.surname, p.handle
 			FROM service_listing sl
@@ -128,13 +130,15 @@ export class MarketRepository {
 		description: string;
 		societyCreditsPrice: number | null;
 		federationCreditsPrice: number | null;
+		dollarsAllowed: boolean;
 	}): Promise<void> {
 		await this.sql`
 			UPDATE item_listing
 			SET category = ${params.category}, title = ${params.title},
 			    description = ${params.description},
 			    society_credits_price = ${params.societyCreditsPrice},
-			    federation_credits_price = ${params.federationCreditsPrice}
+			    federation_credits_price = ${params.federationCreditsPrice},
+			    dollars_allowed = ${params.dollarsAllowed}
 			WHERE id = ${id}`;
 	}
 
@@ -144,6 +148,7 @@ export class MarketRepository {
 		description: string;
 		societyCreditsRate: number | null;
 		federationCreditsRate: number | null;
+		dollarsAllowed: boolean;
 		rateUnit: string | null;
 	}): Promise<void> {
 		await this.sql`
@@ -152,6 +157,7 @@ export class MarketRepository {
 			    description = ${params.description},
 			    society_credits_rate = ${params.societyCreditsRate},
 			    federation_credits_rate = ${params.federationCreditsRate},
+			    dollars_allowed = ${params.dollarsAllowed},
 			    rate_unit = ${params.rateUnit}
 			WHERE id = ${id}`;
 	}
@@ -175,10 +181,11 @@ export class MarketRepository {
 		description: string;
 		societyCreditsPrice: number | null;
 		federationCreditsPrice: number | null;
+		dollarsAllowed: boolean;
 	}): Promise<void> {
 		await this.sql`
-			INSERT INTO item_listing (id, society_id, person_id, type, category, title, description, society_credits_price, federation_credits_price)
-			VALUES (${params.listingId}, ${params.societyId}, ${params.personId}, ${params.type}, ${params.category}, ${params.title}, ${params.description}, ${params.societyCreditsPrice}, ${params.federationCreditsPrice})`;
+			INSERT INTO item_listing (id, society_id, person_id, type, category, title, description, society_credits_price, federation_credits_price, dollars_allowed)
+			VALUES (${params.listingId}, ${params.societyId}, ${params.personId}, ${params.type}, ${params.category}, ${params.title}, ${params.description}, ${params.societyCreditsPrice}, ${params.federationCreditsPrice}, ${params.dollarsAllowed})`;
 	}
 
 	async createServiceListing(params: {
@@ -190,10 +197,11 @@ export class MarketRepository {
 		description: string;
 		societyCreditsRate: number | null;
 		federationCreditsRate: number | null;
+		dollarsAllowed: boolean;
 		rateUnit: string | null;
 	}): Promise<void> {
 		await this.sql`
-			INSERT INTO service_listing (id, society_id, person_id, category, title, description, society_credits_rate, federation_credits_rate, rate_unit)
-			VALUES (${params.listingId}, ${params.societyId}, ${params.personId}, ${params.category}, ${params.title}, ${params.description}, ${params.societyCreditsRate}, ${params.federationCreditsRate}, ${params.rateUnit})`;
+			INSERT INTO service_listing (id, society_id, person_id, category, title, description, society_credits_rate, federation_credits_rate, dollars_allowed, rate_unit)
+			VALUES (${params.listingId}, ${params.societyId}, ${params.personId}, ${params.category}, ${params.title}, ${params.description}, ${params.societyCreditsRate}, ${params.federationCreditsRate}, ${params.dollarsAllowed}, ${params.rateUnit})`;
 	}
 }

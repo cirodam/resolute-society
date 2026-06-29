@@ -12,6 +12,10 @@ export function formatPrice(
 	return parts.join(' + ');
 }
 
+export function formatDollarEquivalent(credits: number, dollarPerCredit: number): string {
+	return `~$${(credits * dollarPerCredit).toFixed(2)}`;
+}
+
 export function formatRate(
 	societyRate: number | null,
 	federationRate: number | null,

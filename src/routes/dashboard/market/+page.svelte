@@ -2,7 +2,7 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { formatShortDate } from '$lib/client/datetime';
-	import { formatPrice, formatRate } from '$lib/client/market';
+	import { formatPrice, formatRate, formatDollarEquivalent } from '$lib/client/market';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Subnav from '$lib/components/Subnav.svelte';
@@ -148,6 +148,12 @@
 							<input type="number" id="item-federation-price" name="federation_credits_price" step="0.01" class="input" placeholder="Optional (requires SC)" />
 						</div>
 					</div>
+					{#if data.dollarPerCredit !== null}
+						<label class="checkbox-label">
+							<input type="checkbox" name="dollars_allowed" />
+							Show dollar equivalent (inferred from credit peg)
+						</label>
+					{/if}
 					<button type="submit" class="btn btn--primary">
 						{itemMode === 'offer' ? 'Post Listing' : 'Post Request'}
 					</button>
@@ -169,6 +175,9 @@
 							<p class="listing-description">{item.description}</p>
 							<div class="listing-footer">
 								<span class="listing-price">{formatPrice(item.society_credits_price, item.federation_credits_price, true)}</span>
+								{#if item.dollars_allowed && data.dollarPerCredit !== null && item.society_credits_price !== null}
+									<span class="listing-dollar">{formatDollarEquivalent(item.society_credits_price, data.dollarPerCredit)}</span>
+								{/if}
 								<span class="listing-author">{item.given_name} {item.surname}</span>
 								<span class="listing-date">{formatShortDate(item.created_at)}</span>
 							</div>
@@ -238,6 +247,12 @@
 							</select>
 						</div>
 					</div>
+					{#if data.dollarPerCredit !== null}
+						<label class="checkbox-label">
+							<input type="checkbox" name="dollars_allowed" />
+							Show dollar equivalent (inferred from credit peg)
+						</label>
+					{/if}
 					<button type="submit" class="btn btn--primary">Post Service</button>
 				</form>
 			{/if}
@@ -257,6 +272,9 @@
 							<p class="listing-description">{service.description}</p>
 							<div class="listing-footer">
 								<span class="listing-price">{formatRate(service.society_credits_rate, service.federation_credits_rate, service.rate_unit, true)}</span>
+								{#if service.dollars_allowed && data.dollarPerCredit !== null && service.society_credits_rate !== null}
+									<span class="listing-dollar">{formatDollarEquivalent(service.society_credits_rate, data.dollarPerCredit)}{service.rate_unit ? `/${service.rate_unit}` : ''}</span>
+								{/if}
 								<span class="listing-author">{service.given_name} {service.surname}</span>
 								<span class="listing-date">{formatShortDate(service.created_at)}</span>
 							</div>
@@ -503,6 +521,22 @@
 		font-size: var(--text-base);
 		font-weight: 600;
 		color: var(--gold);
+	}
+
+	.listing-dollar {
+		font-family: var(--font-prose);
+		font-size: var(--text-sm);
+		color: var(--ink-mid);
+	}
+
+	.checkbox-label {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-family: var(--font-prose);
+		font-size: var(--text-sm);
+		color: var(--ink-mid);
+		cursor: pointer;
 	}
 
 	.listing-author {

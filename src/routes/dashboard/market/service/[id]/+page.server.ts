@@ -5,9 +5,18 @@ import { resolveSocietyId } from '$lib/server/utils/society-id.util';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const listing = await getRepositories().market.findServiceListing(params.id);
+	const repos = getRepositories();
+	const [listing, pegConfig, pegLatest] = await Promise.all([
+		repos.market.findServiceListing(params.id),
+		repos.creditPeg.getConfig(),
+		repos.creditPeg.getLatestObservation()
+	]);
 	if (!listing) throw error(404, 'Listing not found');
-	return { listing, isOwner: locals.person?.id === listing.person_id };
+	const dollarPerCredit =
+		pegConfig.creditsPerItem && pegLatest
+			? (pegLatest.price_cents / 100) / pegConfig.creditsPerItem
+			: null;
+	return { listing, isOwner: locals.person?.id === listing.person_id, dollarPerCredit };
 };
 
 export const actions: Actions = {
@@ -26,6 +35,7 @@ export const actions: Actions = {
 		const societyRate = formData.get('society_credits_rate')?.toString();
 		const federationRate = formData.get('federation_credits_rate')?.toString();
 		const rateUnit = formData.get('rate_unit')?.toString() || null;
+		const dollarsAllowed = formData.get('dollars_allowed') === 'on';
 
 		if (!title || !description) return fail(400, { updateError: 'Title and description required' });
 
@@ -37,7 +47,7 @@ export const actions: Actions = {
 		}
 
 		await getRepositories().market.updateServiceListing(params.id, {
-			category, title, description, societyCreditsRate, federationCreditsRate, rateUnit
+			category, title, description, societyCreditsRate, federationCreditsRate, dollarsAllowed, rateUnit
 		});
 
 		await audit({

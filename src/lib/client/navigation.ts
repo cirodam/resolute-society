@@ -20,7 +20,8 @@ export const governanceTabs: NavTab[] = [
 export const treasuryTabs: NavTab[] = [
 	{ label: 'Overview', href: '/dashboard/treasury', exact: true },
 	{ label: 'Inflow', href: '/dashboard/treasury/inflow' },
-	{ label: 'Outflow', href: '/dashboard/treasury/outflow' }
+	{ label: 'Outflow', href: '/dashboard/treasury/outflow' },
+	{ label: 'Credit Peg', href: '/dashboard/treasury/peg' }
 ];
 
 export const directoryTabs: NavTab[] = [

@@ -20,7 +20,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const itemPage = parsePage(url, 'itemPage');
 	const servicePage = parsePage(url, 'servicePage');
 
-	const [itemListings, totalItems, serviceListings, totalServices, myItemListings, myServiceListings] =
+	const [itemListings, totalItems, serviceListings, totalServices, myItemListings, myServiceListings, pegConfig, pegLatest] =
 		await Promise.all([
 			repositories.market.listItemListings(societyId, PAGE_SIZE, pageOffset(itemPage, PAGE_SIZE)),
 			repositories.market.countItemListings(societyId),
@@ -31,8 +31,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				: Promise.resolve([]),
 			locals.person
 				? repositories.market.listServiceListingsByPerson(societyId, locals.person.id)
-				: Promise.resolve([])
+				: Promise.resolve([]),
+			repositories.creditPeg.getConfig(),
+			repositories.creditPeg.getLatestObservation()
 		]);
+
+	const dollarPerCredit =
+		pegConfig.creditsPerItem && pegLatest
+			? (pegLatest.price_cents / 100) / pegConfig.creditsPerItem
+			: null;
 
 	return {
 		society,
@@ -43,7 +50,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		servicePage,
 		serviceTotalPages: totalPages(totalServices, PAGE_SIZE),
 		myItemListings,
-		myServiceListings
+		myServiceListings,
+		dollarPerCredit
 	};
 };
 
@@ -64,6 +72,7 @@ export const actions: Actions = {
 		const category = formData.get('category')?.toString() || null;
 		const societyPriceStr = formData.get('society_credits_price')?.toString();
 		const federationPriceStr = formData.get('federation_credits_price')?.toString();
+		const dollarsAllowed = formData.get('dollars_allowed') === 'on';
 
 		if (!title || !description) {
 			return fail(400, { message: 'Title and description required' });
@@ -87,7 +96,8 @@ export const actions: Actions = {
 			title,
 			description,
 			societyCreditsPrice: societyPrice,
-			federationCreditsPrice: federationPrice
+			federationCreditsPrice: federationPrice,
+			dollarsAllowed
 		});
 
 		await audit({
@@ -115,6 +125,7 @@ export const actions: Actions = {
 		const societyRateStr = formData.get('society_credits_rate')?.toString();
 		const federationRateStr = formData.get('federation_credits_rate')?.toString();
 		const rateUnit = formData.get('rate_unit')?.toString() || null;
+		const dollarsAllowed = formData.get('dollars_allowed') === 'on';
 
 		if (!title || !description) {
 			return fail(400, { message: 'Title and description required' });
@@ -138,6 +149,7 @@ export const actions: Actions = {
 			description,
 			societyCreditsRate: societyRate,
 			federationCreditsRate: federationRate,
+			dollarsAllowed,
 			rateUnit
 		});
 

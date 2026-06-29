@@ -2,7 +2,7 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { formatLongDate } from '$lib/client/datetime';
-	import { formatRate } from '$lib/client/market';
+	import { formatRate, formatDollarEquivalent } from '$lib/client/market';
 	import ConfirmButton from '$lib/components/ConfirmButton.svelte';
 	import Subnav from '$lib/components/Subnav.svelte';
 
@@ -56,6 +56,9 @@
 					<span class="meta-label">Rate</span>
 					<span class="meta-value price">
 						{formatRate(data.listing.society_credits_rate, data.listing.federation_credits_rate, data.listing.rate_unit)}
+						{#if data.listing.dollars_allowed && data.dollarPerCredit !== null && data.listing.society_credits_rate !== null}
+							<span class="price-dollar">({formatDollarEquivalent(data.listing.society_credits_rate, data.dollarPerCredit)}{data.listing.rate_unit ? `/${data.listing.rate_unit}` : ''})</span>
+						{/if}
 					</span>
 				</div>
 				<div class="meta-row">
@@ -125,6 +128,12 @@
 						</select>
 					</div>
 				</div>
+				{#if data.dollarPerCredit !== null}
+					<label class="checkbox-label">
+						<input type="checkbox" name="dollars_allowed" checked={data.listing.dollars_allowed} />
+						Show dollar equivalent (inferred from credit peg)
+					</label>
+				{/if}
 				<div class="form-actions">
 					<button type="submit" class="btn btn--primary">Save Changes</button>
 					<button type="button" class="btn btn--secondary" onclick={() => (activeTab = 'Listing')}>Cancel</button>
@@ -211,6 +220,22 @@
 
 	.meta-link { text-decoration: none; color: inherit; }
 	.meta-link:hover { color: var(--gold); }
+
+	.price-dollar {
+		font-weight: 400;
+		font-size: var(--text-sm);
+		color: var(--ink-mid);
+	}
+
+	.checkbox-label {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-family: var(--font-prose);
+		font-size: var(--text-sm);
+		color: var(--ink-mid);
+		cursor: pointer;
+	}
 
 	.owner-actions { display: flex; gap: var(--space-3); }
 

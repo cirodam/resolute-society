@@ -217,6 +217,7 @@ CREATE TABLE IF NOT EXISTS item_listing (
 	description              TEXT NOT NULL,
 	society_credits_price    REAL,
 	federation_credits_price REAL,
+	dollars_allowed          BOOLEAN NOT NULL DEFAULT FALSE,
 	status                   TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'sold', 'closed')),
 	created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	closed_at                TIMESTAMPTZ,
@@ -234,6 +235,7 @@ CREATE TABLE IF NOT EXISTS service_listing (
 	description             TEXT NOT NULL,
 	society_credits_rate    REAL,
 	federation_credits_rate REAL,
+	dollars_allowed         BOOLEAN NOT NULL DEFAULT FALSE,
 	rate_unit               TEXT CHECK (rate_unit IN ('hour', 'job', 'day')),
 	status                  TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
 	created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -299,4 +301,15 @@ CREATE TABLE IF NOT EXISTS position_permission (
 );
 
 CREATE INDEX IF NOT EXISTS idx_position_permission_position ON position_permission(position_id);
+
+CREATE TABLE IF NOT EXISTS credit_peg_observation (
+	id             TEXT PRIMARY KEY,
+	observed_on    TEXT NOT NULL,
+	store_name     TEXT,
+	price_cents    INTEGER NOT NULL,
+	recorded_by_id TEXT REFERENCES person(id),
+	created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_credit_peg_observation_date ON credit_peg_observation(observed_on DESC);
 `;

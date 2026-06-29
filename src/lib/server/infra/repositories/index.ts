@@ -29,6 +29,7 @@ import { OutboundFedTxnRepository } from './outbound-fed-txn.repository';
 import { InboundFedTxnRepository } from './inbound-fed-txn.repository';
 import { FedMintEventRepository } from './fed-mint-event.repository';
 import { FedLedgerRepository } from './fed-ledger.repository';
+import { CreditPegRepository } from './credit-peg.repository';
 
 export type { EntityType } from './ledger.repository';
 
@@ -62,6 +63,7 @@ export interface Repositories {
 	inboundFedTxns: InboundFedTxnRepository;
 	fedMintEvents: FedMintEventRepository;
 	fedLedger: FedLedgerRepository;
+	creditPeg: CreditPegRepository;
 }
 
 let repositories: Repositories | null = null;
@@ -97,7 +99,8 @@ export function createRepositories(sql: postgres.Sql | postgres.TransactionSql =
 		outboundFedTxns: new OutboundFedTxnRepository(s),
 		inboundFedTxns: new InboundFedTxnRepository(s),
 		fedMintEvents: new FedMintEventRepository(s),
-		fedLedger: new FedLedgerRepository(s)
+		fedLedger: new FedLedgerRepository(s),
+		creditPeg: new CreditPegRepository(s)
 	};
 }
 
@@ -178,3 +181,5 @@ export { FedMintEventRepository } from './fed-mint-event.repository';
 export type { FedMintEventRow } from './fed-mint-event.repository';
 export { FedLedgerRepository } from './fed-ledger.repository';
 export type { FedTxnEntry } from './fed-ledger.repository';
+export { CreditPegRepository } from './credit-peg.repository';
+export type { CreditPegConfig, CreditPegObservationRow } from './credit-peg.repository';
